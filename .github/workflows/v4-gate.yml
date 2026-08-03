@@ -32,7 +32,7 @@ jobs:
           mv /tmp/godot-bin/Godot_v4.6.3-stable_linux.x86_64 /tmp/godot
           chmod +x /tmp/godot
 
-      - name: Run strict v0.4 audit
+      - name: Run strict v0.4.1 audit
         id: audit
         shell: bash
         run: |
@@ -46,29 +46,32 @@ jobs:
           regression_status=$?
           /tmp/godot --headless --path . --script res://tests/v4_audit.gd > validation/v4_audit.log 2>&1
           audit_status=$?
+          /tmp/godot --headless --path . --script res://tests/v4_quality_audit.gd > validation/v4_quality.log 2>&1
+          quality_status=$?
           /tmp/godot --headless --path . --quit-after 6 > validation/v4_boot.log 2>&1
           boot_status=$?
 
           fatal_pattern='SCRIPT ERROR|Parse Error|Failed to load script|Could not resolve class|Invalid call|Invalid access|Stack overflow|Assertion failed'
           log_status=0
-          if grep -Eqi "$fatal_pattern" validation/v4_import.log validation/v4_regression.log validation/v4_audit.log validation/v4_boot.log; then
+          if grep -Eqi "$fatal_pattern" validation/v4_import.log validation/v4_regression.log validation/v4_audit.log validation/v4_quality.log validation/v4_boot.log; then
             log_status=1
           fi
 
-          if [[ $import_status -eq 0 && $regression_status -eq 0 && $audit_status -eq 0 && $boot_status -eq 0 && $log_status -eq 0 ]]; then
+          if [[ $import_status -eq 0 && $regression_status -eq 0 && $audit_status -eq 0 && $quality_status -eq 0 && $boot_status -eq 0 && $log_status -eq 0 ]]; then
             result=PASS
           else
             result=FAIL
           fi
 
           {
-            echo '# EDEN//FALL v0.4 strict readiness audit'
+            echo '# EDEN//FALL v0.4.1 strict readiness audit'
             echo
             echo "- Result: **${result}**"
             echo "- Source commit: \`${checked_commit}\`"
             echo "- Import/parse exit: \`${import_status}\`"
             echo "- v3 regression exit: \`${regression_status}\`"
             echo "- v4 behavioral audit exit: \`${audit_status}\`"
+            echo "- v4.1 quality audit exit: \`${quality_status}\`"
             echo "- Main-scene boot exit: \`${boot_status}\`"
             echo "- Fatal log marker status: \`${log_status}\`"
             echo
@@ -78,6 +81,8 @@ jobs:
             echo
             echo '## v4 audit tail'; echo '```text'; tail -n 100 validation/v4_audit.log; echo '```'
             echo
+            echo '## v4.1 quality tail'; echo '```text'; tail -n 100 validation/v4_quality.log; echo '```'
+            echo
             echo '## Boot tail'; echo '```text'; tail -n 100 validation/v4_boot.log; echo '```'
           } > validation/V4_RESULT.md
 
@@ -85,6 +90,6 @@ jobs:
           echo "result=${result}" >> "$GITHUB_OUTPUT"
           exit 0
 
-      - name: Enforce v0.4 gate
+      - name: Enforce v0.4.1 gate
         if: steps.audit.outputs.result != 'PASS'
         run: exit 1
