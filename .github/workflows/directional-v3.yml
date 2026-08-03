@@ -135,6 +135,16 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # The source bundle contains the existing production gate for local validation.
+          # Restore all tracked workflows so the Actions token never attempts to modify them.
+          git checkout HEAD -- .github/workflows
+
+          # Do not persist editor caches or Python bytecode; Godot recreates them deterministically.
+          find assets -type f -name '*.import' -delete
+          find scripts tests -type f -name '*.uid' -delete
+          rm -rf tools/__pycache__
+
           git add -A
           git commit -m "Implement eight-direction gameplay UI HUD and strict audit"
           git pull --rebase origin godmode/ui-hud-directional-v3
