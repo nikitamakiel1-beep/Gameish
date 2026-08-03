@@ -29,22 +29,40 @@ jobs:
             echo "ready=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Reconstruct and validate archive
+      - name: Reconstruct and validate source capsule
         if: steps.staged.outputs.ready == 'true'
+        shell: bash
         run: |
-          cat .godmode/part_*.b64 | base64 --decode > /tmp/gameish-godmode.zip
-          unzip -t /tmp/gameish-godmode.zip
+          cat \
+            .godmode/xz_00.b64 \
+            .godmode/xz_01.b64 \
+            .godmode/xz_02.b64 \
+            .godmode/xz_03.b64 \
+            .godmode/xz_04.b64 \
+            .godmode/xz_05a.b64 \
+            .godmode/xz_05b.b64 \
+            .godmode/xz_05.b64 \
+            .godmode/xz_07a.b64 \
+            .godmode/xz_07b.b64 \
+            .godmode/xz_08a.b64 \
+            .godmode/xz_08b.b64 \
+            | tr -d '\r\n' \
+            | base64 --decode > /tmp/gameish-godmode.tar.xz
+          echo "1bb1e5a7ead18c25193541f166cbdeaa801e2c382582589f0057c8b5771f603f  /tmp/gameish-godmode.tar.xz" | sha256sum -c -
+          tar -tJf /tmp/gameish-godmode.tar.xz
 
       - name: Materialize production source
         if: steps.staged.outputs.ready == 'true'
+        shell: bash
         run: |
-          unzip -o /tmp/gameish-godmode.zip -d .
+          tar -xJf /tmp/gameish-godmode.tar.xz -C .
           rm -f scripts/game_core.gd scripts/game.gd scripts/game_data.gd scripts/game_runtime.gd
           rm -rf .godmode
           rm -f .github/workflows/godmode-bootstrap.yml
 
       - name: Commit materialized source
         if: steps.staged.outputs.ready == 'true'
+        shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
