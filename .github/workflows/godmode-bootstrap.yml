@@ -33,29 +33,66 @@ jobs:
         if: steps.staged.outputs.ready == 'true'
         shell: bash
         run: |
-          cat \
-            .godmode/xz_00.b64 \
-            .godmode/xz_01.b64 \
-            .godmode/xz_02.b64 \
-            .godmode/xz_03.b64 \
-            .godmode/xz_04.b64 \
-            .godmode/xz_05a.b64 \
-            .godmode/xz_05b.b64 \
-            .godmode/xz_05.b64 \
-            .godmode/xz_07a.b64 \
-            .godmode/xz_07b.b64 \
-            .godmode/xz_08a.b64 \
-            .godmode/xz_08b.b64 \
-            | tr -d '\r\n' \
-            | base64 --decode > /tmp/gameish-godmode.tar.xz
-          echo "f2f1685f284a46df517af6caa9f265f27eacf0bd711781e2b00295c4f6e77f34  /tmp/gameish-godmode.tar.xz" | sha256sum -c -
-          tar -tJf /tmp/gameish-godmode.tar.xz | tee /tmp/capsule-files.txt
-          test "$(wc -l < /tmp/capsule-files.txt)" -eq 16
-          grep -qx 'project.godot' /tmp/capsule-files.txt
-          grep -qx 'main.tscn' /tmp/capsule-files.txt
-          grep -qx 'scripts/game_director_v2.gd' /tmp/capsule-files.txt
-          grep -qx 'scripts/content_database.gd' /tmp/capsule-files.txt
-          grep -qx 'tests/content_validation.gd' /tmp/capsule-files.txt
+          python3 - <<'PY'
+          import base64
+          import hashlib
+          import io
+          import lzma
+          import pathlib
+          import subprocess
+          import tarfile
+
+          ordered = [
+              ('.godmode/xz_00.b64', '834786ffb514e8a92c3f76b29885b20c54b5718e'),
+              ('.godmode/xz_01.b64', 'b95d21f7f76545478acfdddcd0d50d6eefa01149'),
+              ('.godmode/xz_02.b64', 'b66acc61e5b3af757caa4d4ce26a16260e92b2cc'),
+              ('.godmode/xz_03.b64', '9dd85c7e7c52092a82fe4c5867cbca329762aff6'),
+              ('.godmode/xz_04.b64', '52b36714fd3e8aef9a2e195aeffce54ae5d49dc2'),
+              ('.godmode/xz_05a.b64', 'fb426ad6a77fecaaab2e8b19001d50f2978a1da3'),
+              ('.godmode/xz_05b.b64', '24d8e4a9787b5c8fb33dcc8f9372c3b90efad319'),
+              ('.godmode/xz_05.b64', 'c03ec6e6f8eb90c13647095298bb70d7df511efa'),
+              ('.godmode/xz_07a.b64', '34abfc07327cc7a65fc14362362d424d743ecaad'),
+              ('.godmode/xz_07b.b64', 'aead3dfdae2da4567471a5a85ac1cf79d2615eb8'),
+              ('.godmode/xz_08a.b64', '65f52d2043aaf2a33e4bc99bcdd59f8a92331ee6'),
+              ('.godmode/xz_08b.b64', 'ce050516dbc886cb9c9e2f8e66ef626a87a66e2d'),
+          ]
+
+          chunks = []
+          for filename, expected_blob in ordered:
+              path = pathlib.Path(filename)
+              raw = path.read_bytes()
+              actual_blob = subprocess.check_output(['git', 'hash-object', filename], text=True).strip()
+              if actual_blob != expected_blob:
+                  raise SystemExit(f'blob mismatch for {filename}: {actual_blob} != {expected_blob}')
+              chunks.append(raw.decode('ascii').replace('\r', '').replace('\n', ''))
+
+          encoded = ''.join(chunks)
+          capsule = base64.b64decode(encoded, validate=True)
+          actual_sha = hashlib.sha256(capsule).hexdigest()
+          expected_sha = '1bb1e5a7ead18c25acc908ff124daafc9a24a73d58a8ced3e1e958433708603f'
+          if actual_sha != expected_sha:
+              raise SystemExit(f'archive mismatch: {actual_sha} != {expected_sha}')
+
+          out = pathlib.Path('/tmp/gameish-godmode.tar.xz')
+          out.write_bytes(capsule)
+          decompressed = lzma.decompress(capsule)
+          with tarfile.open(fileobj=io.BytesIO(decompressed), mode='r:') as archive:
+              names = archive.getnames()
+
+          required = {
+              'project.godot',
+              'main.tscn',
+              'scripts/game_director_v2.gd',
+              'scripts/content_database.gd',
+              'tests/content_validation.gd',
+          }
+          if len(names) != 16:
+              raise SystemExit(f'expected 16 source files, found {len(names)}: {names}')
+          missing = sorted(required - set(names))
+          if missing:
+              raise SystemExit(f'missing required source files: {missing}')
+          print(f'validated source capsule {actual_sha} with {len(names)} files')
+          PY
 
       - name: Materialize production source
         if: steps.staged.outputs.ready == 'true'
