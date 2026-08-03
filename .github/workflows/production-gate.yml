@@ -1,18 +1,17 @@
 name: Production Gate
 
 on:
+  workflow_dispatch:
   push:
     branches: [godmode/production-expansion]
     paths-ignore:
       - 'validation/**'
-  pull_request:
-    branches: [main]
 
 permissions:
   contents: write
 
 concurrency:
-  group: production-gate-${{ github.ref }}
+  group: production-gate-godmode-production-expansion
   cancel-in-progress: true
 
 jobs:
@@ -40,6 +39,7 @@ jobs:
         run: |
           set +e
           mkdir -p validation
+          checked_commit="$(git rev-parse HEAD)"
           /tmp/godot --headless --editor --path . --quit > validation/import.log 2>&1
           import_status=$?
           /tmp/godot --headless --path . --script res://tests/content_validation.gd > validation/content.log 2>&1
@@ -57,7 +57,7 @@ jobs:
             echo '# EDEN//FALL production validation'
             echo
             echo "- Result: **${result}**"
-            echo "- Source commit: \`${GITHUB_SHA}\`"
+            echo "- Source commit: \`${checked_commit}\`"
             echo "- Import/parse exit: \`${import_status}\`"
             echo "- Content contract exit: \`${content_status}\`"
             echo "- Main-scene boot exit: \`${boot_status}\`"
@@ -78,6 +78,7 @@ jobs:
             echo '```'
           } > validation/RESULT.md
 
+          cat validation/RESULT.md
           echo "result=${result}" >> "$GITHUB_OUTPUT"
           echo "import_status=${import_status}" >> "$GITHUB_OUTPUT"
           echo "content_status=${content_status}" >> "$GITHUB_OUTPUT"
@@ -92,10 +93,11 @@ jobs:
           git add validation
           if git diff --cached --quiet; then
             echo 'Validation receipt unchanged.'
-          else
-            git commit -m "Record EDEN FALL production validation"
-            git push origin HEAD:godmode/production-expansion
+            exit 0
           fi
+          git commit -m "Record EDEN FALL production validation"
+          git pull --rebase origin godmode/production-expansion
+          git push origin HEAD:godmode/production-expansion
 
       - name: Enforce gate
         if: steps.checks.outputs.result != 'PASS'
