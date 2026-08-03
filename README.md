@@ -22,10 +22,10 @@ Implemented:
 - Persistent local save in `user://edenfall_save.json`.
 - Original procedural vector visuals with no external art dependency.
 - Headless parse/boot workflow for GitHub Actions.
+- Godot 4.6.3 headless import, script parsing, and main-scene boot validated successfully.
 
 Not yet production-complete:
 
-- The first CI validation result is still pending.
 - Production sprites, animation, sound, music, haptics, accessibility, balancing, localization, analytics, crash reporting, and final App Store assets are not included yet.
 - Nakama cloud saves and leaderboards are designed as an optional later layer and are not a runtime dependency.
 
