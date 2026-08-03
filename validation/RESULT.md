@@ -1,7 +1,7 @@
 # EDEN//FALL production validation
 
 - Result: **FAIL**
-- Source commit: `ba879e962284daeaddb39cf1168811c50de08143`
+- Source commit: `0660a2dc1555a8cd99c2c72dc472683065ce1b27`
 - Import/parse exit: `0`
 - Content contract exit: `1`
 - Main-scene boot exit: `0`
@@ -58,6 +58,18 @@ ERROR: Condition "error != OK" is true.
 [0m
 SCRIPT ERROR: Parse Error: Could not resolve class "res://scripts/game.gd".
           at: GDScript::reload (res://scripts/game_runtime.gd:1)
+SCRIPT ERROR: Parse Error: Invalid argument for "draw_texture_rect_region()" function: argument 1 should be "Texture2D" but is "Rect2".
+          at: GDScript::reload (res://scripts/game_runtime.gd:206)
+SCRIPT ERROR: Parse Error: Invalid argument for "draw_texture_rect_region()" function: argument 2 should be "Rect2" but is "Texture2D".
+          at: GDScript::reload (res://scripts/game_runtime.gd:206)
+SCRIPT ERROR: Parse Error: Cannot infer the type of "fps" variable because the value doesn't have a set type.
+          at: GDScript::reload (res://scripts/game_runtime.gd:226)
+SCRIPT ERROR: Parse Error: Cannot infer the type of "flip" variable because the value doesn't have a set type.
+          at: GDScript::reload (res://scripts/game_runtime.gd:277)
+SCRIPT ERROR: Parse Error: Invalid argument for "draw_texture_rect_region()" function: argument 1 should be "Texture2D" but is "Rect2".
+          at: GDScript::reload (res://scripts/game_runtime.gd:333)
+SCRIPT ERROR: Parse Error: Invalid argument for "draw_texture_rect_region()" function: argument 2 should be "Rect2" but is "Texture2D".
+          at: GDScript::reload (res://scripts/game_runtime.gd:333)
 ERROR: Failed to load script "res://scripts/game_runtime.gd" with error "Parse error".
    at: load (modules/gdscript/gdscript.cpp:2907)
 ```
@@ -92,6 +104,18 @@ ERROR: Failed loading resource: res://default_bus_layout.tres.
    at: _load (core/io/resource_loader.cpp:343)
 SCRIPT ERROR: Parse Error: Could not resolve class "res://scripts/game.gd".
           at: GDScript::reload (res://scripts/game_runtime.gd:1)
+SCRIPT ERROR: Parse Error: Invalid argument for "draw_texture_rect_region()" function: argument 1 should be "Texture2D" but is "Rect2".
+          at: GDScript::reload (res://scripts/game_runtime.gd:206)
+SCRIPT ERROR: Parse Error: Invalid argument for "draw_texture_rect_region()" function: argument 2 should be "Rect2" but is "Texture2D".
+          at: GDScript::reload (res://scripts/game_runtime.gd:206)
+SCRIPT ERROR: Parse Error: Cannot infer the type of "fps" variable because the value doesn't have a set type.
+          at: GDScript::reload (res://scripts/game_runtime.gd:226)
+SCRIPT ERROR: Parse Error: Cannot infer the type of "flip" variable because the value doesn't have a set type.
+          at: GDScript::reload (res://scripts/game_runtime.gd:277)
+SCRIPT ERROR: Parse Error: Invalid argument for "draw_texture_rect_region()" function: argument 1 should be "Texture2D" but is "Rect2".
+          at: GDScript::reload (res://scripts/game_runtime.gd:333)
+SCRIPT ERROR: Parse Error: Invalid argument for "draw_texture_rect_region()" function: argument 2 should be "Rect2" but is "Texture2D".
+          at: GDScript::reload (res://scripts/game_runtime.gd:333)
 ERROR: Failed to load script "res://scripts/game_runtime.gd" with error "Parse error".
    at: load (modules/gdscript/gdscript.cpp:2907)
 ```
