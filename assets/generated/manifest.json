@@ -1057,6 +1057,11 @@
   },
   "files": [
     {
+      "path": "ASSET_NOTICE.txt",
+      "sha256": "112a6d5ce24fb009c4eec967746cf03fe0705ccb436781ebd2e671a6b6a7a596",
+      "bytes": 309
+    },
+    {
       "path": "audio/ambience/biome_01.wav",
       "sha256": "c15a303c2d9f9f865d1dc71db00bf95e10477ec66b9bb198e9f63c5b78377e2a",
       "bytes": 793844
@@ -1370,6 +1375,11 @@
       "path": "items/relics.png",
       "sha256": "23ddc6fa54c3cb0acc99093732f9f28a808332be065ea9d8c579f68daef2d97a",
       "bytes": 2385
+    },
+    {
+      "path": "manifest.json",
+      "sha256": "39ae14b71fe643a5106d509af0e73b2944ba9a3b5cd27ea7b911b5fd8d875afe",
+      "bytes": 33022
     },
     {
       "path": "players/abel.png",
