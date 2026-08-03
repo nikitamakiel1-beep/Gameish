@@ -48,8 +48,14 @@ jobs:
             .godmode/xz_08b.b64 \
             | tr -d '\r\n' \
             | base64 --decode > /tmp/gameish-godmode.tar.xz
-          echo "1bb1e5a7ead18c25193541f166cbdeaa801e2c382582589f0057c8b5771f603f  /tmp/gameish-godmode.tar.xz" | sha256sum -c -
-          tar -tJf /tmp/gameish-godmode.tar.xz
+          echo "f2f1685f284a46df517af6caa9f265f27eacf0bd711781e2b00295c4f6e77f34  /tmp/gameish-godmode.tar.xz" | sha256sum -c -
+          tar -tJf /tmp/gameish-godmode.tar.xz | tee /tmp/capsule-files.txt
+          test "$(wc -l < /tmp/capsule-files.txt)" -eq 16
+          grep -qx 'project.godot' /tmp/capsule-files.txt
+          grep -qx 'main.tscn' /tmp/capsule-files.txt
+          grep -qx 'scripts/game_director_v2.gd' /tmp/capsule-files.txt
+          grep -qx 'scripts/content_database.gd' /tmp/capsule-files.txt
+          grep -qx 'tests/content_validation.gd' /tmp/capsule-files.txt
 
       - name: Materialize production source
         if: steps.staged.outputs.ready == 'true'
@@ -58,7 +64,7 @@ jobs:
           tar -xJf /tmp/gameish-godmode.tar.xz -C .
           rm -f scripts/game_core.gd scripts/game.gd scripts/game_data.gd scripts/game_runtime.gd
           rm -rf .godmode
-          rm -f .github/workflows/godmode-bootstrap.yml
+          rm -f .github/workflows/godmode-bootstrap.yml .github/workflows/bootstrap_godmode.yml
 
       - name: Commit materialized source
         if: steps.staged.outputs.ready == 'true'
