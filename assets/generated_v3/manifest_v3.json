@@ -1,0 +1,943 @@
+{
+  "actions": [
+    "idle",
+    "walk",
+    "attack",
+    "dash",
+    "hurt",
+    "death"
+  ],
+  "bosses": {
+    "first_nephilim": {
+      "actions": {
+        "attack": 1,
+        "death": 3,
+        "idle": 0,
+        "phase": 2
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        96,
+        96
+      ],
+      "frames": 8,
+      "row_formula": "action*8+direction"
+    },
+    "gate_cherub": {
+      "actions": {
+        "attack": 1,
+        "death": 3,
+        "idle": 0,
+        "phase": 2
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        96,
+        96
+      ],
+      "frames": 8,
+      "row_formula": "action*8+direction"
+    },
+    "serpent_interface": {
+      "actions": {
+        "attack": 1,
+        "death": 3,
+        "idle": 0,
+        "phase": 2
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        96,
+        96
+      ],
+      "frames": 8,
+      "row_formula": "action*8+direction"
+    },
+    "tower_enoch": {
+      "actions": {
+        "attack": 1,
+        "death": 3,
+        "idle": 0,
+        "phase": 2
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        96,
+        96
+      ],
+      "frames": 8,
+      "row_formula": "action*8+direction"
+    },
+    "watcher_engine": {
+      "actions": {
+        "attack": 1,
+        "death": 3,
+        "idle": 0,
+        "phase": 2
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        96,
+        96
+      ],
+      "frames": 8,
+      "row_formula": "action*8+direction"
+    }
+  },
+  "directions": [
+    "N",
+    "NE",
+    "E",
+    "SE",
+    "S",
+    "SW",
+    "W",
+    "NW"
+  ],
+  "enemies": {
+    "biomech_pilgrim": {
+      "actions": {
+        "attack": 2,
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "walk": 1
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated_v3/enemies/biomech_pilgrim.png",
+      "row_formula": "action*8+direction"
+    },
+    "bone_shepherd": {
+      "actions": {
+        "attack": 2,
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "walk": 1
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated_v3/enemies/bone_shepherd.png",
+      "row_formula": "action*8+direction"
+    },
+    "caravan_outlaw": {
+      "actions": {
+        "attack": 2,
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "walk": 1
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated_v3/enemies/caravan_outlaw.png",
+      "row_formula": "action*8+direction"
+    },
+    "cherub_drone": {
+      "actions": {
+        "attack": 2,
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "walk": 1
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated_v3/enemies/cherub_drone.png",
+      "row_formula": "action*8+direction"
+    },
+    "fallen_angel": {
+      "actions": {
+        "attack": 2,
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "walk": 1
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated_v3/enemies/fallen_angel.png",
+      "row_formula": "action*8+direction"
+    },
+    "feral_scavenger": {
+      "actions": {
+        "attack": 2,
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "walk": 1
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated_v3/enemies/feral_scavenger.png",
+      "row_formula": "action*8+direction"
+    },
+    "grafted_colossus": {
+      "actions": {
+        "attack": 2,
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "walk": 1
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated_v3/enemies/grafted_colossus.png",
+      "row_formula": "action*8+direction"
+    },
+    "halo_sentinel": {
+      "actions": {
+        "attack": 2,
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "walk": 1
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated_v3/enemies/halo_sentinel.png",
+      "row_formula": "action*8+direction"
+    },
+    "horned_berserker": {
+      "actions": {
+        "attack": 2,
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "walk": 1
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated_v3/enemies/horned_berserker.png",
+      "row_formula": "action*8+direction"
+    },
+    "nephilim_giant": {
+      "actions": {
+        "attack": 2,
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "walk": 1
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated_v3/enemies/nephilim_giant.png",
+      "row_formula": "action*8+direction"
+    },
+    "nephilim_husk": {
+      "actions": {
+        "attack": 2,
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "walk": 1
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated_v3/enemies/nephilim_husk.png",
+      "row_formula": "action*8+direction"
+    },
+    "ophanim_scout": {
+      "actions": {
+        "attack": 2,
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "walk": 1
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated_v3/enemies/ophanim_scout.png",
+      "row_formula": "action*8+direction"
+    },
+    "outlaw_gunner": {
+      "actions": {
+        "attack": 2,
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "walk": 1
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated_v3/enemies/outlaw_gunner.png",
+      "row_formula": "action*8+direction"
+    },
+    "raider_brute": {
+      "actions": {
+        "attack": 2,
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "walk": 1
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated_v3/enemies/raider_brute.png",
+      "row_formula": "action*8+direction"
+    },
+    "scrap_cultist": {
+      "actions": {
+        "attack": 2,
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "walk": 1
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated_v3/enemies/scrap_cultist.png",
+      "row_formula": "action*8+direction"
+    },
+    "serpent_spawn": {
+      "actions": {
+        "attack": 2,
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "walk": 1
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated_v3/enemies/serpent_spawn.png",
+      "row_formula": "action*8+direction"
+    },
+    "wasteland_hunter": {
+      "actions": {
+        "attack": 2,
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "walk": 1
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated_v3/enemies/wasteland_hunter.png",
+      "row_formula": "action*8+direction"
+    },
+    "watcher_acolyte": {
+      "actions": {
+        "attack": 2,
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "walk": 1
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated_v3/enemies/watcher_acolyte.png",
+      "row_formula": "action*8+direction"
+    }
+  },
+  "files": [
+    {
+      "bytes": 178448,
+      "path": "bosses/first_nephilim.png",
+      "sha256": "4b819ccd9761c5cfd976cbfb540c8d35848646dceac6a216eb7d266d0e33e838"
+    },
+    {
+      "bytes": 178471,
+      "path": "bosses/gate_cherub.png",
+      "sha256": "33f9c6c3d2e0649c595db1327d5f6b2fba962ba5ee7d2aef9970cac1d0c8d80f"
+    },
+    {
+      "bytes": 178428,
+      "path": "bosses/serpent_interface.png",
+      "sha256": "5e12f8d7b9c7146274de82d35e44548aeb8dccb5e7c56847338ba4ca70ef2b9b"
+    },
+    {
+      "bytes": 178485,
+      "path": "bosses/tower_enoch.png",
+      "sha256": "4655a1f7f4abd6f236b37904f71f948dcef0d6303f4f4e6a6d11b79a02444f39"
+    },
+    {
+      "bytes": 178471,
+      "path": "bosses/watcher_engine.png",
+      "sha256": "c76bc905a5452a789894c376be8e5034cdd80d36b502c15eead63965479dfe45"
+    },
+    {
+      "bytes": 59034,
+      "path": "enemies/biomech_pilgrim.png",
+      "sha256": "a7111782e7bffa8c3ba31c8cd1851cf8b57e74e3db7c9b5bf666e945cc513b89"
+    },
+    {
+      "bytes": 51312,
+      "path": "enemies/bone_shepherd.png",
+      "sha256": "38943c9d27f6641274edd5f622c4ae71ec6fc16f740da36a87da946e9e56a005"
+    },
+    {
+      "bytes": 47920,
+      "path": "enemies/caravan_outlaw.png",
+      "sha256": "f61ade9d92662b2abf681e784d0d9631a035fcfbf0ce55e0769be0f9e3e955c6"
+    },
+    {
+      "bytes": 49491,
+      "path": "enemies/cherub_drone.png",
+      "sha256": "45a05d7a4b0c27fbd8bb7b9a8b54740d5a3576b2f7821dc52238c172d2d133ba"
+    },
+    {
+      "bytes": 57532,
+      "path": "enemies/fallen_angel.png",
+      "sha256": "640168d422e3ddb9e5514732b62d4212d9a2683d6008e97235cf560469f02eb2"
+    },
+    {
+      "bytes": 51264,
+      "path": "enemies/feral_scavenger.png",
+      "sha256": "c6aacfc0f47d4dad5433edb133036a90e9b4155c828060c57a823a1969f16510"
+    },
+    {
+      "bytes": 57454,
+      "path": "enemies/grafted_colossus.png",
+      "sha256": "9d0091f08802e69ebae94bb1c023a4810240320446d1acc8be73605f9496683a"
+    },
+    {
+      "bytes": 50143,
+      "path": "enemies/halo_sentinel.png",
+      "sha256": "1ca13e9eac218e66ab3d02e38c669f1cee09c183e3b9e8513ce2043075d23463"
+    },
+    {
+      "bytes": 47568,
+      "path": "enemies/horned_berserker.png",
+      "sha256": "5338302cab264bd38379b86be7e6352409ac68802ca5387fb67bf67176a69309"
+    },
+    {
+      "bytes": 58285,
+      "path": "enemies/nephilim_giant.png",
+      "sha256": "29e117b4b2069a95156a1564cb0d592b8eb4e95e011ea3420a42202341e8e04b"
+    },
+    {
+      "bytes": 49003,
+      "path": "enemies/nephilim_husk.png",
+      "sha256": "8e1729c28e367d2145fefeab89767c59a43f6b1aeaa0d943dd343395654346d1"
+    },
+    {
+      "bytes": 47246,
+      "path": "enemies/ophanim_scout.png",
+      "sha256": "02a5dd11ba7553483e144568c658b4e18f9697007970455d7f84406abf135e11"
+    },
+    {
+      "bytes": 58152,
+      "path": "enemies/outlaw_gunner.png",
+      "sha256": "735198443d48da38dafb86d2a242a1ab4908087726d630ba64f5eda4bcf7aee0"
+    },
+    {
+      "bytes": 46989,
+      "path": "enemies/raider_brute.png",
+      "sha256": "e7afcb6306c8a1c60b8c246f6761df099a17c023b58a339c852756d2d339fafa"
+    },
+    {
+      "bytes": 57495,
+      "path": "enemies/scrap_cultist.png",
+      "sha256": "19251a534946f6676fc6c90587740c1c333f50264d5c0c2ba8387b213d46ba66"
+    },
+    {
+      "bytes": 46429,
+      "path": "enemies/serpent_spawn.png",
+      "sha256": "0295387e0afba02729470da62b7f2eac50edb48748d09b2f7a453bbaeecb2830"
+    },
+    {
+      "bytes": 50344,
+      "path": "enemies/wasteland_hunter.png",
+      "sha256": "c59f56fe139a10441345ba67271076830580030f595e23380e7697eae7cb7ad9"
+    },
+    {
+      "bytes": 47002,
+      "path": "enemies/watcher_acolyte.png",
+      "sha256": "b94ee19e044a73648e22d120b9f2192dafbed0fa380675d69aa1d513bed782a7"
+    },
+    {
+      "bytes": 47042,
+      "path": "players/abel.png",
+      "sha256": "51e9d2dfb1a4d65472e144180e4574df13f5df3892c493d8281d60f361732635"
+    },
+    {
+      "bytes": 48074,
+      "path": "players/adam.png",
+      "sha256": "df26e13ab4ea10da44bd5db0b841124f3e417fdb1067b2a02eac8c705a85c27a"
+    },
+    {
+      "bytes": 46553,
+      "path": "players/cain.png",
+      "sha256": "5b8251e10e6b7c35617664a62d5d439d77a74f524cd0568dcd6f31f288a84550"
+    },
+    {
+      "bytes": 46405,
+      "path": "players/naamah.png",
+      "sha256": "907ce1d2717c1baa42f13ce5c3456f4fabf4dfe8665f5d17a412a472b953f877"
+    },
+    {
+      "bytes": 47247,
+      "path": "players/seth.png",
+      "sha256": "ea89f494fffa01bd57e72afe8b478aabbbccf4c3bf1c11a9b08fbc4e5b42574a"
+    },
+    {
+      "bytes": 629,
+      "path": "ui/hud_icons.png",
+      "sha256": "40af4d9672765471514630730cfa388f70cf3788b258921c3df2adcaa79ddcb2"
+    }
+  ],
+  "players": {
+    "abel": {
+      "actions": {
+        "attack": 2,
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "walk": 1
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated_v3/players/abel.png",
+      "row_formula": "action*8+direction"
+    },
+    "adam": {
+      "actions": {
+        "attack": 2,
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "walk": 1
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated_v3/players/adam.png",
+      "row_formula": "action*8+direction"
+    },
+    "cain": {
+      "actions": {
+        "attack": 2,
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "walk": 1
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated_v3/players/cain.png",
+      "row_formula": "action*8+direction"
+    },
+    "naamah": {
+      "actions": {
+        "attack": 2,
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "walk": 1
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated_v3/players/naamah.png",
+      "row_formula": "action*8+direction"
+    },
+    "seth": {
+      "actions": {
+        "attack": 2,
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "walk": 1
+      },
+      "directions": [
+        "N",
+        "NE",
+        "E",
+        "SE",
+        "S",
+        "SW",
+        "W",
+        "NW"
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated_v3/players/seth.png",
+      "row_formula": "action*8+direction"
+    }
+  },
+  "ui": {
+    "hud_icons": {
+      "columns": 4,
+      "frame": [
+        16,
+        16
+      ],
+      "icons": {
+        "ability": 5,
+        "accessibility": 12,
+        "audio": 10,
+        "dash": 4,
+        "genome": 3,
+        "haptics": 11,
+        "health": 0,
+        "interact": 6,
+        "map": 8,
+        "objective": 13,
+        "pause": 7,
+        "relic": 15,
+        "scrap": 2,
+        "settings": 9,
+        "shield": 1,
+        "weapon": 14
+      },
+      "rows": 4
+    }
+  },
+  "version": 3
+}

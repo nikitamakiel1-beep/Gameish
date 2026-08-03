@@ -1,0 +1,155 @@
+name: EDEN FALL v3 Directional UI Gate
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [godmode/ui-hud-directional-v3]
+    paths:
+      - 'tools/install_v3.py'
+      - 'tools/patch_v3.py'
+      - '.github/workflows/directional-v3.yml'
+  pull_request:
+    branches: [godmode/production-expansion, main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: eden-fall-v3-directional-ui
+  cancel-in-progress: true
+
+jobs:
+  materialize-and-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: godmode/ui-hud-directional-v3
+          persist-credentials: true
+
+      - name: Detect staged implementation
+        id: staged
+        shell: bash
+        run: |
+          if [[ -f tools/install_v3.py ]]; then
+            echo 'present=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'present=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Materialize v3 runtime package
+        if: steps.staged.outputs.present == 'true'
+        run: |
+          python3 tools/install_v3.py
+          if [[ -f tools/patch_v3.py ]]; then python3 tools/patch_v3.py; fi
+
+      - name: Generate eight-direction assets
+        if: steps.staged.outputs.present == 'true'
+        run: python3 tools/generate_directional_assets.py --out assets/generated_v3
+
+      - name: Validate generated atlas structures
+        run: |
+          python3 - <<'PY'
+          import json, pathlib, struct
+          root = pathlib.Path('assets/generated_v3')
+          manifest = json.loads((root / 'manifest_v3.json').read_text())
+          assert manifest['version'] == 3
+          assert manifest['directions'] == ['N','NE','E','SE','S','SW','W','NW']
+          assert len(manifest['players']) == 5
+          assert len(manifest['enemies']) == 18
+          assert len(manifest['bosses']) == 5
+          assert len(manifest['files']) == 29
+          expected = {
+              'players/adam.png': (384, 2304),
+              'enemies/feral_scavenger.png': (384, 2304),
+              'bosses/watcher_engine.png': (768, 3072),
+              'ui/hud_icons.png': (64, 64),
+          }
+          for rel, dims in expected.items():
+              data = (root / rel).read_bytes()
+              assert data[:8] == b'\x89PNG\r\n\x1a\n'
+              assert struct.unpack('>II', data[16:24]) == dims
+          print('Directional atlas structure validated')
+          PY
+
+      - name: Install Godot 4.6.3
+        run: |
+          curl -L --fail --retry 3 -o /tmp/godot.zip \
+            https://github.com/godotengine/godot-builds/releases/download/4.6.3-stable/Godot_v4.6.3-stable_linux.x86_64.zip
+          unzip -q /tmp/godot.zip -d /tmp/godot-bin
+          mv /tmp/godot-bin/Godot_v4.6.3-stable_linux.x86_64 /tmp/godot
+          chmod +x /tmp/godot
+
+      - name: Run strict import, directional contract and boot audit
+        id: audit
+        shell: bash
+        run: |
+          set +e
+          mkdir -p validation
+          checked_commit="$(git rev-parse HEAD)"
+          /tmp/godot --headless --editor --path . --quit > validation/v3_import.log 2>&1
+          import_status=$?
+          /tmp/godot --headless --path . --script res://tests/v3_audit.gd > validation/v3_audit.log 2>&1
+          audit_status=$?
+          /tmp/godot --headless --path . --quit-after 5 > validation/v3_boot.log 2>&1
+          boot_status=$?
+
+          fatal_pattern='SCRIPT ERROR|Parse Error|Failed to load script|Could not resolve class|Invalid call|Invalid access|Stack overflow'
+          log_status=0
+          if grep -Eqi "$fatal_pattern" validation/v3_import.log validation/v3_audit.log validation/v3_boot.log; then
+            log_status=1
+          fi
+          if [[ $import_status -eq 0 && $audit_status -eq 0 && $boot_status -eq 0 && $log_status -eq 0 ]]; then
+            result=PASS
+          else
+            result=FAIL
+          fi
+
+          {
+            echo '# EDEN//FALL v0.3 strict readiness audit'
+            echo
+            echo "- Result: **${result}**"
+            echo "- Source commit: \`${checked_commit}\`"
+            echo "- Import/parse exit: \`${import_status}\`"
+            echo "- Directional/content audit exit: \`${audit_status}\`"
+            echo "- Main-scene boot exit: \`${boot_status}\`"
+            echo "- Fatal log marker status: \`${log_status}\`"
+            echo
+            echo '## Import tail'; echo '```text'; tail -n 120 validation/v3_import.log; echo '```'
+            echo
+            echo '## Audit tail'; echo '```text'; tail -n 120 validation/v3_audit.log; echo '```'
+            echo
+            echo '## Boot tail'; echo '```text'; tail -n 120 validation/v3_boot.log; echo '```'
+          } > validation/V3_RESULT.md
+          cat validation/V3_RESULT.md
+          echo "result=${result}" >> "$GITHUB_OUTPUT"
+
+      - name: Remove one-time staging after a green audit
+        if: steps.audit.outputs.result == 'PASS' && steps.staged.outputs.present == 'true'
+        run: rm -rf .v3 .v3b tools/install_v3.py tools/patch_v3.py
+
+      - name: Commit materialized implementation and audit receipt
+        if: steps.audit.outputs.result == 'PASS' && steps.staged.outputs.present == 'true'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # The source bundle contains the existing production gate for local validation.
+          # Restore all tracked workflows so the Actions token never attempts to modify them.
+          git checkout HEAD -- .github/workflows
+
+          # Do not persist editor caches or Python bytecode; Godot recreates them deterministically.
+          find assets -type f -name '*.import' -delete
+          find scripts tests -type f -name '*.uid' -delete
+          rm -rf tools/__pycache__
+
+          git add -A
+          git commit -m "Implement eight-direction gameplay UI HUD and strict audit"
+          git pull --rebase origin godmode/ui-hud-directional-v3
+          git push origin HEAD:godmode/ui-hud-directional-v3
+
+      - name: Enforce strict gate
+        if: steps.audit.outputs.result != 'PASS'
+        run: exit 1
