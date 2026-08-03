@@ -9,12 +9,13 @@ permissions:
 
 jobs:
   materialize:
-    if: ${{ hashFiles('.godmode/READY') != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: godmode/production-expansion
+      - name: Check trigger
+        run: test -f .godmode/READY
       - name: Reconstruct and validate archive
         run: |
           cat .godmode/part_*.b64 | base64 --decode > /tmp/gameish-godmode.zip
