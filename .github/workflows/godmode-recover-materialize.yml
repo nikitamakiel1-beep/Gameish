@@ -1,0 +1,128 @@
+name: Recover and Materialize Godmode Expansion
+
+on:
+  push:
+    branches: [godmode/production-expansion]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: godmode-materialization
+  cancel-in-progress: false
+
+jobs:
+  recover-materialize:
+    if: github.head_ref == 'godmode/production-expansion' || github.ref == 'refs/heads/godmode/production-expansion'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: godmode/production-expansion
+          persist-credentials: true
+
+      - name: Recover validated capsule ordering
+        shell: bash
+        run: |
+          test -f .godmode/COMPLETE
+          python3 - <<'PY'
+          import base64
+          import hashlib
+          import io
+          import itertools
+          import lzma
+          import pathlib
+          import tarfile
+
+          fixed_paths = [
+              '.godmode/xz_00.b64',
+              '.godmode/xz_01.b64',
+              '.godmode/xz_02.b64',
+              '.godmode/xz_03.b64',
+              '.godmode/xz_04.b64',
+          ]
+          tail_paths = [
+              '.godmode/xz_05a.b64',
+              '.godmode/xz_05b.b64',
+              '.godmode/xz_05.b64',
+              '.godmode/xz_07a.b64',
+              '.godmode/xz_07b.b64',
+              '.godmode/xz_08a.b64',
+              '.godmode/xz_08b.b64',
+          ]
+
+          required = {
+              'project.godot',
+              'main.tscn',
+              'README.md',
+              'THIRD_PARTY_NOTICES.md',
+              '.github/workflows/validate.yml',
+              'docs/CONTENT_CATALOG.md',
+              'docs/GODMODE_EXPANSION.md',
+              'scripts/game_director_v2.gd',
+              'scripts/content_database.gd',
+              'scripts/colonial_ai_director.gd',
+              'scripts/roguelike_foundation.gd',
+              'scripts/procedural_sprites.gd',
+              'scripts/procedural_audio.gd',
+              'scripts/platform_services.gd',
+              'scripts/save_system.gd',
+              'tests/content_validation.gd',
+          }
+
+          def decode(path: str) -> bytes:
+              text = pathlib.Path(path).read_text(encoding='ascii').replace('\r', '').replace('\n', '')
+              return base64.b64decode(text, validate=True)
+
+          fixed = [decode(path) for path in fixed_paths]
+          tail = {path: decode(path) for path in tail_paths}
+          output = pathlib.Path('/tmp/gameish-godmode.tar.xz')
+
+          for permutation in itertools.permutations(tail_paths):
+              capsule = b''.join(fixed + [tail[path] for path in permutation])
+              try:
+                  decompressed = lzma.decompress(capsule)
+                  with tarfile.open(fileobj=io.BytesIO(decompressed), mode='r:') as archive:
+                      names = archive.getnames()
+              except (lzma.LZMAError, tarfile.TarError, EOFError):
+                  continue
+
+              if len(names) != 16 or set(names) != required:
+                  continue
+
+              output.write_bytes(capsule)
+              digest = hashlib.sha256(capsule).hexdigest()
+              print('Recovered capsule SHA-256:', digest)
+              print('Recovered tail order:')
+              for path in permutation:
+                  print(' -', path)
+              print('Validated files:')
+              for name in names:
+                  print(' -', name)
+              break
+          else:
+              raise SystemExit('No tail ordering produced the exact valid 16-file source capsule')
+          PY
+
+      - name: Materialize production source
+        shell: bash
+        run: |
+          tar -xJf /tmp/gameish-godmode.tar.xz -C .
+          rm -f scripts/game_core.gd scripts/game.gd scripts/game_data.gd scripts/game_runtime.gd
+          rm -rf .godmode
+          rm -f \
+            .github/workflows/godmode-bootstrap.yml \
+            .github/workflows/bootstrap_godmode.yml \
+            .github/workflows/godmode-recover-materialize.yml
+
+      - name: Commit production source
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Materialize EDEN FALL production expansion"
+          git push origin HEAD:godmode/production-expansion
