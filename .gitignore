@@ -1,0 +1,28 @@
+# Godot generated files
+.godot/
+.import/
+
+# Export output
+build/
+exports/
+*.ipa
+*.xcarchive
+
+# Local credentials and platform files
+.env
+.env.*
+!.env.example
+*.mobileprovision
+*.p12
+*.cer
+*.provisionprofile
+
+# IDE and OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local backend data
+backend/nakama/data/
+backend/nakama/postgres-data/
