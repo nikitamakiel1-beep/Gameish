@@ -18,19 +18,33 @@ jobs:
         with:
           ref: godmode/production-expansion
           persist-credentials: true
-      - name: Check trigger
-        run: test -f .godmode/READY
+
+      - name: Detect complete staged bundle
+        id: staged
+        shell: bash
+        run: |
+          if [[ -f .godmode/COMPLETE ]]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Reconstruct and validate archive
+        if: steps.staged.outputs.ready == 'true'
         run: |
           cat .godmode/part_*.b64 | base64 --decode > /tmp/gameish-godmode.zip
           unzip -t /tmp/gameish-godmode.zip
+
       - name: Materialize production source
+        if: steps.staged.outputs.ready == 'true'
         run: |
           unzip -o /tmp/gameish-godmode.zip -d .
           rm -f scripts/game_core.gd scripts/game.gd scripts/game_data.gd scripts/game_runtime.gd
           rm -rf .godmode
           rm -f .github/workflows/godmode-bootstrap.yml
+
       - name: Commit materialized source
+        if: steps.staged.outputs.ready == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
