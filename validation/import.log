@@ -292,7 +292,7 @@ Godot Engine v4.6.3.stable.official.7d41c59c4 - https://godotengine.org
 [  16% ] [90m[1mloading_editor_layout[22m | Loading docks...[39m[0m
 [92m[ DONE ][39m [1mloading_editor_layout[22m
 [0m
-SCRIPT ERROR: Parse Error: Could not resolve class "res://scripts/game.gd".
-          at: GDScript::reload (res://scripts/game_runtime.gd:1)
-ERROR: Failed to load script "res://scripts/game_runtime.gd" with error "Parse error".
+SCRIPT ERROR: Parse Error: Could not resolve class "res://scripts/game_runtime.gd".
+          at: GDScript::reload (res://scripts/production_assets_runtime.gd:1)
+ERROR: Failed to load script "res://scripts/production_assets_runtime.gd" with error "Parse error".
    at: load (modules/gdscript/gdscript.cpp:2907)

@@ -1,7 +1,7 @@
 # EDEN//FALL production validation
 
 - Result: **PASS**
-- Source commit: `84128a1a4de02dead1586af292a4c06ec4da7feb`
+- Source commit: `c5b120fe083c0b379aac0f48fb627d6d2ecde673`
 - Import/parse exit: `0`
 - Content contract exit: `0`
 - Main-scene boot exit: `0`
@@ -124,9 +124,9 @@
 [  16% ] [90m[1mloading_editor_layout[22m | Loading docks...[39m[0m
 [92m[ DONE ][39m [1mloading_editor_layout[22m
 [0m
-SCRIPT ERROR: Parse Error: Could not resolve class "res://scripts/game.gd".
-          at: GDScript::reload (res://scripts/game_runtime.gd:1)
-ERROR: Failed to load script "res://scripts/game_runtime.gd" with error "Parse error".
+SCRIPT ERROR: Parse Error: Could not resolve class "res://scripts/game_runtime.gd".
+          at: GDScript::reload (res://scripts/production_assets_runtime.gd:1)
+ERROR: Failed to load script "res://scripts/production_assets_runtime.gd" with error "Parse error".
    at: load (modules/gdscript/gdscript.cpp:2907)
 ```
 
@@ -141,8 +141,8 @@ EDEN//FALL content validation passed
 ```text
 Godot Engine v4.6.3.stable.official.7d41c59c4 - https://godotengine.org
 
-SCRIPT ERROR: Parse Error: Could not resolve class "res://scripts/game.gd".
-          at: GDScript::reload (res://scripts/game_runtime.gd:1)
-ERROR: Failed to load script "res://scripts/game_runtime.gd" with error "Parse error".
+SCRIPT ERROR: Parse Error: Could not resolve class "res://scripts/game_runtime.gd".
+          at: GDScript::reload (res://scripts/production_assets_runtime.gd:1)
+ERROR: Failed to load script "res://scripts/production_assets_runtime.gd" with error "Parse error".
    at: load (modules/gdscript/gdscript.cpp:2907)
 ```
