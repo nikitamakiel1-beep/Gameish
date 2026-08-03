@@ -28,12 +28,24 @@ jobs:
           ref: godmode/ui-hud-directional-v3
           persist-credentials: true
 
+      - name: Detect staged implementation
+        id: staged
+        shell: bash
+        run: |
+          if [[ -f tools/install_v3.py ]]; then
+            echo 'present=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'present=false' >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Materialize v3 runtime package
+        if: steps.staged.outputs.present == 'true'
         run: |
           python3 tools/install_v3.py
           if [[ -f tools/patch_v3.py ]]; then python3 tools/patch_v3.py; fi
 
       - name: Generate eight-direction assets
+        if: steps.staged.outputs.present == 'true'
         run: python3 tools/generate_directional_assets.py --out assets/generated_v3
 
       - name: Validate generated atlas structures
@@ -98,7 +110,7 @@ jobs:
             echo '# EDEN//FALL v0.3 strict readiness audit'
             echo
             echo "- Result: **${result}**"
-            echo "- Source commit before materialization: \`${checked_commit}\`"
+            echo "- Source commit: \`${checked_commit}\`"
             echo "- Import/parse exit: \`${import_status}\`"
             echo "- Directional/content audit exit: \`${audit_status}\`"
             echo "- Main-scene boot exit: \`${boot_status}\`"
@@ -113,24 +125,20 @@ jobs:
           cat validation/V3_RESULT.md
           echo "result=${result}" >> "$GITHUB_OUTPUT"
 
-      - name: Remove staging after a green audit
-        if: steps.audit.outputs.result == 'PASS' && github.event_name == 'push'
-        run: rm -rf .v3 tools/install_v3.py tools/patch_v3.py
+      - name: Remove one-time staging after a green audit
+        if: steps.audit.outputs.result == 'PASS' && steps.staged.outputs.present == 'true'
+        run: rm -rf .v3 .v3b tools/install_v3.py tools/patch_v3.py
 
-      - name: Commit implementation and audit receipt
-        if: github.event_name == 'push'
+      - name: Commit materialized implementation and audit receipt
+        if: steps.audit.outputs.result == 'PASS' && steps.staged.outputs.present == 'true'
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          if git diff --cached --quiet; then
-            echo 'Implementation and audit receipt unchanged.'
-          else
-            git commit -m "Implement eight-direction gameplay UI HUD and strict audit"
-            git pull --rebase origin godmode/ui-hud-directional-v3
-            git push origin HEAD:godmode/ui-hud-directional-v3
-          fi
+          git commit -m "Implement eight-direction gameplay UI HUD and strict audit"
+          git pull --rebase origin godmode/ui-hud-directional-v3
+          git push origin HEAD:godmode/ui-hud-directional-v3
 
       - name: Enforce strict gate
         if: steps.audit.outputs.result != 'PASS'
