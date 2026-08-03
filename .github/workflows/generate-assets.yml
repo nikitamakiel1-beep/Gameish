@@ -10,6 +10,14 @@ on:
       - scripts/audio_director.gd
       - scripts/game_runtime.gd
       - .github/workflows/generate-assets.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - tools/generate_assets.py
+      - scripts/asset_catalog.gd
+      - scripts/audio_director.gd
+      - scripts/game_runtime.gd
+      - .github/workflows/generate-assets.yml
 
 permissions:
   contents: write
@@ -20,6 +28,7 @@ concurrency:
 
 jobs:
   generate:
+    if: github.head_ref == 'godmode/production-expansion' || github.ref == 'refs/heads/godmode/production-expansion'
     runs-on: ubuntu-latest
     steps:
       - name: Check out production branch
@@ -67,6 +76,14 @@ jobs:
           print('Validated', len(manifest['files']), 'generated assets')
           PY
 
+      - name: Preserve generated package as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: eden-fall-generated-assets
+          path: assets/generated
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Commit generated PNG and WAV files
         shell: bash
         run: |
@@ -78,4 +95,5 @@ jobs:
             exit 0
           fi
           git commit -m "Generate production sprites, animation sheets and audio [assets]"
+          git pull --rebase origin godmode/production-expansion
           git push origin HEAD:godmode/production-expansion
