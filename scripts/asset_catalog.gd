@@ -3,6 +3,18 @@ extends RefCounted
 
 const ROOT := "res://assets/generated/"
 const BOSS_IDS := ["watcher_engine", "seraph_reactor", "nephilim_king", "eden_warden", "void_archon"]
+const WEAPON_IDS := [
+	"genesis_rifle",
+	"tithe_pistol",
+	"mark_cannon",
+	"continuation_lance",
+	"spore_repeater",
+	"seraph_beam",
+	"salt_shotgun",
+	"watcher_carbine",
+	"marrow_launcher",
+	"eden_arc",
+]
 const ITEM_ROWS := {
 	"seraph_lens": 0,
 	"cherub_coil": 1,
@@ -48,11 +60,17 @@ func player(id: String) -> Texture2D:
 	return texture(ROOT + "players/%s.png" % id)
 
 func enemy(category: String, variant: int) -> Texture2D:
-	var safe_variant := posmod(variant, 5) + 1
+	var safe_variant: int = posmod(variant, 5) + 1
 	return texture(ROOT + "enemies/%s_%02d.png" % [category, safe_variant])
 
 func boss(index: int) -> Texture2D:
 	return texture(ROOT + "bosses/%s.png" % BOSS_IDS[posmod(index, BOSS_IDS.size())])
+
+func weapon(index: int) -> Texture2D:
+	return texture(ROOT + "weapons/%s.png" % WEAPON_IDS[posmod(index, WEAPON_IDS.size())])
+
+func weapon_id(index: int) -> String:
+	return String(WEAPON_IDS[posmod(index, WEAPON_IDS.size())])
 
 func effects() -> Texture2D:
 	return texture(ROOT + "effects/effects.png")
