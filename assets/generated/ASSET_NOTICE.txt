@@ -1,0 +1,6 @@
+EDEN//FALL GENERATED ASSET PACK
+Copyright (c) 2026 Gameish contributors.
+
+All images, animation frames, music, ambience and sound effects in this directory
+were generated from original procedural geometry and synthesis code in
+tools/generate_assets.py. No third-party artwork, samples or recordings are used.
