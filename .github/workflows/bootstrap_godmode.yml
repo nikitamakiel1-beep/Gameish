@@ -19,7 +19,7 @@ permissions:
 jobs:
   materialize:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Check out production branch
         uses: actions/checkout@v4
@@ -38,28 +38,72 @@ jobs:
             echo "Payload already materialized; nothing to do."
           fi
 
-      - name: Verify staged segments
+      - name: Verify intact and corrected source fragments
         if: steps.payload.outputs.present == 'true'
         shell: bash
         run: |
           set -euo pipefail
-          cat > /tmp/parts.sha256 <<'EOF'
+          cat > /tmp/fragments.sha256 <<'EOF'
           b12de04dc72914587ad5e55669f0fdfe5fa3618258726206331dcbff468db15d  .godmode/part_00.b64
-          4c66c1f1b56cad16938aa4fdad5ba76a2cee2dc51705101f017b75e053d9424d  .godmode/part_01.b64
           bb29a7a333dd5a988e44ecde58c03cc2077f6a00d32db0e4929122ecb944ddcd  .godmode/part_02.b64
-          677e014ab56d70bc1653c8637fba9ff50bd2dec111faf62b1626433e7c59edf0  .godmode/part_03.b64
           52bbfe8a8b79c80327616469a784fc5537050dc71e5ad38520d005a4fa1fbefe  .godmode/part_04.b64
+          3ebb1f08d352588d0d7e51c5a71bec976d79096d5d69af9e5f5c32758430d474  .godmode/corrected/part_01_00.b64
+          b9f198327c2a1e4455ecb4f6e80679bb409edf446b27ecb51c98b4a9ef2622d1  .godmode/corrected/part_01_01.b64
+          30913ec71ef9fd1a7f039110bb5eb58f7797d8aebf02dc8c5e14b88044f68a1a  .godmode/corrected/part_01_02_00.b64
+          59767b72bad74302357c632a8523f2b7839c2b1b1dace2c934b01f72904e8236  .godmode/corrected/part_01_02_01.b64
+          cf9217da58840019539ced4c831742d8ae2af863c6336ccd7a480ad35701605f  .godmode/corrected/part_01_03_00.b64
+          0b9f3a02cf06da7b3422da93b462fe0347a90d11ea7f1952fecadd759ca515d2  .godmode/corrected/part_01_03_01.b64
           EOF
-          wc -c .godmode/part_*.b64
-          sha256sum .godmode/part_*.b64
-          sha256sum --check --strict /tmp/parts.sha256
+          sha256sum --check --strict /tmp/fragments.sha256
+          cat \
+            .godmode/corrected/part_01_00.b64 \
+            .godmode/corrected/part_01_01.b64 \
+            .godmode/corrected/part_01_02_00.b64 \
+            .godmode/corrected/part_01_02_01.b64 \
+            .godmode/corrected/part_01_03_00.b64 \
+            .godmode/corrected/part_01_03_01.b64 \
+            > /tmp/part_01.corrected.b64
+          echo "4c66c1f1b56cad16938aa4fdad5ba76a2cee2dc51705101f017b75e053d9424d  /tmp/part_01.corrected.b64" | sha256sum --check --strict
+
+      - name: Repair one-character deletion in segment 03
+        if: steps.payload.outputs.present == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+
+          source = Path('.godmode/part_03.b64').read_text(encoding='utf-8')
+          target = '677e014ab56d70bc1653c8637fba9ff50bd2dec111faf62b1626433e7c59edf0'
+          alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+          if len(source) != 15999:
+              raise SystemExit(f'Unexpected damaged segment length: {len(source)}')
+          for index in range(len(source) + 1):
+              prefix = source[:index]
+              suffix = source[index:]
+              for char in alphabet:
+                  candidate = prefix + char + suffix
+                  if hashlib.sha256(candidate.encode('ascii')).hexdigest() == target:
+                      Path('/tmp/part_03.repaired.b64').write_text(candidate, encoding='ascii')
+                      print(f'Repaired segment 03 at offset {index} with a checksum-verified Base64 character.')
+                      raise SystemExit(0)
+          raise SystemExit('No unique one-character repair matched the expected SHA-256.')
+          PY
+          echo "677e014ab56d70bc1653c8637fba9ff50bd2dec111faf62b1626433e7c59edf0  /tmp/part_03.repaired.b64" | sha256sum --check --strict
 
       - name: Reconstruct and verify source bundle
         if: steps.payload.outputs.present == 'true'
         shell: bash
         run: |
           set -euo pipefail
-          cat .godmode/part_*.b64 > /tmp/gameish-godmode.b64
+          cat \
+            .godmode/part_00.b64 \
+            /tmp/part_01.corrected.b64 \
+            .godmode/part_02.b64 \
+            /tmp/part_03.repaired.b64 \
+            .godmode/part_04.b64 \
+            > /tmp/gameish-godmode.b64
           echo "f6f81c991b6d505188c0c5be18bad36cc45b591ec190af5ccf7ae47295b61f6a  /tmp/gameish-godmode.b64" | sha256sum --check --strict
           base64 --decode /tmp/gameish-godmode.b64 > /tmp/gameish-godmode.zip
           echo "3a138f73cea4006d7e4770b9bd2a274fe0afd40656f0ddcf7ba2e7b2def6fe3b  /tmp/gameish-godmode.zip" | sha256sum --check --strict
