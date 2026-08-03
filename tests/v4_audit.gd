@@ -78,7 +78,7 @@ func validate_runtime() -> void:
 func validate_project_contract() -> void:
 	expect(FileAccess.file_exists("res://main.tscn"), "Main scene missing")
 	var scene_text := FileAccess.get_file_as_string("res://main.tscn")
-	expect(scene_text.contains("scripts/edenfall_v4.gd"), "Main scene does not load v4 runtime")
+	expect(scene_text.contains("scripts/edenfall_v4_quality.gd"), "Main scene does not load the v4 quality runtime")
 	expect(FileAccess.file_exists("res://docs/READINESS_V4.md"), "v4 readiness document missing")
 	expect(FileAccess.file_exists("res://docs/V4_SYSTEMS.md"), "v4 systems document missing")
 	expect(FileAccess.file_exists("res://assets/generated_v3/manifest_v3.json"), "Validated v3 directional assets missing")
