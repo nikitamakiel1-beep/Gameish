@@ -1,7 +1,7 @@
 # EDEN//FALL production validation
 
 - Result: **FAIL**
-- Source commit: `401c6faa5aba33f4d135a2eb22f97578a88ce5a9`
+- Source commit: `ba879e962284daeaddb39cf1168811c50de08143`
 - Import/parse exit: `0`
 - Content contract exit: `1`
 - Main-scene boot exit: `0`
@@ -31,12 +31,13 @@ ERROR: res://default_bus_layout.tres:1 - Parse Error: Missing 'type' field in 'g
    at: _printerr (scene/resources/resource_format_text.cpp:40)
 ERROR: Condition "error != OK" is true.
    at: get_dependencies (scene/resources/resource_format_text.cpp:928)
-[   0% ] [90m[1mupdate_scripts_classes[22m | Started Registering global classes... (5 steps)[39m[0m
+[   0% ] [90m[1mupdate_scripts_classes[22m | Started Registering global classes... (6 steps)[39m[0m
 [   0% ] [90m[1mupdate_scripts_classes[22m | AssetCatalog[39m[0m
-[  16% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
-[  33% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
-[  50% ] [90m[1mupdate_scripts_classes[22m | GameData[39m[0m
-[  66% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  14% ] [90m[1mupdate_scripts_classes[22m | EdenAudioDirector[39m[0m
+[  28% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  42% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  57% ] [90m[1mupdate_scripts_classes[22m | GameData[39m[0m
+[  71% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
 [92m[ DONE ][39m [1mupdate_scripts_classes[22m
 [0m
 [   0% ] [90m[1mreimport[22m | Started (Re)Importing Assets (1 steps)[39m[0m
