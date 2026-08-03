@@ -1,7 +1,7 @@
 # EDEN//FALL production validation
 
 - Result: **PASS**
-- Source commit: `949c3634dd6a23173a5e7db824b5381e284573a5`
+- Source commit: `84128a1a4de02dead1586af292a4c06ec4da7feb`
 - Import/parse exit: `0`
 - Content contract exit: `0`
 - Main-scene boot exit: `0`
