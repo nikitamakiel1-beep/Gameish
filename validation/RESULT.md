@@ -1,7 +1,7 @@
 # EDEN//FALL production validation
 
 - Result: **FAIL**
-- Source commit: `0660a2dc1555a8cd99c2c72dc472683065ce1b27`
+- Source commit: `0b445e7a7a00acd40aa3173ec64d2d008cce2b80`
 - Import/parse exit: `0`
 - Content contract exit: `1`
 - Main-scene boot exit: `0`
@@ -10,12 +10,10 @@
 ```text
 Godot Engine v4.6.3.stable.official.7d41c59c4 - https://godotengine.org
 
-ERROR: Non-existing or invalid boot splash at 'res://icon.svg'. The only supported format is PNG. Loading default splash.
+ERROR: Error opening file 'res://assets/generated/ui/boot_splash.png'.
+   at: load_image (core/io/image_loader.cpp:89)
+ERROR: Non-existing or invalid boot splash at 'res://assets/generated/ui/boot_splash.png'.  Loading default splash.
    at: setup_boot_logo (main/main.cpp:3855)
-ERROR: res://default_bus_layout.tres:1 - Parse Error: Missing 'type' field in 'gd_resource' tag.
-   at: _printerr (scene/resources/resource_format_text.cpp:40)
-ERROR: Failed loading resource: res://default_bus_layout.tres.
-   at: _load (core/io/resource_loader.cpp:343)
 [   0% ] [90m[1mfirst_scan_filesystem[22m | Started Project initialization (5 steps)[39m[0m
 [   0% ] [90m[1mfirst_scan_filesystem[22m | Scanning file structure...[39m[0m
 [  16% ] [90m[1mfirst_scan_filesystem[22m | Loading global class names...[39m[0m
@@ -25,12 +23,6 @@ ERROR: Failed loading resource: res://default_bus_layout.tres.
 [  83% ] [90m[1mfirst_scan_filesystem[22m | Starting file scan...[39m[0m
 [92m[ DONE ][39m [1mfirst_scan_filesystem[22m
 [0m
-ERROR: res://default_bus_layout.tres:1 - Parse Error: Missing 'type' field in 'gd_resource' tag.
-   at: _printerr (scene/resources/resource_format_text.cpp:40)
-ERROR: res://default_bus_layout.tres:1 - Parse Error: Missing 'type' field in 'gd_resource' tag.
-   at: _printerr (scene/resources/resource_format_text.cpp:40)
-ERROR: Condition "error != OK" is true.
-   at: get_dependencies (scene/resources/resource_format_text.cpp:928)
 [   0% ] [90m[1mupdate_scripts_classes[22m | Started Registering global classes... (6 steps)[39m[0m
 [   0% ] [90m[1mupdate_scripts_classes[22m | AssetCatalog[39m[0m
 [  14% ] [90m[1mupdate_scripts_classes[22m | EdenAudioDirector[39m[0m
@@ -78,12 +70,10 @@ ERROR: Failed to load script "res://scripts/game_runtime.gd" with error "Parse e
 ```text
 Godot Engine v4.6.3.stable.official.7d41c59c4 - https://godotengine.org
 
-ERROR: Non-existing or invalid boot splash at 'res://icon.svg'. The only supported format is PNG. Loading default splash.
+ERROR: Error opening file 'res://assets/generated/ui/boot_splash.png'.
+   at: load_image (core/io/image_loader.cpp:89)
+ERROR: Non-existing or invalid boot splash at 'res://assets/generated/ui/boot_splash.png'.  Loading default splash.
    at: setup_boot_logo (main/main.cpp:3855)
-ERROR: res://default_bus_layout.tres:1 - Parse Error: Missing 'type' field in 'gd_resource' tag.
-   at: _printerr (scene/resources/resource_format_text.cpp:40)
-ERROR: Failed loading resource: res://default_bus_layout.tres.
-   at: _load (core/io/resource_loader.cpp:343)
 ERROR: Attempt to open script 'res://tests/content_validation.gd' resulted in error 'File not found'.
    at: load_source_code (modules/gdscript/gdscript.cpp:1127)
 ERROR: Failed loading resource: res://tests/content_validation.gd.
@@ -96,12 +86,10 @@ ERROR: Can't load script: res://tests/content_validation.gd
 ```text
 Godot Engine v4.6.3.stable.official.7d41c59c4 - https://godotengine.org
 
-ERROR: Non-existing or invalid boot splash at 'res://icon.svg'. The only supported format is PNG. Loading default splash.
+ERROR: Error opening file 'res://assets/generated/ui/boot_splash.png'.
+   at: load_image (core/io/image_loader.cpp:89)
+ERROR: Non-existing or invalid boot splash at 'res://assets/generated/ui/boot_splash.png'.  Loading default splash.
    at: setup_boot_logo (main/main.cpp:3855)
-ERROR: res://default_bus_layout.tres:1 - Parse Error: Missing 'type' field in 'gd_resource' tag.
-   at: _printerr (scene/resources/resource_format_text.cpp:40)
-ERROR: Failed loading resource: res://default_bus_layout.tres.
-   at: _load (core/io/resource_loader.cpp:343)
 SCRIPT ERROR: Parse Error: Could not resolve class "res://scripts/game.gd".
           at: GDScript::reload (res://scripts/game_runtime.gd:1)
 SCRIPT ERROR: Parse Error: Invalid argument for "draw_texture_rect_region()" function: argument 1 should be "Texture2D" but is "Rect2".

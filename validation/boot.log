@@ -1,11 +1,9 @@
 Godot Engine v4.6.3.stable.official.7d41c59c4 - https://godotengine.org
 
-ERROR: Non-existing or invalid boot splash at 'res://icon.svg'. The only supported format is PNG. Loading default splash.
+ERROR: Error opening file 'res://assets/generated/ui/boot_splash.png'.
+   at: load_image (core/io/image_loader.cpp:89)
+ERROR: Non-existing or invalid boot splash at 'res://assets/generated/ui/boot_splash.png'.  Loading default splash.
    at: setup_boot_logo (main/main.cpp:3855)
-ERROR: res://default_bus_layout.tres:1 - Parse Error: Missing 'type' field in 'gd_resource' tag.
-   at: _printerr (scene/resources/resource_format_text.cpp:40)
-ERROR: Failed loading resource: res://default_bus_layout.tres.
-   at: _load (core/io/resource_loader.cpp:343)
 SCRIPT ERROR: Parse Error: Could not resolve class "res://scripts/game.gd".
           at: GDScript::reload (res://scripts/game_runtime.gd:1)
 SCRIPT ERROR: Parse Error: Invalid argument for "draw_texture_rect_region()" function: argument 1 should be "Texture2D" but is "Rect2".
