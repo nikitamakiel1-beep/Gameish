@@ -1,0 +1,14 @@
+Godot Engine v4.6.3.stable.official.7d41c59c4 - https://godotengine.org
+
+ERROR: Non-existing or invalid boot splash at 'res://icon.svg'. The only supported format is PNG. Loading default splash.
+   at: setup_boot_logo (main/main.cpp:3855)
+ERROR: res://default_bus_layout.tres:1 - Parse Error: Missing 'type' field in 'gd_resource' tag.
+   at: _printerr (scene/resources/resource_format_text.cpp:40)
+ERROR: Failed loading resource: res://default_bus_layout.tres.
+   at: _load (core/io/resource_loader.cpp:343)
+ERROR: Attempt to open script 'res://tests/content_validation.gd' resulted in error 'File not found'.
+   at: load_source_code (modules/gdscript/gdscript.cpp:1127)
+ERROR: Failed loading resource: res://tests/content_validation.gd.
+   at: _load (core/io/resource_loader.cpp:343)
+ERROR: Can't load script: res://tests/content_validation.gd
+   at: start (main/main.cpp:4271)
