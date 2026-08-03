@@ -6,13 +6,18 @@ on:
     paths:
       - ".godmode/**"
       - ".github/workflows/bootstrap_godmode.yml"
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - ".godmode/**"
+      - ".github/workflows/bootstrap_godmode.yml"
 
 permissions:
   contents: write
 
 jobs:
   materialize:
-    if: ${{ !contains(github.event.head_commit.message, '[materialized]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -22,7 +27,19 @@ jobs:
           ref: godmode/production-expansion
           fetch-depth: 0
 
+      - name: Detect staged source payload
+        id: payload
+        shell: bash
+        run: |
+          if compgen -G ".godmode/part_*.b64" > /dev/null; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "Payload already materialized; nothing to do."
+          fi
+
       - name: Reconstruct and verify source bundle
+        if: steps.payload.outputs.present == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -33,6 +50,7 @@ jobs:
           rm -rf .godmode
 
       - name: Commit materialized production source
+        if: steps.payload.outputs.present == 'true'
         shell: bash
         run: |
           set -euo pipefail
