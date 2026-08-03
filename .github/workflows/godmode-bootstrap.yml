@@ -3,17 +3,21 @@ name: Materialize Godmode Expansion
 on:
   push:
     branches: [godmode/production-expansion]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: write
 
 jobs:
   materialize:
+    if: github.head_ref == 'godmode/production-expansion' || github.ref == 'refs/heads/godmode/production-expansion'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: godmode/production-expansion
+          persist-credentials: true
       - name: Check trigger
         run: test -f .godmode/READY
       - name: Reconstruct and validate archive
