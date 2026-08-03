@@ -4,9 +4,364 @@ ERROR: Error opening file 'res://assets/generated/ui/boot_splash.png'.
    at: load_image (core/io/image_loader.cpp:89)
 ERROR: Non-existing or invalid boot splash at 'res://assets/generated/ui/boot_splash.png'.  Loading default splash.
    at: setup_boot_logo (main/main.cpp:3855)
-ERROR: Attempt to open script 'res://tests/content_validation.gd' resulted in error 'File not found'.
-   at: load_source_code (modules/gdscript/gdscript.cpp:1127)
-ERROR: Failed loading resource: res://tests/content_validation.gd.
-   at: _load (core/io/resource_loader.cpp:343)
-ERROR: Can't load script: res://tests/content_validation.gd
-   at: start (main/main.cpp:4271)
+ERROR: Missing player sprite sheet for adam
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing player sprite sheet for abel
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing player sprite sheet for cain
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing player sprite sheet for seth
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing player sprite sheet for naamah
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing generated asset manifest
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/players/adam.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/players/abel.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/players/cain.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/players/seth.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/players/naamah.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/enemies/feral_01.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/enemies/feral_02.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/enemies/feral_03.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/enemies/feral_04.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/enemies/feral_05.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/enemies/outlaw_01.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/enemies/outlaw_02.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/enemies/outlaw_03.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/enemies/outlaw_04.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/enemies/outlaw_05.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/enemies/enhanced_01.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/enemies/enhanced_02.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/enemies/enhanced_03.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/enemies/enhanced_04.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/enemies/enhanced_05.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/enemies/nephilim_01.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/enemies/nephilim_02.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/enemies/nephilim_03.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/enemies/nephilim_04.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/enemies/nephilim_05.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/enemies/fallen_01.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/enemies/fallen_02.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/enemies/fallen_03.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/enemies/fallen_04.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/enemies/fallen_05.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/bosses/watcher_engine.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/bosses/seraph_reactor.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/bosses/nephilim_king.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/bosses/eden_warden.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/bosses/void_archon.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/weapons/genesis_rifle.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/weapons/tithe_pistol.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/weapons/mark_cannon.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/weapons/continuation_lance.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/weapons/spore_repeater.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/weapons/seraph_beam.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/weapons/salt_shotgun.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/weapons/watcher_carbine.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/weapons/marrow_launcher.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/weapons/eden_arc.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/effects/effects.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/items/relics.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/ui/boot_splash.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/tiles/biome_01.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/tiles/biome_02.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/tiles/biome_03.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/tiles/biome_04.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing texture: res://assets/generated/tiles/biome_05.png
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/music/biome_01.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/ambience/biome_01.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/music/biome_02.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/ambience/biome_02.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/music/biome_03.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/ambience/biome_03.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/music/biome_04.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/ambience/biome_04.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/music/biome_05.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/ambience/biome_05.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/sfx/shot_01.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/sfx/shot_02.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/sfx/shot_03.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/sfx/enemy_shot.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/sfx/dash.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/sfx/impact_01.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/sfx/impact_02.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/sfx/hurt.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/sfx/kill.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/sfx/pickup.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/sfx/relic.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/sfx/shield.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/sfx/door.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/sfx/boss_phase.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/sfx/death.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/sfx/victory.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/sfx/ui.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/sfx/shop.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/sfx/heal.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/sfx/critical.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+ERROR: Missing audio stream: res://assets/generated/audio/sfx/portal.wav
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://tests/content_validation.gd:18)
+EDEN//FALL content validation failed with 90 issue(s)
