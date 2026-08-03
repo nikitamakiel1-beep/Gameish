@@ -10,14 +10,6 @@ on:
       - scripts/audio_director.gd
       - scripts/game_runtime.gd
       - .github/workflows/generate-assets.yml
-  pull_request:
-    branches: [main]
-    paths:
-      - tools/generate_assets.py
-      - scripts/asset_catalog.gd
-      - scripts/audio_director.gd
-      - scripts/game_runtime.gd
-      - .github/workflows/generate-assets.yml
 
 permissions:
   contents: write
@@ -28,7 +20,6 @@ concurrency:
 
 jobs:
   generate:
-    if: github.head_ref == 'godmode/production-expansion' || github.ref == 'refs/heads/godmode/production-expansion'
     runs-on: ubuntu-latest
     steps:
       - name: Check out production branch
@@ -39,6 +30,30 @@ jobs:
 
       - name: Generate original visual and audio assets
         run: python3 tools/generate_assets.py --out assets/generated
+
+      - name: Normalize deterministic manifest
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import pathlib
+
+          root = pathlib.Path('assets/generated')
+          manifest_path = root / 'manifest.json'
+          manifest = json.loads(manifest_path.read_text())
+          metadata = {'manifest.json', 'ASSET_NOTICE.txt'}
+          files = []
+          for path in sorted(root.rglob('*')):
+              if path.is_file() and path.name not in metadata:
+                  files.append({
+                      'path': path.relative_to(root).as_posix(),
+                      'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
+                      'bytes': path.stat().st_size,
+                  })
+          manifest['files'] = files
+          manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n')
+          PY
 
       - name: Validate generated package
         shell: bash
@@ -58,7 +73,7 @@ jobs:
           assert len(manifest['music']) == 5
           assert len(manifest['ambience']) == 5
           assert len(manifest['sfx']) >= 20
-          assert len(manifest['files']) >= 84
+          assert len(manifest['files']) == 84
 
           for png in root.rglob('*.png'):
               data = png.read_bytes()
@@ -94,6 +109,6 @@ jobs:
             echo "Generated assets already match the deterministic source."
             exit 0
           fi
-          git commit -m "Generate production sprites, animation sheets and audio [assets]"
+          git commit -m "Normalize generated asset manifest [assets]"
           git pull --rebase origin godmode/production-expansion
           git push origin HEAD:godmode/production-expansion
