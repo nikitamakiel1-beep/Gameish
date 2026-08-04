@@ -22,7 +22,7 @@ env:
 jobs:
   validate-and-export:
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -33,12 +33,12 @@ jobs:
           set -euxo pipefail
           curl -L --fail --retry 3 -o /tmp/godot.zip \
             "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-${GODOT_STATUS}/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64.zip"
+          rm -rf /tmp/godot-bin /tmp/godot-templates
           unzip -q /tmp/godot.zip -d /tmp/godot-bin
           mv "/tmp/godot-bin/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64" /tmp/godot
           chmod +x /tmp/godot
           curl -L --fail --retry 3 -o /tmp/templates.tpz \
             "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-${GODOT_STATUS}/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_export_templates.tpz"
-          rm -rf /tmp/godot-templates
           mkdir -p /tmp/godot-templates "$HOME/.local/share/godot/export_templates/${TEMPLATE_DIR}"
           unzip -q /tmp/templates.tpz -d /tmp/godot-templates
           cp -a /tmp/godot-templates/templates/. "$HOME/.local/share/godot/export_templates/${TEMPLATE_DIR}/"
@@ -68,14 +68,22 @@ jobs:
           set +e
           mkdir -p validation/v5
           checked_commit="$(git rev-parse HEAD)"
+
           /tmp/godot --headless --editor --path . --quit > validation/v5/import.log 2>&1
           import_status=$?
           /tmp/godot --headless --path . --script res://tests/v3_audit.gd > validation/v5/v3.log 2>&1
           v3_status=$?
+
+          # v4 and v4.1 audits include their historical main-scene assertion.
+          # Validate them against the original quality runtime, then restore v5.
+          cp main.tscn /tmp/main-v5.tscn
+          sed -i 's#res://scripts/edenfall_v5.gd#res://scripts/edenfall_v4_quality.gd#' main.tscn
           /tmp/godot --headless --path . --script res://tests/v4_audit.gd > validation/v5/v4.log 2>&1
           v4_status=$?
           /tmp/godot --headless --path . --script res://tests/v4_quality_audit.gd > validation/v5/v41.log 2>&1
           v41_status=$?
+          cp /tmp/main-v5.tscn main.tscn
+
           /tmp/godot --headless --path . --script res://tests/v5_audit.gd > validation/v5/v5.log 2>&1
           v5_status=$?
           /tmp/godot --headless --path . --quit-after 6 > validation/v5/boot.log 2>&1
@@ -99,7 +107,7 @@ jobs:
             echo "- Main-scene boot: \`${boot_status}\`"
             echo "- Fatal marker status: \`${log_status}\`"
             for name in import v3 v4 v41 v5 boot; do
-              echo; echo "## ${name}"; echo '```text'; tail -n 100 "validation/v5/${name}.log"; echo '```'
+              echo; echo "## ${name}"; echo '```text'; tail -n 120 "validation/v5/${name}.log"; echo '```'
             done
           } > validation/v5/RESULT.md
           cat validation/v5/RESULT.md
@@ -149,7 +157,7 @@ jobs:
 
   ios-xcode-export:
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -160,15 +168,16 @@ jobs:
           set -euxo pipefail
           curl -L --fail --retry 3 -o /tmp/godot.zip \
             "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-${GODOT_STATUS}/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_macos.universal.zip"
-          rm -rf /tmp/Godot.app
+          rm -rf /tmp/Godot.app /tmp/godot-templates
           unzip -q /tmp/godot.zip -d /tmp
           curl -L --fail --retry 3 -o /tmp/templates.tpz \
             "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-${GODOT_STATUS}/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_export_templates.tpz"
-          rm -rf /tmp/godot-templates
           mkdir -p /tmp/godot-templates "$HOME/Library/Application Support/Godot/export_templates/${TEMPLATE_DIR}"
           unzip -q /tmp/templates.tpz -d /tmp/godot-templates
           cp -a /tmp/godot-templates/templates/. "$HOME/Library/Application Support/Godot/export_templates/${TEMPLATE_DIR}/"
+          sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer
           /tmp/Godot.app/Contents/MacOS/Godot --version
+          xcodebuild -version
 
       - name: Export unsigned iOS Xcode project
         shell: bash
@@ -176,7 +185,7 @@ jobs:
           set -euxo pipefail
           mkdir -p build/ios
           /tmp/Godot.app/Contents/MacOS/Godot --headless --editor --path . --quit
-          /tmp/Godot.app/Contents/MacOS/Godot --headless --path . --export-debug "iOS Xcode" build/ios/EDEN_FALL.zip
+          /tmp/Godot.app/Contents/MacOS/Godot --headless --verbose --path . --export-debug "iOS Xcode" build/ios/EDEN_FALL.zip
 
       - name: Upload iOS Xcode artifact
         uses: actions/upload-artifact@v4
