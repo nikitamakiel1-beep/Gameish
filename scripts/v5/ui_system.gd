@@ -18,7 +18,7 @@ const TOKENS := {
 	"gold": Color8(224, 191, 116),
 }
 
-func breakpoint(safe: Rect2) -> String:
+func layout_mode(safe: Rect2) -> String:
 	if safe.size.x < 700.0:
 		return "compact"
 	if safe.size.x < 1100.0:
@@ -26,62 +26,62 @@ func breakpoint(safe: Rect2) -> String:
 	return "wide"
 
 func content_width(safe: Rect2) -> float:
-	match breakpoint(safe):
+	match layout_mode(safe):
 		"compact": return safe.size.x - 24.0
 		"medium": return minf(860.0, safe.size.x - 48.0)
 		_: return minf(1120.0, safe.size.x - 72.0)
 
 func title_grid(safe: Rect2, count: int) -> Array[Rect2]:
 	var rects: Array[Rect2] = []
-	var mode := breakpoint(safe)
-	var columns := 1 if mode == "compact" else 2
-	var width := (content_width(safe) - float(columns - 1) * 16.0) / float(columns)
-	var height := 48.0 if mode == "compact" else 52.0
-	var rows := int(ceil(float(count) / float(columns)))
-	var total_height := float(rows) * height + float(maxi(0, rows - 1)) * 12.0
-	var start := Vector2(safe.get_center().x - content_width(safe) * 0.5, minf(safe.end.y - total_height - 28.0, safe.position.y + safe.size.y * 0.56))
+	var mode: String = layout_mode(safe)
+	var columns: int = 1 if mode == "compact" else 2
+	var width: float = (content_width(safe) - float(columns - 1) * 16.0) / float(columns)
+	var height: float = 48.0 if mode == "compact" else 52.0
+	var rows: int = int(ceil(float(count) / float(columns)))
+	var total_height: float = float(rows) * height + float(maxi(0, rows - 1)) * 12.0
+	var start: Vector2 = Vector2(safe.get_center().x - content_width(safe) * 0.5, minf(safe.end.y - total_height - 28.0, safe.position.y + safe.size.y * 0.56))
 	for i in range(count):
-		var column := i % columns
-		var row := i / columns
+		var column: int = i % columns
+		var row: int = i / columns
 		rects.append(Rect2(start + Vector2(float(column) * (width + 16.0), float(row) * (height + 12.0)), Vector2(width, height)))
 	return rects
 
 func lineage_grid(safe: Rect2, count: int) -> Array[Rect2]:
 	var rects: Array[Rect2] = []
-	var mode := breakpoint(safe)
-	var columns := 2 if mode == "compact" else 5
+	var mode: String = layout_mode(safe)
+	var columns: int = 2 if mode == "compact" else 5
 	var gap := 12.0
-	var width := (safe.size.x - gap * float(columns - 1) - 24.0) / float(columns)
-	var top := safe.position.y + (70.0 if mode == "compact" else 84.0)
-	var rows := int(ceil(float(count) / float(columns)))
-	var height := (safe.end.y - top - 22.0 - gap * float(rows - 1)) / float(rows)
+	var width: float = (safe.size.x - gap * float(columns - 1) - 24.0) / float(columns)
+	var top: float = safe.position.y + (70.0 if mode == "compact" else 84.0)
+	var rows: int = int(ceil(float(count) / float(columns)))
+	var height: float = (safe.end.y - top - 22.0 - gap * float(rows - 1)) / float(rows)
 	for i in range(count):
-		var column := i % columns
-		var row := i / columns
+		var column: int = i % columns
+		var row: int = i / columns
 		rects.append(Rect2(Vector2(safe.position.x + 12.0 + float(column) * (width + gap), top + float(row) * (height + gap)), Vector2(width, height)))
 	return rects
 
 func settings_grid(safe: Rect2, count: int) -> Array[Rect2]:
 	var rects: Array[Rect2] = []
-	var columns := 1 if breakpoint(safe) == "compact" else 2
+	var columns: int = 1 if layout_mode(safe) == "compact" else 2
 	var gap := 10.0
-	var panel_width := minf(content_width(safe), 980.0)
-	var width := (panel_width - float(columns - 1) * gap) / float(columns)
+	var panel_width: float = minf(content_width(safe), 980.0)
+	var width: float = (panel_width - float(columns - 1) * gap) / float(columns)
 	var row_height := 36.0
-	var rows := int(ceil(float(count) / float(columns)))
-	var start_y := safe.position.y + 76.0
-	var available := safe.end.y - start_y - 76.0
+	var rows: int = int(ceil(float(count) / float(columns)))
+	var start_y: float = safe.position.y + 76.0
+	var available: float = safe.end.y - start_y - 76.0
 	if float(rows) * (row_height + 7.0) > available:
 		row_height = maxf(29.0, available / float(rows) - 6.0)
-	var start_x := safe.get_center().x - panel_width * 0.5
+	var start_x: float = safe.get_center().x - panel_width * 0.5
 	for i in range(count):
-		var column := i % columns
-		var row := i / columns
+		var column: int = i % columns
+		var row: int = i / columns
 		rects.append(Rect2(Vector2(start_x + float(column) * (width + gap), start_y + float(row) * (row_height + 7.0)), Vector2(width, row_height)))
 	return rects
 
 func hud_regions(safe: Rect2, ui_scale: float) -> Dictionary:
-	var mode := breakpoint(safe)
+	var mode: String = layout_mode(safe)
 	var header_height := 62.0 * ui_scale
 	var left_width := minf(330.0 * ui_scale, safe.size.x * (0.46 if mode == "compact" else 0.30))
 	var right_width := minf(265.0 * ui_scale, safe.size.x * (0.40 if mode == "compact" else 0.24))
@@ -105,7 +105,7 @@ func audit_contract() -> Dictionary:
 	var safe := Rect2(Vector2.ZERO, Vector2(1280, 720))
 	return {
 		"version": VERSION,
-		"breakpoints": [breakpoint(Rect2(Vector2.ZERO, Vector2(480, 800))), breakpoint(Rect2(Vector2.ZERO, Vector2(900, 720))), breakpoint(safe)],
+		"breakpoints": [layout_mode(Rect2(Vector2.ZERO, Vector2(480, 800))), layout_mode(Rect2(Vector2.ZERO, Vector2(900, 720))), layout_mode(safe)],
 		"title_slots": title_grid(safe, 6).size(),
 		"lineage_slots": lineage_grid(safe, 5).size(),
 		"settings_slots": settings_grid(safe, 20).size(),
