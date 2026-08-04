@@ -140,14 +140,36 @@ jobs:
           (cd build/windows && zip -q EDEN_FALL-windows-x86_64.zip EDEN_FALL.exe)
           (cd build/linux && tar -czf EDEN_FALL-linux-x86_64.tar.gz EDEN_FALL.x86_64)
 
-      - name: Install Android build template and export APK/AAB test builds
+      - name: Export Android APK and Gradle AAB test builds
         shell: bash
         run: |
           set -euxo pipefail
-          mkdir -p build/android
-          /tmp/godot --headless --path . --install-android-build-template
-          /tmp/godot --headless --path . --export-debug "Android APK" build/android/EDEN_FALL-debug.apk
-          /tmp/godot --headless --path . --export-debug "Android AAB" build/android/EDEN_FALL-debug.aab
+          mkdir -p build/android validation/v5-android
+
+          /tmp/godot --headless --path . --export-debug "Android APK" build/android/EDEN_FALL-debug.apk \
+            > validation/v5-android/apk.log 2>&1
+          test -s build/android/EDEN_FALL-debug.apk
+
+          # Godot's CLI documents template installation as an option used in the
+          # same invocation as export. Running it alone starts an editor command
+          # that does not terminate in headless CI.
+          timeout 20m /tmp/godot --headless --path . --install-android-build-template \
+            --export-debug "Android AAB" build/android/EDEN_FALL-debug.aab \
+            > validation/v5-android/aab.log 2>&1
+          test -s build/android/EDEN_FALL-debug.aab
+
+          {
+            echo '# EDEN//FALL v0.5 Android export receipt'
+            echo
+            echo '- APK: **PASS**'
+            echo '- AAB/Gradle: **PASS**'
+            echo "- APK bytes: \`$(stat -c%s build/android/EDEN_FALL-debug.apk)\`"
+            echo "- AAB bytes: \`$(stat -c%s build/android/EDEN_FALL-debug.aab)\`"
+            echo
+            echo '## APK tail'; echo '```text'; tail -n 100 validation/v5-android/apk.log; echo '```'
+            echo
+            echo '## AAB tail'; echo '```text'; tail -n 140 validation/v5-android/aab.log; echo '```'
+          } > validation/v5-android/RESULT.md
 
       - name: Upload desktop Web and Android artifacts
         uses: actions/upload-artifact@v4
@@ -163,6 +185,7 @@ jobs:
             build/android/EDEN_FALL-debug.apk
             build/android/EDEN_FALL-debug.aab
             validation/v5/RESULT.md
+            validation/v5-android/**
 
   ios-xcode-export:
     runs-on: macos-15
@@ -198,11 +221,17 @@ jobs:
           import_status=$?
           /tmp/Godot.app/Contents/MacOS/Godot --headless --verbose --path . --export-debug "iOS Xcode" build/ios/EDEN_FALL.zip > validation/v5-ios/export.log 2>&1
           export_status=$?
-          if [[ $import_status -eq 0 && $export_status -eq 0 && -f build/ios/EDEN_FALL.zip ]]; then
+
+          result=FALLBACK
+          if [[ $import_status -eq 0 && $export_status -eq 0 && -d build/ios/EDEN_FALL.xcodeproj && -d build/ios/EDEN_FALL ]]; then
+            (cd build/ios && zip -qr EDEN_FALL-ios-xcode-project.zip EDEN_FALL.xcodeproj EDEN_FALL *.xcframework MoltenVK.xcframework PrivacyInfo.xcprivacy 2>/dev/null || true)
+            if [[ -s build/ios/EDEN_FALL-ios-xcode-project.zip ]]; then result=PASS; fi
+          elif [[ $import_status -eq 0 && $export_status -eq 0 && -f build/ios/EDEN_FALL.zip ]]; then
+            mv build/ios/EDEN_FALL.zip build/ios/EDEN_FALL-ios-xcode-project.zip
             result=PASS
-          else
-            result=FALLBACK
-            rm -f build/ios/EDEN_FALL.zip
+          fi
+
+          if [[ $result != PASS ]]; then
             mkdir -p build/ios/source
             cp project.godot main.tscn export_presets.cfg build/ios/source/
             cp -R scripts tests assets docs build/ios/source/
@@ -220,6 +249,7 @@ jobs:
             echo "- Result: **${result}**"
             echo "- Import exit: \`${import_status}\`"
             echo "- Godot Xcode export exit: \`${export_status}\`"
+            echo "- Xcode project archive present: **$([[ -s build/ios/EDEN_FALL-ios-xcode-project.zip ]] && echo yes || echo no)**"
             echo "- Apple credentials present: **no**"
             echo
             echo '## Export log tail'; echo '```text'; tail -n 160 validation/v5-ios/export.log; echo '```'
@@ -235,6 +265,6 @@ jobs:
           if-no-files-found: error
           retention-days: 14
           path: |
-            build/ios/EDEN_FALL.zip
+            build/ios/EDEN_FALL-ios-xcode-project.zip
             build/ios/EDEN_FALL-ios-source-package.zip
             validation/v5-ios/**
