@@ -18,14 +18,28 @@ env:
   GODOT_VERSION: 4.7.1
   GODOT_STATUS: stable
   TEMPLATE_DIR: 4.7.1.stable
+  V5_BRANCH: godmode/godot-4.7.1-multiplatform-v5
 
 jobs:
   validate-and-export:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
-      - name: Check out repository
+      - name: Check out exact v5 branch
         uses: actions/checkout@v4
+        with:
+          ref: godmode/godot-4.7.1-multiplatform-v5
+          fetch-depth: 1
+
+      - name: Verify exact checkout
+        shell: bash
+        run: |
+          set -euxo pipefail
+          local_head="$(git rev-parse HEAD)"
+          remote_head="$(git ls-remote origin refs/heads/${V5_BRANCH} | cut -f1)"
+          test -n "$remote_head"
+          test "$local_head" = "$remote_head"
+          echo "$local_head" > /tmp/v5_exact_head
 
       - name: Install Godot 4.7.1 and export templates
         shell: bash
@@ -67,7 +81,7 @@ jobs:
         run: |
           set +e
           mkdir -p validation/v5
-          checked_commit="$(git rev-parse HEAD)"
+          checked_commit="$(cat /tmp/v5_exact_head)"
 
           /tmp/godot --headless --editor --path . --quit > validation/v5/import.log 2>&1
           import_status=$?
@@ -97,7 +111,7 @@ jobs:
             echo '# EDEN//FALL v0.5 Godot 4.7.1 audit'
             echo
             echo "- Result: **${result}**"
-            echo "- Commit: \`${checked_commit}\`"
+            echo "- Exact branch commit: \`${checked_commit}\`"
             echo "- Import: \`${import_status}\`"
             echo "- v3 regression: \`${v3_status}\`"
             echo "- v4 regression: \`${v4_status}\`"
@@ -150,9 +164,6 @@ jobs:
             > validation/v5-android/apk.log 2>&1
           test -s build/android/EDEN_FALL-debug.apk
 
-          # Godot's CLI documents template installation as an option used in the
-          # same invocation as export. Running it alone starts an editor command
-          # that does not terminate in headless CI.
           timeout 20m /tmp/godot --headless --path . --install-android-build-template \
             --export-debug "Android AAB" build/android/EDEN_FALL-debug.aab \
             > validation/v5-android/aab.log 2>&1
@@ -161,6 +172,7 @@ jobs:
           {
             echo '# EDEN//FALL v0.5 Android export receipt'
             echo
+            echo "- Exact branch commit: \`$(cat /tmp/v5_exact_head)\`"
             echo '- APK: **PASS**'
             echo '- AAB/Gradle: **PASS**'
             echo "- APK bytes: \`$(stat -c%s build/android/EDEN_FALL-debug.apk)\`"
@@ -171,10 +183,31 @@ jobs:
             echo '## AAB tail'; echo '```text'; tail -n 140 validation/v5-android/aab.log; echo '```'
           } > validation/v5-android/RESULT.md
 
+      - name: Record exact build hashes
+        shell: bash
+        run: |
+          set -euxo pipefail
+          {
+            echo '# EDEN//FALL v0.5 exact build hashes'
+            echo
+            echo "- Commit: \`$(cat /tmp/v5_exact_head)\`"
+            echo '```text'
+            sha256sum \
+              build/windows/EDEN_FALL-windows-x86_64.zip \
+              build/linux/EDEN_FALL-linux-x86_64.tar.gz \
+              build/macos/EDEN_FALL.zip \
+              build/web/index.html \
+              build/web/index.pck \
+              build/web/index.wasm \
+              build/android/EDEN_FALL-debug.apk \
+              build/android/EDEN_FALL-debug.aab
+            echo '```'
+          } > validation/v5/BUILD_HASHES.md
+
       - name: Upload desktop Web and Android artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: EDEN-FALL-v0.5-Godot-4.7.1-test-builds
+          name: EDEN-FALL-v0.5-Godot-4.7.1-exact-builds
           if-no-files-found: error
           retention-days: 14
           path: |
@@ -185,14 +218,28 @@ jobs:
             build/android/EDEN_FALL-debug.apk
             build/android/EDEN_FALL-debug.aab
             validation/v5/RESULT.md
+            validation/v5/BUILD_HASHES.md
             validation/v5-android/**
 
   ios-xcode-export:
     runs-on: macos-15
     timeout-minutes: 35
     steps:
-      - name: Check out repository
+      - name: Check out exact v5 branch
         uses: actions/checkout@v4
+        with:
+          ref: godmode/godot-4.7.1-multiplatform-v5
+          fetch-depth: 1
+
+      - name: Verify exact checkout
+        shell: bash
+        run: |
+          set -euxo pipefail
+          local_head="$(git rev-parse HEAD)"
+          remote_head="$(git ls-remote origin refs/heads/${V5_BRANCH} | cut -f1)"
+          test -n "$remote_head"
+          test "$local_head" = "$remote_head"
+          echo "$local_head" > /tmp/v5_exact_head
 
       - name: Install Godot 4.7.1 and templates on macOS
         shell: bash
@@ -246,11 +293,15 @@ jobs:
           {
             echo '# EDEN//FALL v0.5 iOS export receipt'
             echo
+            echo "- Exact branch commit: \`$(cat /tmp/v5_exact_head)\`"
             echo "- Result: **${result}**"
             echo "- Import exit: \`${import_status}\`"
             echo "- Godot Xcode export exit: \`${export_status}\`"
             echo "- Xcode project archive present: **$([[ -s build/ios/EDEN_FALL-ios-xcode-project.zip ]] && echo yes || echo no)**"
             echo "- Apple credentials present: **no**"
+            if [[ -s build/ios/EDEN_FALL-ios-xcode-project.zip ]]; then
+              echo "- Xcode archive SHA-256: \`$(shasum -a 256 build/ios/EDEN_FALL-ios-xcode-project.zip | cut -d' ' -f1)\`"
+            fi
             echo
             echo '## Export log tail'; echo '```text'; tail -n 160 validation/v5-ios/export.log; echo '```'
           } > validation/v5-ios/RESULT.md
@@ -261,7 +312,7 @@ jobs:
       - name: Upload iOS engineering artifact
         uses: actions/upload-artifact@v4
         with:
-          name: EDEN-FALL-v0.5-iOS-engineering-package
+          name: EDEN-FALL-v0.5-iOS-exact-engineering-package
           if-no-files-found: error
           retention-days: 14
           path: |
