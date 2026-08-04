@@ -24,9 +24,10 @@ func input_family() -> String:
 
 func device_class(viewport_size: Vector2) -> String:
 	var shortest := minf(viewport_size.x, viewport_size.y)
+	var longest := maxf(viewport_size.x, viewport_size.y)
 	if shortest < 520.0:
 		return "phone"
-	if shortest < 900.0:
+	if shortest <= 1100.0 and longest <= 1500.0:
 		return "tablet"
 	return "desktop"
 
