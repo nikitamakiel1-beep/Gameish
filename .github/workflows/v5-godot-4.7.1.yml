@@ -74,8 +74,6 @@ jobs:
           /tmp/godot --headless --path . --script res://tests/v3_audit.gd > validation/v5/v3.log 2>&1
           v3_status=$?
 
-          # v4 and v4.1 audits include their historical main-scene assertion.
-          # Validate them against the original quality runtime, then restore v5.
           cp main.tscn /tmp/main-v5.tscn
           sed -i 's#res://scripts/edenfall_v5.gd#res://scripts/edenfall_v4_quality.gd#' main.tscn
           /tmp/godot --headless --path . --script res://tests/v4_audit.gd > validation/v5/v4.log 2>&1
@@ -90,8 +88,9 @@ jobs:
           boot_status=$?
 
           fatal_pattern='SCRIPT ERROR|Parse Error|Failed to load script|Could not resolve class|Invalid call|Invalid access|Stack overflow|Assertion failed'
+          grep -Eni "$fatal_pattern" validation/v5/import.log validation/v5/v3.log validation/v5/v4.log validation/v5/v41.log validation/v5/v5.log validation/v5/boot.log > validation/v5/fatal_matches.log || true
           log_status=0
-          if grep -Eqi "$fatal_pattern" validation/v5/*.log; then log_status=1; fi
+          if [[ -s validation/v5/fatal_matches.log ]]; then log_status=1; fi
           if [[ $import_status -eq 0 && $v3_status -eq 0 && $v4_status -eq 0 && $v41_status -eq 0 && $v5_status -eq 0 && $boot_status -eq 0 && $log_status -eq 0 ]]; then result=PASS; else result=FAIL; fi
 
           {
@@ -106,6 +105,7 @@ jobs:
             echo "- v5 architecture/UI/export contract: \`${v5_status}\`"
             echo "- Main-scene boot: \`${boot_status}\`"
             echo "- Fatal marker status: \`${log_status}\`"
+            echo; echo '## Exact fatal-pattern matches'; echo '```text'; cat validation/v5/fatal_matches.log; echo '```'
             for name in import v3 v4 v41 v5 boot; do
               echo; echo "## ${name}"; echo '```text'; tail -n 120 "validation/v5/${name}.log"; echo '```'
             done
@@ -113,6 +113,15 @@ jobs:
           cat validation/v5/RESULT.md
           echo "result=${result}" >> "$GITHUB_OUTPUT"
           exit 0
+
+      - name: Upload validation diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: EDEN-FALL-v0.5-validation-diagnostics
+          if-no-files-found: error
+          retention-days: 14
+          path: validation/v5/**
 
       - name: Enforce migration gate
         if: steps.audit.outputs.result != 'PASS'
