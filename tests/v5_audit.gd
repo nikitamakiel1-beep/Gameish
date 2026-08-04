@@ -14,7 +14,7 @@ func _init() -> void:
 	validate_runtime()
 	validate_export_matrix()
 	if failures.is_empty():
-		print("EDEN//FALL v5 audit passed: Godot 4.7.1, responsive UI, platform services, persistence and seven export profiles")
+		print("EDEN//FALL v5 audit passed: Godot 4.7.1, responsive UI, spatial navigation, mobile HUD, platform services, persistence and seven export profiles")
 		quit(0)
 	else:
 		for failure in failures:
@@ -31,6 +31,7 @@ func validate_project() -> void:
 	expect(project_text.contains("config/version=\"0.5.0\""), "Project version is not v0.5.0")
 	expect(project_text.contains("PackedStringArray(\"4.7\""), "Project feature contract is not Godot 4.7")
 	expect(project_text.contains("renderer/rendering_method.web=\"gl_compatibility\""), "Web compatibility renderer is not explicit")
+	expect(project_text.contains("textures/vram_compression/import_etc2_astc=true"), "Mobile/Apple texture import contract is missing")
 	var scene_text := FileAccess.get_file_as_string("res://main.tscn")
 	expect(scene_text.contains("scripts/edenfall_v5.gd"), "Main scene does not load the v5 runtime")
 
@@ -43,12 +44,19 @@ func validate_modules() -> void:
 	expect(platform.device_class(Vector2(390, 844)) == "phone", "Phone breakpoint failed")
 	expect(platform.device_class(Vector2(1024, 1366)) == "tablet", "Tablet breakpoint failed")
 	expect(platform.device_class(Vector2(1920, 1080)) == "desktop", "Desktop breakpoint failed")
+	expect(float(platform.minimum_touch_target(Vector2(390, 844), true)) >= 68.0, "Enlarged phone touch target is too small")
 	var ui = load(UI_PATH).new()
 	var ui_contract: Dictionary = ui.audit_contract()
 	expect(int(ui_contract.get("version", 0)) == 5, "UI contract version mismatch")
 	expect(ui.title_grid(Rect2(Vector2.ZERO, Vector2(1280, 720)), 6).size() == 6, "Title grid is incomplete")
-	expect(ui.lineage_grid(Rect2(Vector2.ZERO, Vector2(390, 844)), 5).size() == 5, "Phone lineage grid is incomplete")
+	var phone_safe := Rect2(Vector2(12, 12), Vector2(366, 820))
+	var phone_cards: Array[Rect2] = ui.lineage_grid(phone_safe, 5)
+	expect(phone_cards.size() == 5, "Phone lineage grid is incomplete")
+	for card in phone_cards:
+		expect(phone_safe.encloses(card), "A phone lineage card escapes its safe area")
 	expect(ui.settings_grid(Rect2(Vector2.ZERO, Vector2(1280, 720)), 20).size() == 20, "Settings grid is incomplete")
+	expect(ui.layout_mode(Rect2(Vector2.ZERO, Vector2(390, 844))) == "compact", "Compact layout breakpoint failed")
+	expect(ui.layout_mode(Rect2(Vector2.ZERO, Vector2(1280, 720))) == "wide", "Wide layout breakpoint failed")
 	var save = load(SAVE_PATH).new()
 	var save_contract: Dictionary = save.audit_contract()
 	expect(bool(save_contract.get("atomic_write", false)), "Atomic persistence contract missing")
@@ -61,6 +69,9 @@ func validate_modules() -> void:
 	expect(String(build_contract.get("godot", "")) == "4.7.1", "Build matrix Godot version mismatch")
 	expect(int(build_contract.get("presets", 0)) == 7, "Expected seven export presets")
 	expect(Array(build_contract.get("platforms", [])).size() == 6, "Expected six platform families")
+	expect(bool(build_contract.get("has_apk", false)), "APK target missing")
+	expect(bool(build_contract.get("has_aab", false)), "AAB target missing")
+	expect(bool(build_contract.get("has_ios", false)), "iOS target missing")
 
 func validate_runtime() -> void:
 	expect(ResourceLoader.exists(RUNTIME_PATH), "Missing v5 runtime")
@@ -79,6 +90,11 @@ func validate_runtime() -> void:
 	expect(runtime.directional_row("attack", 4) == 20, "Inherited south attack row failed")
 	expect(runtime.relic_catalog().size() == 60, "Relic catalog regression")
 	expect(runtime.settings_rows().size() >= 20, "v5 settings are incomplete")
+	expect(runtime.has_method("draw_compact_hud"), "Compact phone HUD is missing")
+	expect(runtime.has_method("handle_spatial_navigation"), "Spatial navigation is missing")
+	expect(runtime.has_method("apply_performance_profile"), "Performance profile is missing")
+	runtime.apply_performance_profile()
+	expect(int(runtime.performance_target_fps) >= 45, "Performance target FPS is invalid")
 	expect(runtime.audit_v5_readiness() >= 90.0, "v5 readiness contract is below 90 percent")
 	runtime.free()
 
@@ -89,4 +105,6 @@ func validate_export_matrix() -> void:
 		expect(text.contains("name=\"%s\"" % preset), "Missing export preset: %s" % preset)
 	expect(text.contains("package/unique_name=\"com.gameish.edenfall\""), "Android package identifier missing")
 	expect(text.contains("application/bundle_identifier=\"com.gameish.edenfall\""), "Apple bundle identifier missing")
+	expect(text.contains("application/export_project_only=true"), "iOS project-only engineering mode missing")
 	expect(FileAccess.file_exists("res://docs/MULTIPLATFORM_V5.md"), "Multiplatform documentation missing")
+	expect(FileAccess.file_exists("res://docs/ARCHITECTURE_V5.md"), "Architecture documentation missing")
