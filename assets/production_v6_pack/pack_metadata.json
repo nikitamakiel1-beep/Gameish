@@ -1,0 +1,20 @@
+{
+  "version": "0.6.0",
+  "zip_bytes": 4406763,
+  "zip_sha256": "d7c10c03caac2db6bd331e2138bdbe5ae4443c994e35321db34497c628466018",
+  "base64_chars": 5875684,
+  "chunk_count": 10,
+  "chunk_size": 600000,
+  "chunks": [
+    {"file": "chunk_000.b64", "chars": 600000, "sha256": "9f01019e85aa953c00a75a0fb68a7fe6893c6998c6f7c8cd6998766462115ada"},
+    {"file": "chunk_001.b64", "chars": 600000, "sha256": "1c31c16d1c5d35523867b907f7392cf82f9d6d7a66ff99d70dcb7c501532b325"},
+    {"file": "chunk_002.b64", "chars": 600000, "sha256": "c131274412247d156bdd7920d6db208011216c9154978ac794b65e976d3e66c0"},
+    {"file": "chunk_003.b64", "chars": 600000, "sha256": "946c13378a73259a67e6deac3f66122616ac383f1bb74169782f1c07becc943d"},
+    {"file": "chunk_004.b64", "chars": 600000, "sha256": "de41cf8583a8624bfb70496fd20ed9f7e87b1efd9c5cf59579f5a7e6c4c20bc9"},
+    {"file": "chunk_005.b64", "chars": 600000, "sha256": "3eaab282403c96dbd501c105be7ebda9e4c31ef6068709b264c613cab1f03357"},
+    {"file": "chunk_006.b64", "chars": 600000, "sha256": "c1dfd7c631a59f728493a293785b90d60722a313b92a3d15010aaec5ac00dd52"},
+    {"file": "chunk_007.b64", "chars": 600000, "sha256": "d1f3d5f92bd5ca502f35b7fec6a6a8d45f28a794d4ed9b5ee311abbdaf4c23a2"},
+    {"file": "chunk_008.b64", "chars": 600000, "sha256": "8ff98ff71c14d9fdd1cfcbf18385694caea6ebe30108f0814cefa59aaa00b6b6"},
+    {"file": "chunk_009.b64", "chars": 475684, "sha256": "18caab5086d94dc2c4e9317bdd31c14099dcbe4d58d008bea15ac958f7f09828"}
+  ]
+}
