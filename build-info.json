@@ -6,5 +6,6 @@
   "source_branch": "godmode/production-assets-v6-rebuild",
   "published_branch": "gh-pages",
   "playable": true,
-  "built_at": "2026-08-06T14:22:17Z"
+  "built_at": "2026-08-06T14:22:17Z",
+  "pages_owner_publish_trigger": "2026-08-06T14:25:00Z"
 }
