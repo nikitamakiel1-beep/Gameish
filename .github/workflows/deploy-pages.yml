@@ -1,0 +1,55 @@
+name: Deploy verified EDEN FALL package
+
+on:
+  push:
+    branches:
+      - gh-pages
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: eden-fall-pages-live
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Publish gh-pages root
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Check out gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+
+      - name: Prepare site artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/site"
+          rsync -a --delete \
+            --exclude='.git' \
+            --exclude='.github' \
+            ./ "$RUNNER_TEMP/site/"
+
+          test -s "$RUNNER_TEMP/site/index.html"
+          test -s "$RUNNER_TEMP/site/index.js"
+          test -s "$RUNNER_TEMP/site/index.wasm"
+          test -s "$RUNNER_TEMP/site/index.pck"
+          touch "$RUNNER_TEMP/site/.nojekyll"
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ${{ runner.temp }}/site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
