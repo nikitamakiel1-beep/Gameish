@@ -168,6 +168,39 @@ func validate_contract(deep: bool = true) -> Dictionary:
 		"passed": errors.is_empty(),
 	}
 
+func trim_runtime_cache(active_biome: String, active_enemies: Array[String], active_boss: String) -> void:
+	var enemy_keep: Dictionary = {}
+	for enemy_id in active_enemies:
+		enemy_keep[String(ALIASES.get(enemy_id, enemy_id))] = true
+	for cache_key_variant in textures.keys():
+		var cache_key := String(cache_key_variant)
+		if cache_key.begins_with("hero:") or cache_key.begins_with("portrait:") or cache_key.begins_with("utility:"):
+			continue
+		if cache_key.begins_with("biome:"):
+			if not cache_key.begins_with("biome:%s:" % active_biome):
+				textures.erase(cache_key_variant)
+			continue
+		if cache_key.begins_with("enemy:"):
+			var enemy_id := cache_key.trim_prefix("enemy:")
+			if not enemy_keep.has(enemy_id):
+				textures.erase(cache_key_variant)
+			continue
+		if cache_key.begins_with("boss:") and cache_key != "boss:" + active_boss:
+			textures.erase(cache_key_variant)
+	for audio_key_variant in audio.keys():
+		var audio_key := String(audio_key_variant)
+		if audio_key.begins_with("audio:") and not audio_key.begins_with("audio:%s:" % active_biome):
+			audio.erase(audio_key_variant)
+
+func clear_transient_cache() -> void:
+	for cache_key_variant in textures.keys():
+		var cache_key := String(cache_key_variant)
+		if cache_key.begins_with("enemy:") or cache_key.begins_with("boss:") or cache_key.begins_with("biome:"):
+			textures.erase(cache_key_variant)
+	for audio_key_variant in audio.keys():
+		if String(audio_key_variant).begins_with("audio:"):
+			audio.erase(audio_key_variant)
+
 func clear_caches() -> void:
 	textures.clear()
 	audio.clear()
