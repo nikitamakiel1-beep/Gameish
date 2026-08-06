@@ -108,6 +108,8 @@ No two enemy atlas sheets may produce identical image hashes. Elite status is an
 - Normal enemy health bars appear only after damage; elites and bosses always expose status.
 - Player and enemy sprites receive shadows and dark outlines against complex backgrounds.
 - Environmental tile contrast remains subordinate to bullets, actors and pickups.
+- Structural cover blocks actors and projectiles while preserving door lanes.
+- Swept collision prevents fast dashes and enemies from tunnelling through narrow cover.
 
 ## Interface contract
 
@@ -117,11 +119,21 @@ The selected lineage receives a large dossier with portrait, role, starting arma
 
 The previous five full-height cards are prohibited because they create excessive empty space and prevent a clear selected-state hierarchy.
 
+Desktop pointer input selects a lineage first and deploys through an explicit confirmation control. Compact touch layouts may deploy by tapping the already-selected lineage.
+
 ### Run HUD
 
 Wide layouts use three compact header regions: player state, chapter/objective and resources/minimap. Small landscape and phone layouts use a single header plus a separate objective strip.
 
 The HUD may overlap the arena border but must not consume the central combat field.
+
+### Genome Archive
+
+The archive is an atlas-driven visual reference, not a numbered placeholder grid. Wide layouts expose five lineages, eighteen hostile signatures, five guardian atlases, five biome memories and all sixty relic cells.
+
+### Caravan exchange
+
+Shop rooms expose three selectable relic cards with icons, names, prices and purchased state. Keyboard, controller, pointer and touch interactions must converge on the same inventory state.
 
 ### Safe-area and compact thresholds
 
@@ -138,6 +150,7 @@ The HUD may overlap the arena border but must not consume the central combat fie
 - Unique hashes for all five heroes, five portraits, eighteen enemies, five bosses and each biome atlas family.
 - Non-empty utility atlases.
 - Existence of every rebuild layer.
-- `main.tscn` routing to `edenfall_v6_release_candidate.gd`.
+- World collision, swept navigation, archive and shop source contracts.
+- `main.tscn` routing to `edenfall_v6_polish_runtime.gd`.
 
 Static review is not a substitute for import, boot, screenshot and gameplay testing. No build may be described as qualified until the exact branch head passes those runtime checks.
