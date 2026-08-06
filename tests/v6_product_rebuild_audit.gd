@@ -15,6 +15,7 @@ const UTILITY_IDS: Array[String] = [
 	"pickups", "relics", "projectiles", "effects", "hud_panel", "menu_panel",
 	"joystick_base", "joystick_thumb", "touch_dash", "touch_interact", "touch_pause",
 ]
+const RELEASE_SCRIPT := "res://scripts/edenfall_v6_release_candidate.gd"
 
 func _init() -> void:
 	var bootstrap: RefCounted = BootstrapScript.new()
@@ -76,6 +77,7 @@ func _init() -> void:
 		"res://scripts/v6/asset_registry_rebuild.gd",
 		"res://scripts/edenfall_v6_visual_rebuild.gd",
 		"res://scripts/edenfall_v6_product_runtime.gd",
+		RELEASE_SCRIPT,
 	]:
 		if not ResourceLoader.exists(path):
 			_fail(6, "Product rebuild resource is missing: " + path)
@@ -89,12 +91,12 @@ func _init() -> void:
 	var script := instance.get_script() as Script
 	var script_path := script.resource_path if script != null else ""
 	instance.free()
-	if script_path != "res://scripts/edenfall_v6_product_runtime.gd":
-		_fail(8, "main.tscn does not route to the product runtime: " + script_path)
+	if script_path != RELEASE_SCRIPT:
+		_fail(8, "main.tscn does not route to the release candidate: " + script_path)
 		return
 
 	var report := {
-		"product_version": "0.6.1",
+		"product_version": "0.6.1-rc1",
 		"engine": engine_report,
 		"unique_atlases": uniqueness,
 		"main_script": script_path,
