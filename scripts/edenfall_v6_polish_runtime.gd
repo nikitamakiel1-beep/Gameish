@@ -2,11 +2,32 @@ extends "res://scripts/edenfall_v6_content_runtime.gd"
 
 const POLISH_VERSION := "0.6.1-rc5"
 
+func enter_room(coord: Vector2i, movement_direction: Vector2i) -> void:
+	super.enter_room(coord, movement_direction)
+	_reconcile_shop_inventory()
+
 func _is_shop_room() -> bool:
 	if state != "run" or not room_graph.has(current_room):
 		return false
 	var room: Dictionary = room_graph[current_room]
 	return String(room.get("kind", "")) == "shop"
+
+func _reconcile_shop_inventory() -> void:
+	if not _is_shop_room() or player.is_empty():
+		return
+	var room: Dictionary = room_graph[current_room]
+	var items: Array = room.get("shop", [])
+	var inventory: Array = player.get("inventory", [])
+	var changed := false
+	for index in range(items.size()):
+		var item: Dictionary = items[index]
+		if String(item.get("id", "")) in inventory and not bool(item.get("bought", false)):
+			item["bought"] = true
+			items[index] = item
+			changed = true
+	if changed:
+		room["shop"] = items
+		room_graph[current_room] = room
 
 func _draw_relic_grid(rect: Rect2, columns: int, rows: int) -> void:
 	if columns == 12 and rows == 5 and rect.size.y >= 90.0:
