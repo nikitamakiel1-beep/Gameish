@@ -21,7 +21,9 @@ concurrency:
 env:
   GODOT_VERSION: "4.7.1"
   GODOT_RELEASE: "4.7.1-stable"
+  GODOT_ORIGIN: "https://godot-releases.nbg1.your-objectstorage.com"
   GODOT_LINUX_ZIP: "Godot_v4.7.1-stable_linux.x86_64.zip"
+  GODOT_MAC_ZIP: "Godot_v4.7.1-stable_macos.universal.zip"
   GODOT_TEMPLATES: "Godot_v4.7.1-stable_export_templates.tpz"
 
 jobs:
@@ -39,20 +41,19 @@ jobs:
 
       - name: Install official Godot 4.7.1
         run: |
-          mkdir -p "$RUNNER_TEMP/godot"
+          mkdir -p "$RUNNER_TEMP/godot" validation/v6
           curl --fail --location --retry 5 \
-            "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/${GODOT_LINUX_ZIP}" \
+            "${GODOT_ORIGIN}/${GODOT_RELEASE}/${GODOT_LINUX_ZIP}" \
             --output "$RUNNER_TEMP/godot/godot.zip"
           unzip -q "$RUNNER_TEMP/godot/godot.zip" -d "$RUNNER_TEMP/godot"
           GODOT_PATH="$(find "$RUNNER_TEMP/godot" -maxdepth 1 -type f -name 'Godot*' | head -1)"
           chmod +x "$GODOT_PATH"
           echo "GODOT_BIN=$GODOT_PATH" >> "$GITHUB_ENV"
-          "$GODOT_PATH" --version | tee validation-engine-version.log
-          grep -E '^4\.7\.1\.stable' validation-engine-version.log
+          "$GODOT_PATH" --version | tee validation/v6/engine-version.log
+          grep -E '^4\.7\.1\.stable' validation/v6/engine-version.log
 
       - name: Import project
         run: |
-          mkdir -p validation/v6
           "$GODOT_BIN" --headless --audio-driver Dummy --path . --editor --quit --verbose \
             > validation/v6/import.log 2>&1
 
@@ -78,9 +79,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: edenfall-v6-validation
-          path: |
-            validation/v6
-            validation-engine-version.log
+          path: validation/v6
           if-no-files-found: error
 
   desktop-web:
@@ -97,10 +96,10 @@ jobs:
           sudo apt-get install -y --no-install-recommends unzip libfontconfig1 libxcursor1 libxinerama1 libxi6 libxrandr2 libgl1 libasound2t64
           mkdir -p "$RUNNER_TEMP/godot" "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
           curl --fail --location --retry 5 \
-            "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/${GODOT_LINUX_ZIP}" \
+            "${GODOT_ORIGIN}/${GODOT_RELEASE}/${GODOT_LINUX_ZIP}" \
             --output "$RUNNER_TEMP/godot/godot.zip"
           curl --fail --location --retry 5 \
-            "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/${GODOT_TEMPLATES}" \
+            "${GODOT_ORIGIN}/${GODOT_RELEASE}/${GODOT_TEMPLATES}" \
             --output "$RUNNER_TEMP/godot/templates.tpz"
           unzip -q "$RUNNER_TEMP/godot/godot.zip" -d "$RUNNER_TEMP/godot"
           unzip -q "$RUNNER_TEMP/godot/templates.tpz" -d "$RUNNER_TEMP/templates"
@@ -122,6 +121,7 @@ jobs:
             > validation/v6-exports/web.log 2>&1
 
       - name: Upload desktop and Web builds
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: edenfall-v6-desktop-web
@@ -151,10 +151,10 @@ jobs:
           sudo apt-get install -y --no-install-recommends unzip libfontconfig1 libxcursor1 libxinerama1 libxi6 libxrandr2 libgl1 libasound2t64
           mkdir -p "$RUNNER_TEMP/godot" "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable" "$HOME/.android"
           curl --fail --location --retry 5 \
-            "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/${GODOT_LINUX_ZIP}" \
+            "${GODOT_ORIGIN}/${GODOT_RELEASE}/${GODOT_LINUX_ZIP}" \
             --output "$RUNNER_TEMP/godot/godot.zip"
           curl --fail --location --retry 5 \
-            "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/${GODOT_TEMPLATES}" \
+            "${GODOT_ORIGIN}/${GODOT_RELEASE}/${GODOT_TEMPLATES}" \
             --output "$RUNNER_TEMP/godot/templates.tpz"
           unzip -q "$RUNNER_TEMP/godot/godot.zip" -d "$RUNNER_TEMP/godot"
           unzip -q "$RUNNER_TEMP/godot/templates.tpz" -d "$RUNNER_TEMP/templates"
@@ -168,8 +168,6 @@ jobs:
           fi
 
       - name: Export Android packages
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
         run: |
           mkdir -p build/android validation/v6-android
           "$GODOT_BIN" --headless --audio-driver Dummy --path . --export-debug "Android APK" \
@@ -178,6 +176,7 @@ jobs:
             > validation/v6-android/aab.log 2>&1
 
       - name: Upload Android builds
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: edenfall-v6-android
@@ -191,8 +190,6 @@ jobs:
     needs: validate
     runs-on: macos-14
     timeout-minutes: 40
-    env:
-      GODOT_MAC_ZIP: "Godot_v4.7.1-stable_macos.universal.zip"
     steps:
       - uses: actions/checkout@v4
 
@@ -200,10 +197,10 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/godot" "$HOME/Library/Application Support/Godot/export_templates/${GODOT_VERSION}.stable"
           curl --fail --location --retry 5 \
-            "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/${GODOT_MAC_ZIP}" \
+            "${GODOT_ORIGIN}/${GODOT_RELEASE}/${GODOT_MAC_ZIP}" \
             --output "$RUNNER_TEMP/godot/godot.zip"
           curl --fail --location --retry 5 \
-            "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/${GODOT_TEMPLATES}" \
+            "${GODOT_ORIGIN}/${GODOT_RELEASE}/${GODOT_TEMPLATES}" \
             --output "$RUNNER_TEMP/godot/templates.tpz"
           unzip -q "$RUNNER_TEMP/godot/godot.zip" -d "$RUNNER_TEMP/godot"
           unzip -q "$RUNNER_TEMP/godot/templates.tpz" -d "$RUNNER_TEMP/templates"
@@ -221,6 +218,7 @@ jobs:
             > validation/v6-ios/ios.log 2>&1
 
       - name: Upload iOS engineering package
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: edenfall-v6-ios
