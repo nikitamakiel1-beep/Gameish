@@ -6,6 +6,7 @@ config_version=5
 config/name="Gameish: EDEN//FALL"
 config/version="0.6.0"
 run/main_scene="res://main.tscn"
+run/disable_stdout=false
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 boot_splash/bg_color=Color(0.027, 0.043, 0.047, 1)
@@ -22,6 +23,11 @@ window/stretch/aspect="expand"
 window/dpi/allow_hidpi=true
 window/handheld/orientation=0
 window/ios/hide_home_indicator=true
+window/energy_saving/keep_screen_on=true
+
+[input_devices]
+pointing/emulate_touch_from_mouse=true
+pointing/emulate_mouse_from_touch=true
 
 [rendering]
 renderer/rendering_method="gl_compatibility"
@@ -31,11 +37,32 @@ textures/default_filters/use_nearest_mipmap_filter=false
 textures/canvas_textures/default_texture_filter=0
 textures/vram_compression/import_s3tc_bptc=true
 textures/vram_compression/import_etc2_astc=true
+2d/snap/snap_2d_transforms_to_pixel=true
+2d/snap/snap_2d_vertices_to_pixel=true
 limits/time/time_rollover_secs=3600
+
+[physics]
+common/physics_ticks_per_second=60
+common/max_physics_steps_per_frame=8
+common/physics_jitter_fix=0.5
+2d/default_gravity=0.0
+
+[layer_names]
+2d_physics/layer_1="Player"
+2d_physics/layer_2="Enemies"
+2d_physics/layer_3="Player Projectiles"
+2d_physics/layer_4="Enemy Projectiles"
+2d_physics/layer_5="Pickups and Interactables"
+2d_physics/layer_6="World and Hazards"
 
 [audio]
 default_bus_layout="res://default_bus_layout.tres"
 driver/enable_input=false
+
+[debug]
+file_logging/enable_file_logging=true
+file_logging/log_path="user://logs/edenfall-v0.6.log"
+file_logging/max_log_files=5
 
 [internationalization]
 locale/fallback="en"
