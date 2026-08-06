@@ -4,6 +4,13 @@ on:
   push:
     branches:
       - gh-pages
+  pull_request_target:
+    branches:
+      - gh-pages
+    types:
+      - opened
+      - reopened
+      - ready_for_review
   workflow_dispatch:
 
 permissions:
@@ -20,6 +27,7 @@ concurrency:
 jobs:
   deploy:
     name: Publish gh-pages root
+    if: github.event_name != 'pull_request_target' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     environment:
       name: github-pages
