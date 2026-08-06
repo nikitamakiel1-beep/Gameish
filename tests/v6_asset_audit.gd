@@ -10,6 +10,7 @@ const REQUIRED_PRESETS := [
 	"Windows Desktop", "Linux X11", "macOS Universal", "Web",
 	"Android APK", "Android AAB", "iOS Xcode",
 ]
+const MAIN_RUNTIME := "res://scripts/edenfall_v6_runtime.gd"
 
 func _init() -> void:
 	call_deferred("_run_audit")
@@ -33,11 +34,16 @@ func _run_audit() -> void:
 	if not bool(asset_report.get("passed", false)):
 		for error in Array(asset_report.get("errors", [])):
 			errors.append(String(error))
+	var cache_report: Dictionary = registry.call("cache_report")
+	if int(cache_report.get("enemy_budget", 0)) != 8:
+		errors.append("Enemy-sheet runtime budget must be 8")
+	if int(cache_report.get("boss_budget", 0)) != 1:
+		errors.append("Boss-sheet runtime budget must be 1")
 	registry.call("clear_caches")
 
-	var runtime: Script = load("res://scripts/edenfall_v6.gd")
+	var runtime: Script = load(MAIN_RUNTIME)
 	if runtime == null:
-		errors.append("v0.6 runtime failed to load")
+		errors.append("v0.6 bounded runtime failed to load")
 
 	var main_scene: PackedScene = load("res://main.tscn")
 	if main_scene == null:
@@ -50,13 +56,18 @@ func _run_audit() -> void:
 			root.add_child(instance)
 			await process_frame
 			var script := instance.get_script() as Script
-			if script == null or script.resource_path != "res://scripts/edenfall_v6.gd":
-				errors.append("main.tscn is not routed to edenfall_v6.gd")
+			if script == null or script.resource_path != MAIN_RUNTIME:
+				errors.append("main.tscn is not routed to the bounded v0.6 runtime")
 			for action in REQUIRED_INPUTS:
 				if not InputMap.has_action(StringName(action)):
 					errors.append("Missing runtime input action: %s" % action)
 			if instance.has_method("get_v6_diagnostics"):
-				print("EDEN_FALL_V6_RUNTIME_REPORT=" + JSON.stringify(instance.call("get_v6_diagnostics")))
+				var diagnostics: Dictionary = instance.call("get_v6_diagnostics")
+				print("EDEN_FALL_V6_RUNTIME_REPORT=" + JSON.stringify(diagnostics))
+				if not diagnostics.has("performance_budget"):
+					errors.append("Performance budget diagnostics are missing")
+				if not diagnostics.has("asset_cache"):
+					errors.append("Asset cache diagnostics are missing")
 			else:
 				errors.append("Runtime diagnostics API is missing")
 			instance.queue_free()
