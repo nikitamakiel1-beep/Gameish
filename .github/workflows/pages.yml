@@ -1,4 +1,4 @@
-name: Build and publish EDEN FALL v0.6 from production branch
+name: Deploy EDEN FALL v0.6 with GitHub Pages API
 
 on:
   push:
@@ -15,14 +15,15 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   actions: read
   pages: write
+  id-token: write
   issues: write
   pull-requests: write
 
 concurrency:
-  group: eden-fall-v6-gh-pages
+  group: eden-fall-v6-pages-api
   cancel-in-progress: true
 
 env:
@@ -31,14 +32,13 @@ env:
   GODOT_LINUX_ZIP: "Godot_v4.7.1-stable_linux.x86_64.zip"
   GODOT_TEMPLATES: "Godot_v4.7.1-stable_export_templates.tpz"
   SOURCE_BRANCH: "godmode/production-assets-v6-rebuild"
-  PAGES_BRANCH: "gh-pages"
 
 jobs:
-  publish:
-    name: Verify, export, publish and build Pages
+  build:
+    name: Verify and package Godot Web build
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 40
 
     steps:
       - name: Check out exact production commit
@@ -46,7 +46,6 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
-          persist-credentials: false
 
       - name: Install runtime libraries
         run: |
@@ -78,7 +77,6 @@ jobs:
           test -n "$GODOT_BIN"
           chmod +x "$GODOT_BIN"
           echo "GODOT_BIN=$GODOT_BIN" >> "$GITHUB_ENV"
-
           "$GODOT_BIN" --version | tee validation/pages/engine-version.log
           grep -E '^4\.7\.1\.stable' validation/pages/engine-version.log
 
@@ -111,7 +109,6 @@ jobs:
           set -euo pipefail
           rm -rf build/web
           mkdir -p build/web
-
           "$GODOT_BIN" --headless --audio-driver Dummy --path . \
             --export-release "Web" "build/web/index.html" \
             > validation/pages/export.log 2>&1
@@ -120,7 +117,6 @@ jobs:
           test -s build/web/index.js
           test -s build/web/index.wasm
           test -s build/web/index.pck
-
           touch build/web/.nojekyll
           cp build/web/index.html build/web/404.html
 
@@ -131,7 +127,7 @@ jobs:
             "godot": "4.7.1",
             "source_commit": "$(git rev-parse HEAD)",
             "source_branch": "${SOURCE_BRANCH}",
-            "published_branch": "${PAGES_BRANCH}",
+            "deployment": "actions-deploy-pages-v4",
             "playable": true,
             "built_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           }
@@ -145,66 +141,11 @@ jobs:
             | sort | tee validation/pages/web-files.log
           sha256sum build/web/* | tee validation/pages/web-sha256.txt
 
-      - name: Force-publish verified package to gh-pages
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd build/web
-          git init
-          git checkout -b "$PAGES_BRANCH"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add --all
-          git commit -m "Publish EDEN FALL v0.6 from $(git -C ../.. rev-parse HEAD)"
-          git remote add origin \
-            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git push --force origin "$PAGES_BRANCH"
-
-      - name: Request and verify GitHub Pages build
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p validation/pages
-
-          gh api --method POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "repos/${GITHUB_REPOSITORY}/pages/builds" \
-            | tee validation/pages/pages-build-request.json
-
-          for attempt in $(seq 1 90); do
-            gh api \
-              -H "Accept: application/vnd.github+json" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              "repos/${GITHUB_REPOSITORY}/pages/builds/latest" \
-              > validation/pages/pages-build-latest.json
-
-            STATUS="$(jq -r '.status // "unknown"' validation/pages/pages-build-latest.json)"
-            ERROR_MESSAGE="$(jq -r '.error.message // ""' validation/pages/pages-build-latest.json)"
-            BUILD_COMMIT="$(jq -r '.commit // ""' validation/pages/pages-build-latest.json)"
-            echo "Pages build attempt ${attempt}: status=${STATUS} commit=${BUILD_COMMIT} error=${ERROR_MESSAGE}"
-
-            if [ "$STATUS" = "built" ]; then
-              echo "PAGES_BUILD_STATUS=built" >> "$GITHUB_ENV"
-              break
-            fi
-
-            if [ "$STATUS" = "errored" ]; then
-              echo "GitHub Pages build failed: ${ERROR_MESSAGE}" >&2
-              exit 1
-            fi
-
-            if [ "$attempt" -eq 90 ]; then
-              echo "GitHub Pages build did not complete within 7.5 minutes." >&2
-              exit 1
-            fi
-
-            sleep 5
-          done
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: build/web
+          retention-days: 1
 
       - name: Upload validation evidence
         if: always()
@@ -215,12 +156,34 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Report branch-only deployment result to PR 8
-        if: always()
+  deploy:
+    name: Deploy verified Pages artifact
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  report:
+    name: Report Pages deployment
+    if: always()
+    needs:
+      - build
+      - deploy
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Report exact result to PR 8
         env:
           GH_TOKEN: ${{ github.token }}
-          JOB_STATUS: ${{ job.status }}
-          PAGES_STATUS: ${{ env.PAGES_BUILD_STATUS }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          DEPLOY_RESULT: ${{ needs.deploy.result }}
         shell: bash
         run: |
           set -euo pipefail
@@ -228,25 +191,24 @@ jobs:
           PAGE_URL="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/"
           SOURCE_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
 
-          if [ "$JOB_STATUS" = "success" ] && [ "$PAGES_STATUS" = "built" ]; then
+          if [ "$BUILD_RESULT" = "success" ] && [ "$DEPLOY_RESULT" = "success" ]; then
             BODY="<!-- eden-fall-pages -->
-            **GitHub Pages build completed successfully.**
+            **GitHub Pages artifact deployment succeeded.**
 
             Source: \`${SOURCE_BRANCH}\` at \`${SOURCE_SHA}\`
-            Published to: \`${PAGES_BRANCH}\`
-            GitHub Pages status: \`built\`
+            Deployment: \`actions/deploy-pages@v4\`
             Play URL: ${PAGE_URL}
 
-            No build or deployment step uses \`main\`. [Build and deployment evidence](${RUN_URL})."
+            The legacy branch/Jekyll builder is no longer used. No deployment step uses \`main\`. [Deployment evidence](${RUN_URL})."
           else
             BODY="<!-- eden-fall-pages -->
-            **GitHub Pages build failed or timed out.**
+            **GitHub Pages artifact deployment did not complete.**
 
-            Job status: \`${JOB_STATUS}\`
-            Pages status: \`${PAGES_STATUS:-unavailable}\`
+            Build result: \`${BUILD_RESULT}\`
+            Deployment result: \`${DEPLOY_RESULT}\`
             Source: \`${SOURCE_BRANCH}\` at \`${SOURCE_SHA}\`
 
-            No build or deployment step uses \`main\`. [Open the exact failure and logs](${RUN_URL})."
+            The legacy branch/Jekyll builder is no longer used. No deployment step uses \`main\`. [Open the exact failure](${RUN_URL})."
           fi
 
           gh pr comment 8 --repo "$GITHUB_REPOSITORY" \
