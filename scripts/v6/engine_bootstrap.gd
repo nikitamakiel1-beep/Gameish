@@ -47,18 +47,18 @@ func _configure_input_map() -> void:
 		_ensure_action(action)
 
 	_bind_key("move_up", KEY_W)
-	_bind_key("move_up", KEY_UP)
 	_bind_key("move_down", KEY_S)
-	_bind_key("move_down", KEY_DOWN)
 	_bind_key("move_left", KEY_A)
-	_bind_key("move_left", KEY_LEFT)
 	_bind_key("move_right", KEY_D)
-	_bind_key("move_right", KEY_RIGHT)
 
 	_bind_key("aim_up", KEY_I)
+	_bind_key("aim_up", KEY_UP)
 	_bind_key("aim_down", KEY_K)
+	_bind_key("aim_down", KEY_DOWN)
 	_bind_key("aim_left", KEY_J)
+	_bind_key("aim_left", KEY_LEFT)
 	_bind_key("aim_right", KEY_L)
+	_bind_key("aim_right", KEY_RIGHT)
 	_bind_key("attack", KEY_SPACE)
 	_bind_mouse("attack", MOUSE_BUTTON_LEFT)
 	_bind_key("dash", KEY_SHIFT)
@@ -74,6 +74,10 @@ func _configure_input_map() -> void:
 	_bind_axis("aim_right", JOY_AXIS_RIGHT_X, 1.0)
 	_bind_axis("aim_up", JOY_AXIS_RIGHT_Y, -1.0)
 	_bind_axis("aim_down", JOY_AXIS_RIGHT_Y, 1.0)
+	_bind_button("move_up", JOY_BUTTON_DPAD_UP)
+	_bind_button("move_down", JOY_BUTTON_DPAD_DOWN)
+	_bind_button("move_left", JOY_BUTTON_DPAD_LEFT)
+	_bind_button("move_right", JOY_BUTTON_DPAD_RIGHT)
 	_bind_button("attack", JOY_BUTTON_RIGHT_SHOULDER)
 	_bind_button("dash", JOY_BUTTON_A)
 	_bind_button("interact", JOY_BUTTON_X)
@@ -81,8 +85,13 @@ func _configure_input_map() -> void:
 	_bind_button("archive", JOY_BUTTON_Y)
 
 func _ensure_action(action: StringName) -> void:
+	var deadzone := 0.22
+	if String(action).begins_with("move_"):
+		deadzone = 0.18
 	if not InputMap.has_action(action):
-		InputMap.add_action(action, 0.22)
+		InputMap.add_action(action, deadzone)
+	else:
+		InputMap.action_set_deadzone(action, deadzone)
 
 func _bind_key(action: StringName, physical_keycode: Key) -> void:
 	var event := InputEventKey.new()
