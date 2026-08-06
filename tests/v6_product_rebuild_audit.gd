@@ -17,6 +17,8 @@ const UTILITY_IDS: Array[String] = [
 ]
 const WORLD_SCRIPT := "res://scripts/edenfall_v6_world_runtime.gd"
 const NAVIGATION_SCRIPT := "res://scripts/edenfall_v6_navigation_runtime.gd"
+const CONTENT_SCRIPT := "res://scripts/edenfall_v6_content_runtime.gd"
+const FINAL_SCRIPT := "res://scripts/edenfall_v6_polish_runtime.gd"
 
 func _init() -> void:
 	var bootstrap: RefCounted = BootstrapScript.new()
@@ -32,7 +34,6 @@ func _init() -> void:
 			push_error(String(error))
 		quit(2)
 		return
-
 	var metadata: Dictionary = registry.call("index")
 	if String(metadata.get("visual_version", "")) != "0.6.1":
 		_fail(3, "Visual registry version is not 0.6.1")
@@ -48,8 +49,8 @@ func _init() -> void:
 		"props": _biome_hashes(registry, "props").size(),
 	}
 	var expected := {
-		"heroes": HERO_IDS.size(), "portraits": HERO_IDS.size(), "enemies": ENEMY_IDS.size(),
-		"bosses": BOSS_IDS.size(), "backgrounds": BIOME_IDS.size(), "tiles": BIOME_IDS.size(), "props": BIOME_IDS.size(),
+		"heroes": 5, "portraits": 5, "enemies": 18, "bosses": 5,
+		"backgrounds": 5, "tiles": 5, "props": 5,
 	}
 	for key in expected.keys():
 		if int(uniqueness[key]) != int(expected[key]):
@@ -58,11 +59,15 @@ func _init() -> void:
 
 	for utility_id in UTILITY_IDS:
 		var utility: Texture2D = registry.call("utility_texture", utility_id)
-		if utility == null or utility.get_image() == null or utility.get_image().is_empty():
-			_fail(5, "Missing or empty utility atlas: " + utility_id)
+		if utility == null:
+			_fail(5, "Missing utility atlas: " + utility_id)
+			return
+		var image := utility.get_image()
+		if image == null or image.is_empty():
+			_fail(5, "Empty utility atlas: " + utility_id)
 			return
 
-	for path in [
+	var required_paths := [
 		"res://scripts/v6/actor_asset_factory_rebuild.gd",
 		"res://scripts/v6/support_asset_factory_rebuild.gd",
 		"res://scripts/v6/generated_asset_factory_rebuild.gd",
@@ -70,27 +75,22 @@ func _init() -> void:
 		"res://scripts/edenfall_v6_visual_rebuild.gd",
 		"res://scripts/edenfall_v6_product_runtime.gd",
 		"res://scripts/edenfall_v6_release_candidate.gd",
-		WORLD_SCRIPT,
-		NAVIGATION_SCRIPT,
-	]:
-		if not ResourceLoader.exists(path):
-			_fail(6, "Product rebuild resource is missing: " + path)
+		WORLD_SCRIPT, NAVIGATION_SCRIPT, CONTENT_SCRIPT, FINAL_SCRIPT,
+	]
+	for path in required_paths:
+		if not ResourceLoader.exists(String(path)):
+			_fail(6, "Product rebuild resource is missing: " + String(path))
 			return
 
-	var world_source := FileAccess.get_file_as_string(WORLD_SCRIPT)
-	var navigation_source := FileAccess.get_file_as_string(NAVIGATION_SCRIPT)
-	if world_source.is_empty() or navigation_source.is_empty():
-		_fail(7, "World or navigation runtime source could not be read")
+	if not _source_contract(WORLD_SCRIPT, ["room_obstacles", "_bullet_hits_obstacle", "_resolve_position_against_obstacles", "_draw_room_obstacles"]):
 		return
-	for required_symbol in ["room_obstacles", "_bullet_hits_obstacle", "_resolve_position_against_obstacles", "_draw_room_obstacles"]:
-		if world_source.find(required_symbol) < 0:
-			_fail(7, "World runtime is missing required symbol: " + required_symbol)
-			return
-	for required_symbol in ["_sweep_actor", "_nearest_cover_normal", "_on_viewport_size_changed"]:
-		if navigation_source.find(required_symbol) < 0:
-			_fail(7, "Navigation runtime is missing required symbol: " + required_symbol)
-			return
-	if world_source.find(".translated(") >= 0:
+	if not _source_contract(NAVIGATION_SCRIPT, ["_sweep_actor", "_nearest_cover_normal", "_on_viewport_size_changed"]):
+		return
+	if not _source_contract(CONTENT_SCRIPT, ["_draw_shop_overlay", "_purchase_selected_shop_item", "draw_archive", "_draw_relic_grid"]):
+		return
+	if not _source_contract(FINAL_SCRIPT, ["_draw_guardian_strip", "_reconcile_shop_inventory"]):
+		return
+	if FileAccess.get_file_as_string(WORLD_SCRIPT).find(".translated(") >= 0:
 		_fail(7, "World runtime contains an unsupported Rect2 translation call")
 		return
 
@@ -102,22 +102,35 @@ func _init() -> void:
 	var script := instance.get_script() as Script
 	var script_path := script.resource_path if script != null else ""
 	instance.free()
-	if script_path != NAVIGATION_SCRIPT:
-		_fail(9, "main.tscn does not route to the navigation runtime: " + script_path)
+	if script_path != FINAL_SCRIPT:
+		_fail(9, "main.tscn does not route to the final product runtime: " + script_path)
 		return
 
 	var report := {
-		"product_version": "0.6.1-rc3",
+		"product_version": "0.6.1-rc5",
 		"engine": engine_report,
 		"unique_atlases": uniqueness,
 		"main_script": script_path,
 		"world_collision": true,
 		"swept_navigation": true,
+		"atlas_archive": true,
+		"shop_interface": true,
 		"contract": contract,
 	}
 	print("EDEN_FALL_V6_PRODUCT_REPORT=" + JSON.stringify(report))
 	print("EDEN_FALL_V6_PRODUCT_AUDIT=PASS")
 	quit(0)
+
+func _source_contract(path: String, symbols: Array[String]) -> bool:
+	var source := FileAccess.get_file_as_string(path)
+	if source.is_empty():
+		_fail(7, "Runtime source could not be read: " + path)
+		return false
+	for symbol in symbols:
+		if source.find(symbol) < 0:
+			_fail(7, "%s is missing required symbol: %s" % [path, symbol])
+			return false
+	return true
 
 func _texture_hashes(registry: RefCounted, method: String, ids: Array[String]) -> Dictionary:
 	var signatures: Dictionary = {}
