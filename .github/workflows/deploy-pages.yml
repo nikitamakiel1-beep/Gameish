@@ -26,6 +26,21 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
+      - name: Report deployment started
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          gh pr comment 8 --repo "$GITHUB_REPOSITORY" \
+            --edit-last --create-if-none --body "<!-- eden-fall-pages-live -->
+            **GitHub Pages API deployment started.**
+
+            Source branch: \`gh-pages\`
+            Deployment commit: \`${GITHUB_SHA}\`
+
+            [Live run](${RUN_URL})."
+
       - name: Check out gh-pages
         uses: actions/checkout@v4
         with:
