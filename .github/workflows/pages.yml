@@ -1,0 +1,171 @@
+name: Deploy EDEN FALL to GitHub Pages
+
+on:
+  push:
+    branches:
+      - godmode/production-assets-v6-rebuild
+    paths:
+      - "**/*.gd"
+      - "**/*.tscn"
+      - "**/*.tres"
+      - "**/*.svg"
+      - "project.godot"
+      - "export_presets.cfg"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: eden-fall-github-pages
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: "4.7.1"
+  GODOT_RELEASE: "4.7.1-stable"
+  GODOT_ORIGIN: "https://godot-releases.nbg1.your-objectstorage.com"
+  GODOT_LINUX_ZIP: "Godot_v4.7.1-stable_linux.x86_64.zip"
+  GODOT_TEMPLATES: "Godot_v4.7.1-stable_export_templates.tpz"
+
+jobs:
+  build:
+    name: Build exact Godot 4.7.1 Web package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+
+    steps:
+      - name: Check out exact branch head
+        uses: actions/checkout@v6
+        with:
+          ref: godmode/production-assets-v6-rebuild
+          fetch-depth: 1
+
+      - name: Install runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            curl unzip libfontconfig1 libxcursor1 libxinerama1 libxi6 \
+            libxrandr2 libgl1 libasound2t64
+
+      - name: Install official Godot 4.7.1 and export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          GODOT_DIR="$RUNNER_TEMP/godot-4.7.1"
+          TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          mkdir -p "$GODOT_DIR" "$TEMPLATE_DIR" validation/pages
+
+          curl --fail --location --retry 5 --retry-delay 3 \
+            "${GODOT_ORIGIN}/${GODOT_RELEASE}/${GODOT_LINUX_ZIP}" \
+            --output "$GODOT_DIR/godot.zip"
+          curl --fail --location --retry 5 --retry-delay 3 \
+            "${GODOT_ORIGIN}/${GODOT_RELEASE}/${GODOT_TEMPLATES}" \
+            --output "$GODOT_DIR/templates.tpz"
+
+          unzip -q "$GODOT_DIR/godot.zip" -d "$GODOT_DIR"
+          unzip -q "$GODOT_DIR/templates.tpz" -d "$GODOT_DIR/templates"
+          cp -R "$GODOT_DIR/templates/templates/." "$TEMPLATE_DIR/"
+
+          GODOT_BIN="$(find "$GODOT_DIR" -maxdepth 1 -type f -name 'Godot*' | head -1)"
+          test -n "$GODOT_BIN"
+          chmod +x "$GODOT_BIN"
+          echo "GODOT_BIN=$GODOT_BIN" >> "$GITHUB_ENV"
+
+          "$GODOT_BIN" --version | tee validation/pages/engine-version.log
+          grep -E '^4\.7\.1\.stable' validation/pages/engine-version.log
+
+      - name: Import project
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --audio-driver Dummy --path . --editor --quit --verbose \
+            > validation/pages/import.log 2>&1
+
+      - name: Validate production asset factory
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --audio-driver Dummy --path . \
+            --script tests/v6_factory_audit.gd \
+            > validation/pages/factory-audit.log 2>&1
+          grep -F 'EDEN_FALL_V6_FACTORY_AUDIT=PASS' validation/pages/factory-audit.log
+
+      - name: Boot bounded v0.6 runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 30s "$GODOT_BIN" --headless --audio-driver Dummy --path . \
+            --quit-after 120 --verbose > validation/pages/boot.log 2>&1
+
+      - name: Export Web build
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf build/web
+          mkdir -p build/web
+          "$GODOT_BIN" --headless --audio-driver Dummy --path . \
+            --export-release "Web" > validation/pages/export.log 2>&1
+
+          test -s build/web/index.html
+          test -s build/web/index.js
+          test -s build/web/index.wasm
+          test -s build/web/index.pck
+          touch build/web/.nojekyll
+
+          cat > build/web/build-info.json <<EOF
+          {
+            "project": "EDEN//FALL",
+            "version": "0.6.0",
+            "godot": "4.7.1",
+            "commit": "${GITHUB_SHA}",
+            "branch": "godmode/production-assets-v6-rebuild",
+            "built_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          EOF
+
+          find build/web -maxdepth 1 -type f -printf '%f %s bytes\n' \
+            | sort | tee validation/pages/web-files.log
+          sha256sum build/web/* | tee validation/pages/web-sha256.txt
+
+      - name: Reject fatal Godot output
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|Cannot get class|FATAL:' validation/pages/*.log; then
+            exit 1
+          fi
+
+      - name: Configure GitHub Pages metadata
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+          retention-days: 1
+
+      - name: Upload validation evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: eden-fall-pages-validation
+          path: validation/pages
+          if-no-files-found: error
+          retention-days: 14
+
+  deploy:
+    name: Publish GitHub Pages
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy Pages artifact
+        id: deployment
+        uses: actions/deploy-pages@v4
