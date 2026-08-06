@@ -15,7 +15,7 @@ const UTILITY_IDS: Array[String] = [
 	"pickups", "relics", "projectiles", "effects", "hud_panel", "menu_panel",
 	"joystick_base", "joystick_thumb", "touch_dash", "touch_interact", "touch_pause",
 ]
-const RELEASE_SCRIPT := "res://scripts/edenfall_v6_release_candidate.gd"
+const WORLD_SCRIPT := "res://scripts/edenfall_v6_world_runtime.gd"
 
 func _init() -> void:
 	var bootstrap: RefCounted = BootstrapScript.new()
@@ -77,29 +77,43 @@ func _init() -> void:
 		"res://scripts/v6/asset_registry_rebuild.gd",
 		"res://scripts/edenfall_v6_visual_rebuild.gd",
 		"res://scripts/edenfall_v6_product_runtime.gd",
-		RELEASE_SCRIPT,
+		"res://scripts/edenfall_v6_release_candidate.gd",
+		WORLD_SCRIPT,
 	]:
 		if not ResourceLoader.exists(path):
 			_fail(6, "Product rebuild resource is missing: " + path)
 			return
 
+	var world_source := FileAccess.get_file_as_string(WORLD_SCRIPT)
+	if world_source.is_empty():
+		_fail(7, "World runtime source could not be read")
+		return
+	for required_symbol in ["room_obstacles", "_bullet_hits_obstacle", "_resolve_position_against_obstacles", "_draw_room_obstacles"]:
+		if world_source.find(required_symbol) < 0:
+			_fail(7, "World runtime is missing required symbol: " + required_symbol)
+			return
+	if world_source.find(".translated(") >= 0:
+		_fail(7, "World runtime contains an unsupported Rect2 translation call")
+		return
+
 	var main_scene := load("res://main.tscn") as PackedScene
 	if main_scene == null:
-		_fail(7, "main.tscn failed to load")
+		_fail(8, "main.tscn failed to load")
 		return
 	var instance := main_scene.instantiate()
 	var script := instance.get_script() as Script
 	var script_path := script.resource_path if script != null else ""
 	instance.free()
-	if script_path != RELEASE_SCRIPT:
-		_fail(8, "main.tscn does not route to the release candidate: " + script_path)
+	if script_path != WORLD_SCRIPT:
+		_fail(9, "main.tscn does not route to the world runtime: " + script_path)
 		return
 
 	var report := {
-		"product_version": "0.6.1-rc1",
+		"product_version": "0.6.1-rc2",
 		"engine": engine_report,
 		"unique_atlases": uniqueness,
 		"main_script": script_path,
+		"world_collision": true,
 		"contract": contract,
 	}
 	print("EDEN_FALL_V6_PRODUCT_REPORT=" + JSON.stringify(report))
