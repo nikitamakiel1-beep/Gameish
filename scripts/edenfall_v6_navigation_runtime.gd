@@ -12,20 +12,23 @@ func update_player(delta: float) -> void:
 		super.update_player(delta)
 		return
 	var previous := Vector2(player["pos"])
-	var move_direction := input_move
-	if dash_time > 0.0:
-		move_direction = Vector2(player.get("dash_direction", last_move))
+	var was_dashing := dash_time > 0.0
+	var move_direction := Vector2(player.get("dash_direction", last_move)) if was_dashing else input_move
 	super.update_player(delta)
+	var requested := Vector2(player["pos"])
+	var swept := _sweep_actor(previous, requested, PLAYER_RADIUS)
+	player["pos"] = swept
 	if move_direction.length_squared() < 0.02:
 		return
-	var current := Vector2(player["pos"])
-	var expected_distance := (690.0 if dash_time > 0.0 else float(player["speed"])) * delta * move_direction.length()
-	if previous.distance_to(current) >= expected_distance * 0.45:
+	var expected_distance := (690.0 if was_dashing else float(player["speed"])) * delta * move_direction.length()
+	if previous.distance_to(swept) >= expected_distance * 0.45:
 		return
 	var travel := move_direction.normalized() * expected_distance
-	var x_candidate := _resolve_position_against_obstacles(previous + Vector2(travel.x, 0.0), PLAYER_RADIUS)
-	var y_candidate := _resolve_position_against_obstacles(previous + Vector2(0.0, travel.y), PLAYER_RADIUS)
-	player["pos"] = x_candidate if previous.distance_squared_to(x_candidate) >= previous.distance_squared_to(y_candidate) else y_candidate
+	var x_target := _sweep_actor(previous, previous + Vector2(travel.x, 0.0), PLAYER_RADIUS)
+	var y_target := _sweep_actor(previous, previous + Vector2(0.0, travel.y), PLAYER_RADIUS)
+	player["pos"] = x_target if previous.distance_squared_to(x_target) >= previous.distance_squared_to(y_target) else y_target
+	if was_dashing and previous.distance_to(Vector2(player["pos"])) < expected_distance * 0.18:
+		dash_time = 0.0
 
 func update_enemies(delta: float) -> void:
 	var previous_positions: Array[Vector2] = []
@@ -36,16 +39,20 @@ func update_enemies(delta: float) -> void:
 	for index in range(mini(enemies.size(), previous_positions.size())):
 		var enemy: Dictionary = enemies[index]
 		var velocity := Vector2(enemy.get("velocity", Vector2.ZERO))
-		if velocity.length_squared() < 25.0:
-			continue
 		var previous := previous_positions[index]
-		var current := Vector2(enemy["pos"])
-		var expected_distance := velocity.length() * delta
-		if previous.distance_to(current) >= expected_distance * 0.30:
-			continue
 		var radius := float(enemy["radius"])
-		var cover_normal := _nearest_cover_normal(current, radius)
+		var swept := _sweep_actor(previous, Vector2(enemy["pos"]), radius)
+		enemy["pos"] = swept
+		if velocity.length_squared() < 25.0:
+			enemies[index] = enemy
+			continue
+		var expected_distance := velocity.length() * delta
+		if previous.distance_to(swept) >= expected_distance * 0.30:
+			enemies[index] = enemy
+			continue
+		var cover_normal := _nearest_cover_normal(swept, radius)
 		if cover_normal.length_squared() < 0.5:
+			enemies[index] = enemy
 			continue
 		var tangent := cover_normal.orthogonal()
 		if int(enemy.get("variant", index)) % 2 != 0:
@@ -53,11 +60,25 @@ func update_enemies(delta: float) -> void:
 		if tangent.dot(velocity) < 0.0:
 			tangent = -tangent
 		var steering_distance := minf(float(enemy["speed"]) * delta * 0.72, 18.0)
-		var steered := _resolve_position_against_obstacles(current + tangent.normalized() * steering_distance, radius)
+		var steered := _sweep_actor(swept, swept + tangent.normalized() * steering_distance, radius)
 		enemy["pos"] = steered
 		enemy["velocity"] = tangent.normalized() * float(enemy["speed"]) * 0.72
 		enemies[index] = enemy
 	_apply_enemy_separation()
+
+func _sweep_actor(previous: Vector2, target: Vector2, radius: float) -> Vector2:
+	var distance := previous.distance_to(target)
+	if distance <= 0.001:
+		return _resolve_position_against_obstacles(target, radius)
+	var steps := clampi(int(ceil(distance / 7.0)), 1, 40)
+	var safe := _resolve_position_against_obstacles(previous, radius)
+	for step in range(1, steps + 1):
+		var sample := previous.lerp(target, float(step) / float(steps))
+		var resolved := _resolve_position_against_obstacles(sample, radius)
+		if resolved.distance_squared_to(sample) > 0.25:
+			return safe
+		safe = resolved
+	return safe
 
 func _nearest_cover_normal(position: Vector2, radius: float) -> Vector2:
 	var best_normal := Vector2.ZERO
