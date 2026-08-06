@@ -12,6 +12,8 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  issues: write
+  pull-requests: write
 
 concurrency:
   group: eden-fall-pages-v6
@@ -149,6 +151,8 @@ jobs:
     needs: build
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -157,3 +161,45 @@ jobs:
       - name: Deploy GitHub Pages artifact
         id: deployment
         uses: actions/deploy-pages@v4
+
+  report:
+    name: Report Pages result to PR 8
+    if: always()
+    needs:
+      - build
+      - deploy
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Publish deployment status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          DEPLOY_RESULT: ${{ needs.deploy.result }}
+          PAGE_URL: ${{ needs.deploy.outputs.page_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+          if [ "$BUILD_RESULT" = "success" ] && [ "$DEPLOY_RESULT" = "success" ]; then
+            BODY="<!-- eden-fall-pages-bootstrap -->
+            **GitHub Pages deployed successfully.**
+
+            Play EDEN//FALL v0.6: ${PAGE_URL}
+
+            The package was imported, factory-audited, boot-tested and exported with Godot 4.7.1 from \`${SOURCE_BRANCH}\`. [Build evidence](${RUN_URL})."
+          elif [ "$BUILD_RESULT" != "success" ]; then
+            BODY="<!-- eden-fall-pages-bootstrap -->
+            **The Godot 4.7.1 Web build failed before deployment.**
+
+            Build result: \`${BUILD_RESULT}\`. [Open the exact run and validation logs](${RUN_URL})."
+          else
+            BODY="<!-- eden-fall-pages-bootstrap -->
+            **The verified Web artifact built, but GitHub Pages deployment did not complete.**
+
+            Deployment result: \`${DEPLOY_RESULT}\`. This usually indicates Pages enablement, source configuration, environment protection, or private-repository plan eligibility. [Open the exact run](${RUN_URL})."
+          fi
+
+          gh pr comment 8 --repo "$GITHUB_REPOSITORY" \
+            --edit-last --create-if-none --body "$BODY"
