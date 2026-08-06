@@ -1,39 +1,17 @@
-name: Deploy EDEN FALL to GitHub Pages
+name: Build and publish EDEN FALL v0.6 from production branch
 
 on:
   push:
     branches:
       - godmode/production-assets-v6-rebuild
-    paths:
-      - "**/*.gd"
-      - "**/*.tscn"
-      - "**/*.tres"
-      - "**/*.svg"
-      - "project.godot"
-      - "export_presets.cfg"
-      - ".github/workflows/pages.yml"
-  pull_request:
-    branches:
-      - godmode/godot-4.7.1-multiplatform-v5
-    paths:
-      - "**/*.gd"
-      - "**/*.tscn"
-      - "**/*.tres"
-      - "**/*.svg"
-      - "project.godot"
-      - "export_presets.cfg"
-      - ".github/workflows/pages.yml"
-  workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
   issues: write
   pull-requests: write
 
 concurrency:
-  group: eden-fall-github-pages-${{ github.event_name }}
+  group: eden-fall-v6-gh-pages
   cancel-in-progress: true
 
 env:
@@ -42,19 +20,21 @@ env:
   GODOT_ORIGIN: "https://godot-releases.nbg1.your-objectstorage.com"
   GODOT_LINUX_ZIP: "Godot_v4.7.1-stable_linux.x86_64.zip"
   GODOT_TEMPLATES: "Godot_v4.7.1-stable_export_templates.tpz"
+  SOURCE_BRANCH: "godmode/production-assets-v6-rebuild"
+  PAGES_BRANCH: "gh-pages"
 
 jobs:
-  build:
-    name: Build exact Godot 4.7.1 Web package
+  publish:
+    name: Verify, export and publish Web build
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 40
 
     steps:
-      - name: Check out exact branch head
-        uses: actions/checkout@v6
+      - name: Check out pushed production commit
+        uses: actions/checkout@v4
         with:
-          ref: godmode/production-assets-v6-rebuild
           fetch-depth: 1
+          persist-credentials: false
 
       - name: Install runtime libraries
         run: |
@@ -67,7 +47,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          GODOT_DIR="$RUNNER_TEMP/godot-4.7.1"
+          GODOT_DIR="$RUNNER_TEMP/godot-${GODOT_VERSION}"
           TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
           mkdir -p "$GODOT_DIR" "$TEMPLATE_DIR" validation/pages
 
@@ -94,8 +74,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          "$GODOT_BIN" --headless --audio-driver Dummy --path . --editor --quit --verbose \
-            > validation/pages/import.log 2>&1
+          "$GODOT_BIN" --headless --audio-driver Dummy --path . \
+            --editor --quit --verbose > validation/pages/import.log 2>&1
 
       - name: Validate production asset factory
         shell: bash
@@ -113,120 +93,101 @@ jobs:
           timeout 30s "$GODOT_BIN" --headless --audio-driver Dummy --path . \
             --quit-after 120 --verbose > validation/pages/boot.log 2>&1
 
-      - name: Export Web build
+      - name: Export and verify Web package
         shell: bash
         run: |
           set -euo pipefail
           rm -rf build/web
           mkdir -p build/web
+
           "$GODOT_BIN" --headless --audio-driver Dummy --path . \
-            --export-release "Web" > validation/pages/export.log 2>&1
+            --export-release "Web" "build/web/index.html" \
+            > validation/pages/export.log 2>&1
 
           test -s build/web/index.html
           test -s build/web/index.js
           test -s build/web/index.wasm
           test -s build/web/index.pck
+
           touch build/web/.nojekyll
+          cp build/web/index.html build/web/404.html
 
           cat > build/web/build-info.json <<EOF
           {
             "project": "EDEN//FALL",
             "version": "0.6.0",
             "godot": "4.7.1",
-            "commit": "${GITHUB_SHA}",
-            "branch": "godmode/production-assets-v6-rebuild",
+            "source_commit": "${GITHUB_SHA}",
+            "source_branch": "${SOURCE_BRANCH}",
+            "published_branch": "${PAGES_BRANCH}",
             "built_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           }
           EOF
+
+          if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|Cannot get class|FATAL:' validation/pages/*.log; then
+            exit 1
+          fi
 
           find build/web -maxdepth 1 -type f -printf '%f %s bytes\n' \
             | sort | tee validation/pages/web-files.log
           sha256sum build/web/* | tee validation/pages/web-sha256.txt
 
-      - name: Reject fatal Godot output
-        shell: bash
-        run: |
-          set -euo pipefail
-          if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|Cannot get class|FATAL:' validation/pages/*.log; then
-            exit 1
-          fi
-
-      - name: Configure GitHub Pages metadata
-        if: github.event_name != 'pull_request'
-        uses: actions/configure-pages@v5
-
-      - name: Upload Pages artifact
-        if: github.event_name != 'pull_request'
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: build/web
-          retention-days: 1
-
       - name: Upload validation evidence
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
-          name: eden-fall-pages-validation-${{ github.event_name }}
+          name: eden-fall-v6-pages-validation-${{ github.sha }}
           path: validation/pages
           if-no-files-found: error
           retention-days: 14
 
-      - name: Report successful PR Web validation
-        if: github.event_name == 'pull_request' && success()
+      - name: Force-publish verified package to gh-pages
+        if: success()
         env:
           GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
-          gh pr comment 8 --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none --body \
-            "<!-- eden-fall-pages -->
-            **Godot 4.7.1 Web validation passed** for commit \`${GITHUB_SHA}\`.
+          set -euo pipefail
+          cd build/web
+          git init
+          git checkout -b "$PAGES_BRANCH"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git commit -m "Publish EDEN FALL v0.6 from ${GITHUB_SHA}"
+          git remote add origin \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin "$PAGES_BRANCH"
 
-            Import, production factory audit, bounded runtime boot and Web export all completed. The branch push workflow is responsible for the public Pages deployment."
-
-      - name: Report failed Pages build to PR 8
-        if: failure()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh pr comment 8 --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none --body \
-            "<!-- eden-fall-pages -->
-            **GitHub Pages/Web build failed** for commit \`${GITHUB_SHA}\`.
-
-            The exact Godot/Web or Pages configuration error is available in [this Actions run](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})."
-
-  deploy:
-    name: Publish GitHub Pages
-    if: github.event_name != 'pull_request'
-    needs: build
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    steps:
-      - name: Deploy Pages artifact
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-      - name: Report Pages deployment to PR 8
+      - name: Report branch-only deployment result to PR 8
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
-          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
-          DEPLOY_OUTCOME: ${{ steps.deployment.outcome }}
+          JOB_STATUS: ${{ job.status }}
+        shell: bash
         run: |
-          if [ "$DEPLOY_OUTCOME" = "success" ]; then
-            gh pr comment 8 --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none --body \
-              "<!-- eden-fall-pages -->
-              **GitHub Pages deployed successfully** from commit \`${GITHUB_SHA}\`.
+          set -euo pipefail
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          PAGE_URL="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/"
 
-              Play EDEN//FALL online: ${PAGE_URL}
+          if [ "$JOB_STATUS" = "success" ]; then
+            BODY="<!-- eden-fall-pages -->
+            **Branch-only Web deployment completed successfully.**
 
-              Built with Godot 4.7.1 using the single-threaded Web preset."
+            Source: \`${SOURCE_BRANCH}\` at \`${GITHUB_SHA}\`
+            Published directly to: \`${PAGES_BRANCH}\`
+            Play URL: ${PAGE_URL}
+
+            No build or deployment step uses \`main\`. [Validation run](${RUN_URL})."
           else
-            gh pr comment 8 --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none --body \
-              "<!-- eden-fall-pages -->
-              **GitHub Pages deployment failed** after the Web artifact was built for commit \`${GITHUB_SHA}\`.
+            BODY="<!-- eden-fall-pages -->
+            **Branch-only Web deployment failed.**
 
-              See [this Actions run](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}). The repository may still need Pages configured to use GitHub Actions as its publishing source."
+            Source: \`${SOURCE_BRANCH}\` at \`${GITHUB_SHA}\`
+            No build or deployment step uses \`main\`.
+
+            [Open the exact failing run and logs](${RUN_URL})."
           fi
+
+          gh pr comment 8 --repo "$GITHUB_REPOSITORY" \
+            --edit-last --create-if-none --body "$BODY"
