@@ -18,6 +18,8 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  issues: write
+  pull-requests: write
 
 concurrency:
   group: eden-fall-github-pages
@@ -156,6 +158,17 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Report failed Pages build to PR 8
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr comment 8 --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none --body \
+            "<!-- eden-fall-pages -->
+            **GitHub Pages build failed** for commit \`${GITHUB_SHA}\`.
+
+            The exact Godot/Web or Pages configuration error is available in [this Actions run](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})."
+
   deploy:
     name: Publish GitHub Pages
     needs: build
@@ -169,3 +182,26 @@ jobs:
       - name: Deploy Pages artifact
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Report Pages deployment to PR 8
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          DEPLOY_OUTCOME: ${{ steps.deployment.outcome }}
+        run: |
+          if [ "$DEPLOY_OUTCOME" = "success" ]; then
+            gh pr comment 8 --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none --body \
+              "<!-- eden-fall-pages -->
+              **GitHub Pages deployed successfully** from commit \`${GITHUB_SHA}\`.
+
+              Play EDEN//FALL online: ${PAGE_URL}
+
+              Built with Godot 4.7.1 using the single-threaded Web preset."
+          else
+            gh pr comment 8 --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none --body \
+              "<!-- eden-fall-pages -->
+              **GitHub Pages deployment failed** after the Web artifact was built for commit \`${GITHUB_SHA}\`.
+
+              See [this Actions run](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}). The repository may still need Pages configured to use GitHub Actions as its publishing source."
+          fi
