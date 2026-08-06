@@ -17,6 +17,7 @@ on:
 permissions:
   contents: write
   actions: read
+  pages: write
   issues: write
   pull-requests: write
 
@@ -34,10 +35,10 @@ env:
 
 jobs:
   publish:
-    name: Verify, export and publish Web build
+    name: Verify, export, publish and build Pages
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 45
 
     steps:
       - name: Check out exact production commit
@@ -144,17 +145,7 @@ jobs:
             | sort | tee validation/pages/web-files.log
           sha256sum build/web/* | tee validation/pages/web-sha256.txt
 
-      - name: Upload validation evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: eden-fall-v6-pages-validation-${{ github.run_id }}
-          path: validation/pages
-          if-no-files-found: error
-          retention-days: 14
-
       - name: Force-publish verified package to gh-pages
-        if: success()
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -171,11 +162,65 @@ jobs:
             "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push --force origin "$PAGES_BRANCH"
 
+      - name: Request and verify GitHub Pages build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p validation/pages
+
+          gh api --method POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "repos/${GITHUB_REPOSITORY}/pages/builds" \
+            | tee validation/pages/pages-build-request.json
+
+          for attempt in $(seq 1 90); do
+            gh api \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "repos/${GITHUB_REPOSITORY}/pages/builds/latest" \
+              > validation/pages/pages-build-latest.json
+
+            STATUS="$(jq -r '.status // "unknown"' validation/pages/pages-build-latest.json)"
+            ERROR_MESSAGE="$(jq -r '.error.message // ""' validation/pages/pages-build-latest.json)"
+            BUILD_COMMIT="$(jq -r '.commit // ""' validation/pages/pages-build-latest.json)"
+            echo "Pages build attempt ${attempt}: status=${STATUS} commit=${BUILD_COMMIT} error=${ERROR_MESSAGE}"
+
+            if [ "$STATUS" = "built" ]; then
+              echo "PAGES_BUILD_STATUS=built" >> "$GITHUB_ENV"
+              break
+            fi
+
+            if [ "$STATUS" = "errored" ]; then
+              echo "GitHub Pages build failed: ${ERROR_MESSAGE}" >&2
+              exit 1
+            fi
+
+            if [ "$attempt" -eq 90 ]; then
+              echo "GitHub Pages build did not complete within 7.5 minutes." >&2
+              exit 1
+            fi
+
+            sleep 5
+          done
+
+      - name: Upload validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eden-fall-v6-pages-validation-${{ github.run_id }}
+          path: validation/pages
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Report branch-only deployment result to PR 8
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
           JOB_STATUS: ${{ job.status }}
+          PAGES_STATUS: ${{ env.PAGES_BUILD_STATUS }}
         shell: bash
         run: |
           set -euo pipefail
@@ -183,23 +228,25 @@ jobs:
           PAGE_URL="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/"
           SOURCE_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
 
-          if [ "$JOB_STATUS" = "success" ]; then
+          if [ "$JOB_STATUS" = "success" ] && [ "$PAGES_STATUS" = "built" ]; then
             BODY="<!-- eden-fall-pages -->
-            **Branch-only Web deployment completed successfully.**
+            **GitHub Pages build completed successfully.**
 
             Source: \`${SOURCE_BRANCH}\` at \`${SOURCE_SHA}\`
-            Published directly to: \`${PAGES_BRANCH}\`
+            Published to: \`${PAGES_BRANCH}\`
+            GitHub Pages status: \`built\`
             Play URL: ${PAGE_URL}
 
-            No build or deployment step uses \`main\`. [Validation run](${RUN_URL})."
+            No build or deployment step uses \`main\`. [Build and deployment evidence](${RUN_URL})."
           else
             BODY="<!-- eden-fall-pages -->
-            **Branch-only Web deployment failed.**
+            **GitHub Pages build failed or timed out.**
 
+            Job status: \`${JOB_STATUS}\`
+            Pages status: \`${PAGES_STATUS:-unavailable}\`
             Source: \`${SOURCE_BRANCH}\` at \`${SOURCE_SHA}\`
-            No build or deployment step uses \`main\`.
 
-            [Open the exact failing run and logs](${RUN_URL})."
+            No build or deployment step uses \`main\`. [Open the exact failure and logs](${RUN_URL})."
           fi
 
           gh pr comment 8 --repo "$GITHUB_REPOSITORY" \
