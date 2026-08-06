@@ -28,11 +28,12 @@ func _run_audit() -> void:
 		errors.append("Physics tick rate must be 60 Hz")
 
 	var registry: RefCounted = RegistryScript.new()
-	var asset_report: Dictionary = registry.call("validate_contract")
+	var asset_report: Dictionary = registry.call("validate_contract", true)
 	print("EDEN_FALL_V6_ASSET_REPORT=" + JSON.stringify(asset_report))
 	if not bool(asset_report.get("passed", false)):
 		for error in Array(asset_report.get("errors", [])):
 			errors.append(String(error))
+	registry.call("clear_caches")
 
 	var runtime: Script = load("res://scripts/edenfall_v6.gd")
 	if runtime == null:
