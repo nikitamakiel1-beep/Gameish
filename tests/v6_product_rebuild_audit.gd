@@ -16,6 +16,7 @@ const UTILITY_IDS: Array[String] = [
 	"joystick_base", "joystick_thumb", "touch_dash", "touch_interact", "touch_pause",
 ]
 const WORLD_SCRIPT := "res://scripts/edenfall_v6_world_runtime.gd"
+const NAVIGATION_SCRIPT := "res://scripts/edenfall_v6_navigation_runtime.gd"
 
 func _init() -> void:
 	var bootstrap: RefCounted = BootstrapScript.new()
@@ -47,13 +48,8 @@ func _init() -> void:
 		"props": _biome_hashes(registry, "props").size(),
 	}
 	var expected := {
-		"heroes": HERO_IDS.size(),
-		"portraits": HERO_IDS.size(),
-		"enemies": ENEMY_IDS.size(),
-		"bosses": BOSS_IDS.size(),
-		"backgrounds": BIOME_IDS.size(),
-		"tiles": BIOME_IDS.size(),
-		"props": BIOME_IDS.size(),
+		"heroes": HERO_IDS.size(), "portraits": HERO_IDS.size(), "enemies": ENEMY_IDS.size(),
+		"bosses": BOSS_IDS.size(), "backgrounds": BIOME_IDS.size(), "tiles": BIOME_IDS.size(), "props": BIOME_IDS.size(),
 	}
 	for key in expected.keys():
 		if int(uniqueness[key]) != int(expected[key]):
@@ -62,12 +58,8 @@ func _init() -> void:
 
 	for utility_id in UTILITY_IDS:
 		var utility: Texture2D = registry.call("utility_texture", utility_id)
-		if utility == null:
-			_fail(5, "Missing utility atlas: " + utility_id)
-			return
-		var utility_image := utility.get_image()
-		if utility_image == null or utility_image.is_empty():
-			_fail(5, "Empty utility atlas: " + utility_id)
+		if utility == null or utility.get_image() == null or utility.get_image().is_empty():
+			_fail(5, "Missing or empty utility atlas: " + utility_id)
 			return
 
 	for path in [
@@ -79,18 +71,24 @@ func _init() -> void:
 		"res://scripts/edenfall_v6_product_runtime.gd",
 		"res://scripts/edenfall_v6_release_candidate.gd",
 		WORLD_SCRIPT,
+		NAVIGATION_SCRIPT,
 	]:
 		if not ResourceLoader.exists(path):
 			_fail(6, "Product rebuild resource is missing: " + path)
 			return
 
 	var world_source := FileAccess.get_file_as_string(WORLD_SCRIPT)
-	if world_source.is_empty():
-		_fail(7, "World runtime source could not be read")
+	var navigation_source := FileAccess.get_file_as_string(NAVIGATION_SCRIPT)
+	if world_source.is_empty() or navigation_source.is_empty():
+		_fail(7, "World or navigation runtime source could not be read")
 		return
 	for required_symbol in ["room_obstacles", "_bullet_hits_obstacle", "_resolve_position_against_obstacles", "_draw_room_obstacles"]:
 		if world_source.find(required_symbol) < 0:
 			_fail(7, "World runtime is missing required symbol: " + required_symbol)
+			return
+	for required_symbol in ["_sweep_actor", "_nearest_cover_normal", "_on_viewport_size_changed"]:
+		if navigation_source.find(required_symbol) < 0:
+			_fail(7, "Navigation runtime is missing required symbol: " + required_symbol)
 			return
 	if world_source.find(".translated(") >= 0:
 		_fail(7, "World runtime contains an unsupported Rect2 translation call")
@@ -104,16 +102,17 @@ func _init() -> void:
 	var script := instance.get_script() as Script
 	var script_path := script.resource_path if script != null else ""
 	instance.free()
-	if script_path != WORLD_SCRIPT:
-		_fail(9, "main.tscn does not route to the world runtime: " + script_path)
+	if script_path != NAVIGATION_SCRIPT:
+		_fail(9, "main.tscn does not route to the navigation runtime: " + script_path)
 		return
 
 	var report := {
-		"product_version": "0.6.1-rc2",
+		"product_version": "0.6.1-rc3",
 		"engine": engine_report,
 		"unique_atlases": uniqueness,
 		"main_script": script_path,
 		"world_collision": true,
+		"swept_navigation": true,
 		"contract": contract,
 	}
 	print("EDEN_FALL_V6_PRODUCT_REPORT=" + JSON.stringify(report))
@@ -127,9 +126,8 @@ func _texture_hashes(registry: RefCounted, method: String, ids: Array[String]) -
 		if texture == null:
 			continue
 		var image := texture.get_image()
-		if image == null or image.is_empty():
-			continue
-		signatures[hash(image.get_data())] = id
+		if image != null and not image.is_empty():
+			signatures[hash(image.get_data())] = id
 	return signatures
 
 func _biome_hashes(registry: RefCounted, kind: String) -> Dictionary:
@@ -139,9 +137,8 @@ func _biome_hashes(registry: RefCounted, kind: String) -> Dictionary:
 		if texture == null:
 			continue
 		var image := texture.get_image()
-		if image == null or image.is_empty():
-			continue
-		signatures[hash(image.get_data())] = id
+		if image != null and not image.is_empty():
+			signatures[hash(image.get_data())] = id
 	return signatures
 
 func _fail(code: int, message: String) -> void:
