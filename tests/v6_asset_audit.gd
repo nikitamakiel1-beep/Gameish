@@ -55,12 +55,39 @@ func _run_audit() -> void:
 		else:
 			root.add_child(instance)
 			await process_frame
+			await process_frame
 			var script := instance.get_script() as Script
 			if script == null or script.resource_path != MAIN_RUNTIME:
 				errors.append("main.tscn is not routed to the bounded v0.6 runtime")
 			for action in REQUIRED_INPUTS:
 				if not InputMap.has_action(StringName(action)):
 					errors.append("Missing runtime input action: %s" % action)
+
+			Input.action_press("move_right", 1.0)
+			Input.action_press("aim_up", 1.0)
+			instance.call("read_inputs")
+			var move_vector := Vector2(instance.get("input_move"))
+			var aim_vector := Vector2(instance.get("input_aim"))
+			Input.action_release("move_right")
+			Input.action_release("aim_up")
+			if move_vector.distance_to(Vector2.RIGHT) > 0.01:
+				errors.append("Action-map movement did not resolve right")
+			if aim_vector.distance_to(Vector2.UP) > 0.01:
+				errors.append("Action-map aim did not resolve up")
+
+			var runtime_registry := instance.get("production_assets") as RefCounted
+			runtime_registry.call("enemy_sheet", "feral_scavenger")
+			runtime_registry.call("boss_sheet", "watcher_engine")
+			runtime_registry.call("biome_texture", "industrial_eden", "background")
+			var cache_before: Dictionary = runtime_registry.call("cache_report")
+			instance.notification(NOTIFICATION_OS_MEMORY_WARNING)
+			await process_frame
+			var cache_after: Dictionary = runtime_registry.call("cache_report")
+			if int(cache_after.get("textures", 0)) >= int(cache_before.get("textures", 0)):
+				errors.append("Memory warning did not release transient textures")
+
+			instance.notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
+			instance.notification(NOTIFICATION_APPLICATION_FOCUS_IN)
 			if instance.has_method("get_v6_diagnostics"):
 				var diagnostics: Dictionary = instance.call("get_v6_diagnostics")
 				print("EDEN_FALL_V6_RUNTIME_REPORT=" + JSON.stringify(diagnostics))
@@ -68,6 +95,13 @@ func _run_audit() -> void:
 					errors.append("Performance budget diagnostics are missing")
 				if not diagnostics.has("asset_cache"):
 					errors.append("Asset cache diagnostics are missing")
+				var lifecycle: Dictionary = diagnostics.get("lifecycle", {})
+				if int(lifecycle.get("background_events", 0)) < 1:
+					errors.append("Background lifecycle handling is missing")
+				if int(lifecycle.get("foreground_events", 0)) < 1:
+					errors.append("Foreground lifecycle handling is missing")
+				if int(lifecycle.get("memory_warnings", 0)) < 1:
+					errors.append("Memory-warning lifecycle handling is missing")
 			else:
 				errors.append("Runtime diagnostics API is missing")
 			instance.queue_free()
