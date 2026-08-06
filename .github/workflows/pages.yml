@@ -12,6 +12,17 @@ on:
       - "project.godot"
       - "export_presets.cfg"
       - ".github/workflows/pages.yml"
+  pull_request:
+    branches:
+      - godmode/godot-4.7.1-multiplatform-v5
+    paths:
+      - "**/*.gd"
+      - "**/*.tscn"
+      - "**/*.tres"
+      - "**/*.svg"
+      - "project.godot"
+      - "export_presets.cfg"
+      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -22,7 +33,7 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: eden-fall-github-pages
+  group: eden-fall-github-pages-${{ github.event_name }}
   cancel-in-progress: true
 
 env:
@@ -141,9 +152,11 @@ jobs:
           fi
 
       - name: Configure GitHub Pages metadata
+        if: github.event_name != 'pull_request'
         uses: actions/configure-pages@v5
 
       - name: Upload Pages artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:
           path: build/web
@@ -153,10 +166,21 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: eden-fall-pages-validation
+          name: eden-fall-pages-validation-${{ github.event_name }}
           path: validation/pages
           if-no-files-found: error
           retention-days: 14
+
+      - name: Report successful PR Web validation
+        if: github.event_name == 'pull_request' && success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr comment 8 --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none --body \
+            "<!-- eden-fall-pages -->
+            **Godot 4.7.1 Web validation passed** for commit \`${GITHUB_SHA}\`.
+
+            Import, production factory audit, bounded runtime boot and Web export all completed. The branch push workflow is responsible for the public Pages deployment."
 
       - name: Report failed Pages build to PR 8
         if: failure()
@@ -165,12 +189,13 @@ jobs:
         run: |
           gh pr comment 8 --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none --body \
             "<!-- eden-fall-pages -->
-            **GitHub Pages build failed** for commit \`${GITHUB_SHA}\`.
+            **GitHub Pages/Web build failed** for commit \`${GITHUB_SHA}\`.
 
             The exact Godot/Web or Pages configuration error is available in [this Actions run](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})."
 
   deploy:
     name: Publish GitHub Pages
+    if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-24.04
     timeout-minutes: 15
