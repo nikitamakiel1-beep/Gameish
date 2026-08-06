@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource path="res://tests/v6_input_lifecycle_audit.gd" type="Script" id="1_audit"]
+
+[node name="V6InputLifecycleAudit" type="Node"]
+script = ExtResource("1_audit")
