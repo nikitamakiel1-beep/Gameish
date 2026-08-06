@@ -10,6 +10,8 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  issues: write
+  pull-requests: write
 
 concurrency:
   group: eden-fall-pages-live
@@ -53,3 +55,35 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Report live deployment result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOY_OUTCOME: ${{ steps.deployment.outcome }}
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          if [ "$DEPLOY_OUTCOME" = "success" ]; then
+            BODY="<!-- eden-fall-pages-live -->
+            **GitHub Pages API deployment succeeded.**
+
+            Live URL: ${PAGE_URL}
+            Source branch: \`gh-pages\`
+            Deployment commit: \`${GITHUB_SHA}\`
+
+            [Deployment run](${RUN_URL})."
+          else
+            BODY="<!-- eden-fall-pages-live -->
+            **GitHub Pages API deployment failed.**
+
+            Outcome: \`${DEPLOY_OUTCOME}\`
+            Source branch: \`gh-pages\`
+            Deployment commit: \`${GITHUB_SHA}\`
+
+            [Open the exact failure](${RUN_URL})."
+          fi
+          gh pr comment 8 --repo "$GITHUB_REPOSITORY" \
+            --edit-last --create-if-none --body "$BODY"
