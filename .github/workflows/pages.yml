@@ -4,9 +4,19 @@ on:
   push:
     branches:
       - godmode/production-assets-v6-rebuild
+  pull_request:
+    branches:
+      - godmode/godot-4.7.1-multiplatform-v5
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+  workflow_dispatch:
 
 permissions:
   contents: write
+  actions: read
   issues: write
   pull-requests: write
 
@@ -17,7 +27,6 @@ concurrency:
 env:
   GODOT_VERSION: "4.7.1"
   GODOT_RELEASE: "4.7.1-stable"
-  GODOT_ORIGIN: "https://godot-releases.nbg1.your-objectstorage.com"
   GODOT_LINUX_ZIP: "Godot_v4.7.1-stable_linux.x86_64.zip"
   GODOT_TEMPLATES: "Godot_v4.7.1-stable_export_templates.tpz"
   SOURCE_BRANCH: "godmode/production-assets-v6-rebuild"
@@ -26,13 +35,15 @@ env:
 jobs:
   publish:
     name: Verify, export and publish Web build
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 40
 
     steps:
-      - name: Check out pushed production commit
+      - name: Check out exact production commit
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
           persist-credentials: false
 
@@ -52,10 +63,10 @@ jobs:
           mkdir -p "$GODOT_DIR" "$TEMPLATE_DIR" validation/pages
 
           curl --fail --location --retry 5 --retry-delay 3 \
-            "${GODOT_ORIGIN}/${GODOT_RELEASE}/${GODOT_LINUX_ZIP}" \
+            "https://github.com/godotengine/godot-builds/releases/download/${GODOT_RELEASE}/${GODOT_LINUX_ZIP}" \
             --output "$GODOT_DIR/godot.zip"
           curl --fail --location --retry 5 --retry-delay 3 \
-            "${GODOT_ORIGIN}/${GODOT_RELEASE}/${GODOT_TEMPLATES}" \
+            "https://github.com/godotengine/godot-builds/releases/download/${GODOT_RELEASE}/${GODOT_TEMPLATES}" \
             --output "$GODOT_DIR/templates.tpz"
 
           unzip -q "$GODOT_DIR/godot.zip" -d "$GODOT_DIR"
@@ -117,9 +128,10 @@ jobs:
             "project": "EDEN//FALL",
             "version": "0.6.0",
             "godot": "4.7.1",
-            "source_commit": "${GITHUB_SHA}",
+            "source_commit": "$(git rev-parse HEAD)",
             "source_branch": "${SOURCE_BRANCH}",
             "published_branch": "${PAGES_BRANCH}",
+            "playable": true,
             "built_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           }
           EOF
@@ -136,7 +148,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: eden-fall-v6-pages-validation-${{ github.sha }}
+          name: eden-fall-v6-pages-validation-${{ github.run_id }}
           path: validation/pages
           if-no-files-found: error
           retention-days: 14
@@ -154,7 +166,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add --all
-          git commit -m "Publish EDEN FALL v0.6 from ${GITHUB_SHA}"
+          git commit -m "Publish EDEN FALL v0.6 from $(git -C ../.. rev-parse HEAD)"
           git remote add origin \
             "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push --force origin "$PAGES_BRANCH"
@@ -169,12 +181,13 @@ jobs:
           set -euo pipefail
           RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           PAGE_URL="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/"
+          SOURCE_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
 
           if [ "$JOB_STATUS" = "success" ]; then
             BODY="<!-- eden-fall-pages -->
             **Branch-only Web deployment completed successfully.**
 
-            Source: \`${SOURCE_BRANCH}\` at \`${GITHUB_SHA}\`
+            Source: \`${SOURCE_BRANCH}\` at \`${SOURCE_SHA}\`
             Published directly to: \`${PAGES_BRANCH}\`
             Play URL: ${PAGE_URL}
 
@@ -183,7 +196,7 @@ jobs:
             BODY="<!-- eden-fall-pages -->
             **Branch-only Web deployment failed.**
 
-            Source: \`${SOURCE_BRANCH}\` at \`${GITHUB_SHA}\`
+            Source: \`${SOURCE_BRANCH}\` at \`${SOURCE_SHA}\`
             No build or deployment step uses \`main\`.
 
             [Open the exact failing run and logs](${RUN_URL})."
