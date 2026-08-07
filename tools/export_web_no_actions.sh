@@ -78,6 +78,9 @@ echo "[eden] source: ${CURRENT_BRANCH:-detached} @ $SOURCE_SHA"
 echo "[eden] importing project"
 "$GODOT_DIR/godot" --headless --path "$ROOT" --import
 
+echo "[eden] compile-chain probe"
+"$GODOT_DIR/godot" --headless --path "$ROOT" --script "res://tests/v8_compile_chain_probe.gd"
+
 AUDITS=(
   "res://tests/v6_product_rebuild_audit.gd"
   "res://tests/v7_masterpiece_audit.gd"
