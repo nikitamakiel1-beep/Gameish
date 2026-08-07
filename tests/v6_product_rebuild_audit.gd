@@ -27,7 +27,8 @@ const BOSS_LIBRARY := "res://scripts/v6/boss_pattern_library.gd"
 const GODMODE_SCRIPT := "res://scripts/edenfall_v6_godmode_runtime.gd"
 const STABLE_SCRIPT := "res://scripts/edenfall_v6_godmode_stable_runtime.gd"
 const COMPLETE_SCRIPT := "res://scripts/edenfall_v6_godmode_complete_runtime.gd"
-const FINAL_SCRIPT := "res://scripts/edenfall_v6_godmode_release_runtime.gd"
+const RELEASE_SCRIPT := "res://scripts/edenfall_v6_godmode_release_runtime.gd"
+const FINAL_SCRIPT := "res://scripts/edenfall_v6_godmode_verified_runtime.gd"
 
 func _init() -> void:
 	var bootstrap: RefCounted = BootstrapScript.new()
@@ -85,7 +86,7 @@ func _init() -> void:
 		"res://scripts/edenfall_v6_product_runtime.gd",
 		"res://scripts/edenfall_v6_release_candidate.gd",
 		WORLD_SCRIPT, NAVIGATION_SCRIPT, CONTENT_SCRIPT, POLISH_SCRIPT,
-		GODMODE_DIRECTOR, BOSS_LIBRARY, GODMODE_SCRIPT, STABLE_SCRIPT, COMPLETE_SCRIPT, FINAL_SCRIPT,
+		GODMODE_DIRECTOR, BOSS_LIBRARY, GODMODE_SCRIPT, STABLE_SCRIPT, COMPLETE_SCRIPT, RELEASE_SCRIPT, FINAL_SCRIPT,
 	]
 	for path in required_paths:
 		if not ResourceLoader.exists(String(path)):
@@ -110,7 +111,9 @@ func _init() -> void:
 		return
 	if not _source_contract(COMPLETE_SCRIPT, ["_archive_relic_tier", "faction_ambushes", "_apply_guardian_phase_environment", "touch_opacity", "reduced_flash"]):
 		return
-	if not _source_contract(FINAL_SCRIPT, ["ENDING_PENDING_PATH", "_open_serpent_resolution", "serpent_resolution_choice", "all_room_spawns_rng_isolated", "ending_choice_suspend_safe"]):
+	if not _source_contract(RELEASE_SCRIPT, ["ENDING_PENDING_PATH", "_open_serpent_resolution", "serpent_resolution_choice", "all_room_spawns_rng_isolated", "ending_choice_suspend_safe"]):
+		return
+	if not _source_contract(FINAL_SCRIPT, ["_floor_graph_seed", "deterministic_floor_graph", "manual_new_run_clears_stale_ending"]):
 		return
 	if FileAccess.get_file_as_string(WORLD_SCRIPT).find(".translated(") >= 0:
 		_fail(7, "World runtime contains an unsupported Rect2 translation call")
@@ -140,18 +143,19 @@ func _init() -> void:
 	var script_path := script.resource_path if script != null else ""
 	if script_path != FINAL_SCRIPT:
 		instance.free()
-		_fail(11, "main.tscn does not route to the complete RC6 release runtime: " + script_path)
+		_fail(11, "main.tscn does not route to the deterministic RC6 runtime: " + script_path)
 		return
 	var godmode_report: Dictionary = instance.call("audit_godmode_contract")
 	instance.free()
 	if String(godmode_report.get("version", "")) != "0.6.1-rc6":
-		_fail(12, "RC6 release runtime version contract is incorrect")
+		_fail(12, "RC6 verified runtime version contract is incorrect")
 		return
 	for required_flag in [
 		"restore_guard", "mandatory_special_decisions", "rng_seed_and_state_restored",
 		"archive_pool_progression", "faction_ambushes", "guardian_environment_phases",
 		"touch_opacity", "reduced_flash", "all_room_spawns_rng_isolated",
-		"serpent_resolution_choice", "ending_choice_suspend_safe",
+		"serpent_resolution_choice", "ending_choice_suspend_safe", "deterministic_floor_graph",
+		"manual_new_run_clears_stale_ending",
 	]:
 		if not bool(godmode_report.get(required_flag, false)):
 			_fail(12, "RC6 runtime contract is missing flag: " + required_flag)
@@ -166,6 +170,7 @@ func _init() -> void:
 		"swept_navigation": true,
 		"atlas_archive": true,
 		"shop_interface": true,
+		"deterministic_floor_graph": true,
 		"deterministic_special_rooms": true,
 		"faction_reputation": true,
 		"tag_synergies": int(director_report.get("synergies", 0)),
