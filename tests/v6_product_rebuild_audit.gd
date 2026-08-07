@@ -25,7 +25,9 @@ const POLISH_SCRIPT := "res://scripts/edenfall_v6_polish_runtime.gd"
 const GODMODE_DIRECTOR := "res://scripts/v6/godmode_director.gd"
 const BOSS_LIBRARY := "res://scripts/v6/boss_pattern_library.gd"
 const GODMODE_SCRIPT := "res://scripts/edenfall_v6_godmode_runtime.gd"
-const FINAL_SCRIPT := "res://scripts/edenfall_v6_godmode_stable_runtime.gd"
+const STABLE_SCRIPT := "res://scripts/edenfall_v6_godmode_stable_runtime.gd"
+const COMPLETE_SCRIPT := "res://scripts/edenfall_v6_godmode_complete_runtime.gd"
+const FINAL_SCRIPT := "res://scripts/edenfall_v6_godmode_release_runtime.gd"
 
 func _init() -> void:
 	var bootstrap: RefCounted = BootstrapScript.new()
@@ -83,7 +85,7 @@ func _init() -> void:
 		"res://scripts/edenfall_v6_product_runtime.gd",
 		"res://scripts/edenfall_v6_release_candidate.gd",
 		WORLD_SCRIPT, NAVIGATION_SCRIPT, CONTENT_SCRIPT, POLISH_SCRIPT,
-		GODMODE_DIRECTOR, BOSS_LIBRARY, GODMODE_SCRIPT, FINAL_SCRIPT,
+		GODMODE_DIRECTOR, BOSS_LIBRARY, GODMODE_SCRIPT, STABLE_SCRIPT, COMPLETE_SCRIPT, FINAL_SCRIPT,
 	]
 	for path in required_paths:
 		if not ResourceLoader.exists(String(path)):
@@ -104,7 +106,11 @@ func _init() -> void:
 		return
 	if not _source_contract(GODMODE_SCRIPT, ["update_bullets", "_apply_rc6_bullet_hit", "_release_enemy_special", "_release_boss_pattern", "_serialize_room_state", "_restore_room_state", "_refresh_build_synergies"]):
 		return
-	if not _source_contract(FINAL_SCRIPT, ["restore_suspended_run", "SPECIAL_INTERACT_RADIUS", "_special_interaction_point", "mandatory_special_decisions", "audit_godmode_contract"]):
+	if not _source_contract(STABLE_SCRIPT, ["restore_suspended_run", "SPECIAL_INTERACT_RADIUS", "_special_interaction_point", "mandatory_special_decisions", "audit_godmode_contract"]):
+		return
+	if not _source_contract(COMPLETE_SCRIPT, ["_archive_relic_tier", "faction_ambushes", "_apply_guardian_phase_environment", "touch_opacity", "reduced_flash"]):
+		return
+	if not _source_contract(FINAL_SCRIPT, ["ENDING_PENDING_PATH", "_open_serpent_resolution", "serpent_resolution_choice", "all_room_spawns_rng_isolated", "ending_choice_suspend_safe"]):
 		return
 	if FileAccess.get_file_as_string(WORLD_SCRIPT).find(".translated(") >= 0:
 		_fail(7, "World runtime contains an unsupported Rect2 translation call")
@@ -134,16 +140,22 @@ func _init() -> void:
 	var script_path := script.resource_path if script != null else ""
 	if script_path != FINAL_SCRIPT:
 		instance.free()
-		_fail(11, "main.tscn does not route to the RC6 stable runtime: " + script_path)
+		_fail(11, "main.tscn does not route to the complete RC6 release runtime: " + script_path)
 		return
 	var godmode_report: Dictionary = instance.call("audit_godmode_contract")
 	instance.free()
 	if String(godmode_report.get("version", "")) != "0.6.1-rc6":
-		_fail(12, "RC6 stable runtime version contract is incorrect")
+		_fail(12, "RC6 release runtime version contract is incorrect")
 		return
-	if not bool(godmode_report.get("restore_guard", false)) or not bool(godmode_report.get("mandatory_special_decisions", false)) or not bool(godmode_report.get("rng_seed_and_state_restored", false)):
-		_fail(12, "RC6 persistence/decision/RNG stabilization contract is incomplete")
-		return
+	for required_flag in [
+		"restore_guard", "mandatory_special_decisions", "rng_seed_and_state_restored",
+		"archive_pool_progression", "faction_ambushes", "guardian_environment_phases",
+		"touch_opacity", "reduced_flash", "all_room_spawns_rng_isolated",
+		"serpent_resolution_choice", "ending_choice_suspend_safe",
+	]:
+		if not bool(godmode_report.get(required_flag, false)):
+			_fail(12, "RC6 runtime contract is missing flag: " + required_flag)
+			return
 
 	var report := {
 		"product_version": "0.6.1-rc6",
@@ -160,6 +172,11 @@ func _init() -> void:
 		"guardian_patterns": int(boss_report.get("patterns", 0)),
 		"room_state_suspend": true,
 		"weapon_systems_restored_over_cover_collision": true,
+		"archive_pool_progression": true,
+		"faction_ambushes": true,
+		"guardian_environment_phases": true,
+		"mobile_accessibility_completed": true,
+		"serpent_resolution_choice": true,
 		"godmode": godmode_report,
 		"contract": contract,
 	}
