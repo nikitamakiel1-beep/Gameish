@@ -63,9 +63,11 @@ find "$TMP_DIR" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
 cp -a "$BUILD_DIR"/. "$TMP_DIR"/
 
 # A direct network-only cache reset entry point remains available for browsers
-# that still hold the obsolete v0.6.0 PWA worker.
+# that still hold the obsolete v0.6.0 PWA worker. Cleanup is deliberately
+# limited to the Gameish service-worker scope and EDEN//FALL cache prefix so it
+# cannot disturb another project hosted on the same username.github.io origin.
 cat > "$TMP_DIR/purge.html" <<'HTML'
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>EDEN//FALL cache reset</title></head><body style="background:#050b0c;color:#e9dfbf;font-family:system-ui;padding:2rem"><h1>EDEN//FALL WEB CACHE RESET</h1><p id="s">Removing obsolete cached builds…</p><script>(async()=>{try{if('serviceWorker'in navigator){const r=await navigator.serviceWorker.getRegistrations();await Promise.all(r.map(x=>x.unregister()));}if('caches'in window){const k=await caches.keys();await Promise.all(k.map(x=>caches.delete(x)));}}finally{document.getElementById('s').textContent='Cache cleared. Loading current network build…';setTimeout(()=>location.replace('./?v='+Date.now()),350);}})();</script></body></html>
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>EDEN//FALL cache reset</title></head><body style="background:#050b0c;color:#e9dfbf;font-family:system-ui;padding:2rem"><h1>EDEN//FALL WEB CACHE RESET</h1><p id="s">Removing obsolete EDEN//FALL cached build…</p><script>(async()=>{const scope=new URL('./',location.href).pathname;const prefix='Gameish: EDEN//F-sw-cache-';try{if('serviceWorker'in navigator){const r=await navigator.serviceWorker.getRegistrations();await Promise.all(r.filter(x=>new URL(x.scope).pathname.startsWith(scope)).map(x=>x.unregister()));}if('caches'in window){const k=await caches.keys();await Promise.all(k.filter(x=>x.startsWith(prefix)).map(x=>caches.delete(x)));}}finally{document.getElementById('s').textContent='EDEN//FALL cache cleared. Loading current network build…';setTimeout(()=>location.replace('./?v='+Date.now()),350);}})();</script></body></html>
 HTML
 
 git -C "$TMP_DIR" add -A
