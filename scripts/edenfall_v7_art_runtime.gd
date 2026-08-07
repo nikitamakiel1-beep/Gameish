@@ -1,4 +1,4 @@
-extends "res://scripts/edenfall_v7_fairness_runtime.gd"
+extends "res://scripts/edenfall_v7_audio_runtime.gd"
 
 const ART_RUNTIME_VERSION := "0.6.1-rc7"
 const MasterpieceRegistryScript: Script = preload("res://scripts/v7/asset_registry_masterpiece.gd")
@@ -8,6 +8,8 @@ func _ready() -> void:
 	production_assets = MasterpieceRegistryScript.new()
 	v6_asset_report = audit_v6_readiness()
 	readiness = float(v6_asset_report.get("readiness", 0.0))
+	if state == "run":
+		play_biome_audio(true)
 	queue_redraw()
 
 func get_v6_diagnostics() -> Dictionary:
