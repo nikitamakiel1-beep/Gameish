@@ -5,6 +5,7 @@ const VERSION := "0.6.2-entropy"
 var rng := RandomNumberGenerator.new()
 var crypto := Crypto.new()
 var entropy_counter := 0
+var entropy_salt := 0
 
 func _init() -> void:
 	reseed()
@@ -14,16 +15,19 @@ func reseed() -> void:
 	var bytes := crypto.generate_random_bytes(8)
 	var secure_a := int(bytes.decode_u32(0)) if bytes.size() >= 4 else int(Time.get_ticks_usec())
 	var secure_b := int(bytes.decode_u32(4)) if bytes.size() >= 8 else int(Time.get_unix_time_from_system() * 1000000.0)
-	rng.seed = hash("%d:%d:%d:%d" % [rng.randi(), secure_a, secure_b, Time.get_ticks_usec()])
-	for _warmup in range(6):
+	entropy_salt = hash("%d:%d:%d:%d" % [rng.randi(), secure_a, secure_b, Time.get_ticks_usec()])
+	rng.seed = entropy_salt
+	for _warmup in range(8):
 		rng.randi()
 	entropy_counter = 0
 
 func token(context: String = "") -> int:
 	entropy_counter += 1
-	var bytes := crypto.generate_random_bytes(4)
-	var secure := int(bytes.decode_u32(0)) if bytes.size() >= 4 else int(Time.get_ticks_usec())
-	return hash("%s:%d:%d:%d:%d" % [context, entropy_counter, rng.randi(), secure, Time.get_ticks_usec()])
+	# Crypto is intentionally mixed only at reseed. Per-token entropy comes from
+	# the already crypto-mixed PCG stream, monotonic ticks and a monotonic counter.
+	# This keeps room/enemy/reward generation non-replayable without putting an
+	# OS cryptographic RNG call on gameplay hot paths.
+	return hash("%s:%d:%d:%d:%d" % [context, entropy_counter, rng.randi(), entropy_salt, Time.get_ticks_usec()])
 
 func fork(context: String = "") -> RandomNumberGenerator:
 	var child := RandomNumberGenerator.new()
@@ -56,7 +60,8 @@ func audit_contract() -> Dictionary:
 	return {
 		"version": VERSION,
 		"time_randomized": true,
-		"crypto_mixed": true,
+		"crypto_mixed_at_reseed": true,
+		"crypto_on_hot_path": false,
 		"fixed_seed_replay": false,
 		"fresh_context_tokens": true,
 	}
