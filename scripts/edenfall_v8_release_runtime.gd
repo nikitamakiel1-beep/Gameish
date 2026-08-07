@@ -95,13 +95,13 @@ func _release_entropy_trait_action(index: int) -> void:
 		return
 	var enemy: Dictionary = enemies[index]
 	var genome: Dictionary = enemy.get("v8_visual_genome",{})
-	var trait: String = String(genome.get("trait",""))
+	var behavior_trait: String = String(genome.get("trait",""))
 	var role: String = String(genome.get("role",enemy.get("style","melee")))
 	var origin: Vector2 = Vector2(enemy["pos"])
 	var target: Vector2 = (Vector2(player["pos"])-origin).normalized()
 	if target.length_squared() < 0.001:
 		target = Vector2.DOWN
-	match trait:
+	match behavior_trait:
 		"burst":
 			for angle_variant in [-0.12,0.0,0.12]:
 				enemy_shoot(origin,target.rotated(float(angle_variant)),380.0*float(genome.get("projectile_speed_mult",1.0)),1.0)
@@ -114,7 +114,7 @@ func _release_entropy_trait_action(index: int) -> void:
 			for angle_variant in [-0.54,-0.36,-0.18,0.0,0.18,0.36,0.54]:
 				enemy_shoot(origin,target.rotated(float(angle_variant)),280.0,0.75)
 		"ritual", "nova", "ring":
-			var count: int = 8 if trait != "nova" else 12
+			var count: int = 8 if behavior_trait != "nova" else 12
 			var phase: float = float(genome.get("phase_offset",0.0))+visual_clock*0.11
 			for shot in range(count):
 				enemy_shoot(origin,Vector2.RIGHT.rotated(TAU*float(shot)/float(count)+phase),275.0,0.9)
@@ -135,18 +135,18 @@ func _release_entropy_trait_action(index: int) -> void:
 			var side: float = -1.0 if bool(entropy.call("chance",0.5)) else 1.0
 			enemy["v8_burst_dir"] = target.rotated(side*0.82)
 			enemy["v8_burst_time"] = 0.24
-			if trait == "dashshot": enemy_shoot(origin,target,390.0,0.9)
+			if behavior_trait == "dashshot": enemy_shoot(origin,target,390.0,0.9)
 		"ram", "juggernaut", "shockwave", "breach":
 			enemy["v8_burst_dir"] = target
-			enemy["v8_burst_time"] = 0.30 if trait != "juggernaut" else 0.38
-			if trait == "shockwave":
+			enemy["v8_burst_time"] = 0.30 if behavior_trait != "juggernaut" else 0.38
+			if behavior_trait == "shockwave":
 				for shot in range(6): enemy_shoot(origin,Vector2.RIGHT.rotated(TAU*float(shot)/6.0),190.0,0.75)
 		"orbit", "satellite", "spiral", "harrier":
-			var count: int = 6 if trait != "spiral" else 9
+			var count: int = 6 if behavior_trait != "spiral" else 9
 			for shot in range(count): enemy_shoot(origin,Vector2.RIGHT.rotated(TAU*float(shot)/float(count)+visual_clock*0.24),250.0,0.8)
 		"ripper", "stalker", "leaper", "bloodrush":
 			enemy["v8_burst_dir"] = target
-			enemy["v8_burst_time"] = 0.20 if trait != "bloodrush" else 0.32
+			enemy["v8_burst_time"] = 0.20 if behavior_trait != "bloodrush" else 0.32
 		_:
 			if role in ["ranged","caster","radial","orbiter"]: enemy_shoot(origin,target,320.0,0.85)
 	var reset_rng: RandomNumberGenerator = entropy.call("fork","trait_reset:"+String(enemy.get("visual_key",enemy.get("id","enemy"))))
