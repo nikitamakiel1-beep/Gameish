@@ -1,4 +1,4 @@
-# EDEN//FALL v0.6.1 — Visual and Combat Direction
+# EDEN//FALL v0.6.1 — Visual, Combat and Godmode Direction
 
 ## Product premise
 
@@ -98,18 +98,47 @@ No two enemy atlas sheets may produce identical image hashes. Elite status is an
 ## Combat readability budgets
 
 - Normal encounter density: 4–8 enemies.
-- Trial encounter ceiling: 9 enemies.
+- Trial and contract encounter ceiling: 9 enemies.
 - Initial spawn positions use separated rings rather than random clustering.
 - Ranged wind-up: approximately 0.42 seconds.
 - Caster wind-up: approximately 0.54 seconds.
 - Charger wind-up: approximately 0.62 seconds before a committed charge.
+- Enemy special attacks and guardian patterns expose separate telegraph rings.
 - Enemy projectiles are larger and warmer than player projectiles.
 - Player projectiles retain lineage color and brighter cores.
+- Projectile outlines can be forced through accessibility settings.
 - Normal enemy health bars appear only after damage; elites and bosses always expose status.
 - Player and enemy sprites receive shadows and dark outlines against complex backgrounds.
 - Environmental tile contrast remains subordinate to bullets, actors and pickups.
 - Structural cover blocks actors and projectiles while preserving door lanes.
 - Swept collision prevents fast dashes and enemies from tunnelling through narrow cover.
+- First Nephilim phases can destroy structural cover; Gate Cherub deploys auxiliary bodies; Tower Enoch reconfigures crossfire; Serpent phases deploy forked hosts.
+
+## Godmode gameplay contract
+
+### Deterministic run topology
+
+Every floor graph is seeded from run seed, biome index and floor number. Room generation, special-room assignment and encounter spawning are isolated from the global combat RNG. Suspend/resume therefore restores the same room coordinates instead of trying to apply state to a newly randomized graph.
+
+### Decision rooms
+
+The run may include settlements, sacrifice bioreactors, lineage memories, maintenance tunnels, contracts and the Serpent terminal. Noncombat decision rooms lock their exits until the player approaches the focal system and commits to a consequence.
+
+### Factions
+
+Salt Caravans, Ash Covenant, Tubal Foundries, Enoch Outlaws, Lamech Houses and The Unnamed maintain persistent reputation. Reputation affects shop prices and sufficiently negative reputation can generate deterministic retaliation ambushes. Reputation is not a morality score.
+
+### Relic synergies
+
+Relics continue using the sixty-cell semantic atlas, but effects are interpreted as tags. Eight RC6 synergy rules transform projectile behavior, armor, orbitals, dash attacks and guardian damage. The Archive expands available relic tiers through mastery, recovered memories and defeated guardians rather than granting permanent raw combat stats.
+
+### Weapons
+
+The inherited five lineage weapons retain their identities: Adam rifle/homing fire, Abel beam/mark/chain behavior, Cain cannon/explosion/burn behavior, Seth lance/pierce/bounce/stagger behavior and Naamah spread/spore behavior. RC6 restores those projectile systems on top of structural cover collision and adds run-based evolution without replacing the starting identities.
+
+### Serpent resolution
+
+Defeating the Serpent Interface no longer immediately terminates the run. The player must resolve the final adaptation request by rejecting or accepting the forbidden genome. The pending ending choice is saved separately so focus loss or suspension cannot skip the resolution.
 
 ## Interface contract
 
@@ -125,15 +154,22 @@ Desktop pointer input selects a lineage first and deploys through an explicit co
 
 Wide layouts use three compact header regions: player state, chapter/objective and resources/minimap. Small landscape and phone layouts use a single header plus a separate objective strip.
 
-The HUD may overlap the arena border but must not consume the central combat field.
+The HUD may overlap the arena border but must not consume the central combat field. RC6 also exposes synergy, temporary armor, orbital and mutation state without obscuring central projectile space.
 
 ### Genome Archive
 
-The archive is an atlas-driven visual reference, not a numbered placeholder grid. Wide layouts expose five lineages, eighteen hostile signatures, five guardian atlases, five biome memories and all sixty relic cells.
+The archive is an atlas-driven visual reference, not a numbered placeholder grid. Wide layouts expose five lineages, eighteen hostile signatures, five guardian atlases, five biome memories and all sixty relic cells. The archive also exposes faction memory and current relic-pool tier.
 
 ### Caravan exchange
 
-Shop rooms expose three selectable relic cards with icons, names, prices and purchased state. Keyboard, controller, pointer and touch interactions must converge on the same inventory state.
+Shop rooms expose three selectable relic cards with icons, names, prices and purchased state. Keyboard, controller, pointer and touch interactions converge on the same inventory state. Faction reputation modifies price without changing the item identity.
+
+### Mobile and accessibility
+
+- Touch-control opacity is adjustable independently of gameplay UI scale.
+- Reduced flashing shortens and attenuates high-energy effects.
+- Strong attack telegraphs and projectile outlines are independently configurable.
+- Left-handed controls, aim assist, reduced motion, simplified FX and haptics remain supported.
 
 ### Safe-area and compact thresholds
 
@@ -149,8 +185,13 @@ Shop rooms expose three selectable relic cards with icons, names, prices and pur
 - The inherited v0.6 asset-dimension contract.
 - Unique hashes for all five heroes, five portraits, eighteen enemies, five bosses and each biome atlas family.
 - Non-empty utility atlases.
-- Existence of every rebuild layer.
+- Existence of every rebuild and godmode layer.
 - World collision, swept navigation, archive and shop source contracts.
-- `main.tscn` routing to `edenfall_v6_polish_runtime.gd`.
+- Six factions and at least eight tag-based synergy rules.
+- Fifteen explicit guardian patterns across five guardians.
+- Mandatory special-room decisions, deterministic room seeding and deterministic floor topology.
+- Room-state suspend/restore, final Serpent resolution persistence and stale-ending cleanup.
+- Archive pool progression, faction ambushes, guardian environment phases and mobile accessibility additions.
+- `main.tscn` routing to `edenfall_v6_godmode_verified_runtime.gd`.
 
 Static review is not a substitute for import, boot, screenshot and gameplay testing. No build may be described as qualified until the exact branch head passes those runtime checks.
