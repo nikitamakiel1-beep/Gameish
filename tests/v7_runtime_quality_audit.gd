@@ -3,8 +3,9 @@ extends SceneTree
 const BootstrapScript: Script = preload("res://scripts/v6/engine_bootstrap.gd")
 const AudioFactoryScript: Script = preload("res://scripts/v7/audio_asset_factory_masterpiece.gd")
 const FairnessDirectorScript: Script = preload("res://scripts/v7/combat_fairness_director.gd")
+const EvolutionDirectorScript: Script = preload("res://scripts/v7/lineage_evolution_director.gd")
 
-const FINAL_SCRIPT := "res://scripts/edenfall_v7_art_runtime.gd"
+const FINAL_SCRIPT := "res://scripts/edenfall_v7_progression_runtime.gd"
 const WARNING_IDS := ["warning_melee", "warning_aimed", "warning_radial", "warning_phase"]
 
 func _init() -> void:
@@ -30,18 +31,12 @@ func _init() -> void:
 	for index in range(5):
 		var music: AudioStreamWAV = audio.call("synth_loop", index, false)
 		var ambience: AudioStreamWAV = audio.call("synth_loop", index, true)
-		if not _valid_loop(music):
-			errors.append("Invalid music loop for biome %d" % index)
-		if not _valid_loop(ambience):
-			errors.append("Invalid ambience loop for biome %d" % index)
-		if music != null:
-			music_hashes[hash(music.data)] = index
-		if ambience != null:
-			ambience_hashes[hash(ambience.data)] = index
-	if music_hashes.size() != 5:
-		errors.append("Five biome music loops must be materially unique")
-	if ambience_hashes.size() != 5:
-		errors.append("Five biome ambience loops must be materially unique")
+		if not _valid_loop(music): errors.append("Invalid music loop for biome %d" % index)
+		if not _valid_loop(ambience): errors.append("Invalid ambience loop for biome %d" % index)
+		if music != null: music_hashes[hash(music.data)] = index
+		if ambience != null: ambience_hashes[hash(ambience.data)] = index
+	if music_hashes.size() != 5: errors.append("Five biome music loops must be materially unique")
+	if ambience_hashes.size() != 5: errors.append("Five biome ambience loops must be materially unique")
 
 	var warning_hashes: Dictionary = {}
 	for id in WARNING_IDS:
@@ -55,10 +50,12 @@ func _init() -> void:
 
 	var fairness: RefCounted = FairnessDirectorScript.new()
 	var fairness_report: Dictionary = fairness.call("audit_contract")
-	if float(fairness_report.get("room_grace", 0.0)) < 0.5:
-		errors.append("Room grace is below the RC7 fairness floor")
-	if float(fairness_report.get("spawn_clearance", 0.0)) < 140.0:
-		errors.append("Standard hostile spawn clearance is too small")
+	if float(fairness_report.get("room_grace", 0.0)) < 0.5: errors.append("Room grace is below the RC7 fairness floor")
+	if float(fairness_report.get("spawn_clearance", 0.0)) < 140.0: errors.append("Standard hostile spawn clearance is too small")
+
+	var evolutions: RefCounted = EvolutionDirectorScript.new()
+	var evolution_report: Dictionary = evolutions.call("audit_contract")
+	if int(evolution_report.get("options", 0)) != 25: errors.append("RC7 must expose 25 guardian adaptation options")
 
 	var runtime_report: Dictionary = {}
 	var inherited_report: Dictionary = {}
@@ -69,13 +66,14 @@ func _init() -> void:
 		var instance := main_scene.instantiate()
 		var script := instance.get_script() as Script
 		if script == null or script.resource_path != FINAL_SCRIPT:
-			errors.append("main.tscn is not routed to the RC7 art runtime")
+			errors.append("main.tscn is not routed to the RC7 progression runtime")
 		if instance.has_method("audit_masterpiece_contract"):
 			runtime_report = instance.call("audit_masterpiece_contract")
 			for flag in [
 				"semantic_warning_audio", "room_entry_grace", "staggered_enemy_materialization",
-				"safe_state_asset_prewarm", "biome_pool_cache_retention",
-				"shallow_startup_deep_release_audit", "masterpiece_asset_registry", "pixel_finish",
+				"safe_state_asset_prewarm", "biome_pool_cache_retention", "shallow_startup_deep_release_audit",
+				"masterpiece_asset_registry", "pixel_finish", "guardian_adaptation_choices",
+				"adaptation_suspend_safe", "run_only_lineage_evolution",
 			]:
 				if not bool(runtime_report.get(flag, false)):
 					errors.append("RC7 runtime quality flag missing: " + flag)
@@ -97,6 +95,7 @@ func _init() -> void:
 		"ambience_unique":ambience_hashes.size(),
 		"warning_unique":warning_hashes.size(),
 		"fairness":fairness_report,
+		"evolutions":evolution_report,
 		"runtime":runtime_report,
 		"inherited":inherited_report,
 		"errors":errors,
@@ -107,8 +106,7 @@ func _init() -> void:
 		print("EDEN_FALL_V7_RUNTIME_QUALITY_AUDIT=PASS")
 		quit(0)
 	else:
-		for error in errors:
-			push_error(error)
+		for error in errors: push_error(error)
 		quit(1)
 
 func _valid_loop(stream: AudioStreamWAV) -> bool:
