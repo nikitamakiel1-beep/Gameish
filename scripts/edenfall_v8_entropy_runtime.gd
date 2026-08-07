@@ -343,12 +343,12 @@ func _draw_entropy_environment_overlay() -> void:
 				draw_circle(pos,1.5+size,Color(accent.lightened(0.26),0.16+intensity*0.30))
 
 func update_enemy_style(enemy: Dictionary, direction: Vector2, distance: float, delta: float) -> Vector2:
-	var result := super.update_enemy_style(enemy,direction,distance,delta)
+	var result: Vector2 = super.update_enemy_style(enemy,direction,distance,delta)
 	var genome: Dictionary = enemy.get("v8_visual_genome",{})
 	if genome.is_empty(): return result
-	var trait := String(genome.get("trait",""))
-	var phase := visual_clock*2.2+float(genome.get("phase_offset",0.0))
-	match trait:
+	var behavior_trait: String = String(genome.get("trait",""))
+	var phase: float = visual_clock*2.2+float(genome.get("phase_offset",0.0))
+	match behavior_trait:
 		"flanker","feint","harrier": result = result.rotated(sin(phase)*0.22)
 		"bloodrush","breach":
 			if distance < 210.0: result *= 1.12
