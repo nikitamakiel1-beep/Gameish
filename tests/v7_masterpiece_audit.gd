@@ -5,6 +5,7 @@ const BootstrapScript: Script = preload("res://scripts/v6/engine_bootstrap.gd")
 const EncounterComposerScript: Script = preload("res://scripts/v7/encounter_composer.gd")
 const RelicPoolDirectorScript: Script = preload("res://scripts/v7/relic_pool_director.gd")
 const SpriteQualityEvaluatorScript: Script = preload("res://scripts/v7/sprite_quality_evaluator.gd")
+const FairnessDirectorScript: Script = preload("res://scripts/v7/combat_fairness_director.gd")
 const VersionManifestScript: Script = preload("res://scripts/v7/version_manifest.gd")
 
 const FINAL_SCRIPT := "res://scripts/edenfall_v7_art_runtime.gd"
@@ -56,6 +57,13 @@ func _init() -> void:
 	if int(relic_report.get("contexts", 0)) < 6 or not bool(relic_report.get("tier_gating", false)):
 		errors.append("Contextual relic pool contract is incomplete")
 
+	var fairness_director: RefCounted = FairnessDirectorScript.new()
+	var fairness_report: Dictionary = fairness_director.call("audit_contract")
+	if float(fairness_report.get("room_grace", 0.0)) < 0.5:
+		errors.append("Room-entry grace window is too short")
+	if not bool(fairness_report.get("staggered_activation", false)):
+		errors.append("Staggered hostile activation contract is missing")
+
 	var quality: RefCounted = SpriteQualityEvaluatorScript.new()
 	var sprite_report := {"heroes":{}, "enemies":{}, "bosses":{}}
 	for id in HERO_IDS:
@@ -78,22 +86,28 @@ func _init() -> void:
 		"res://scripts/v7/version_manifest.gd",
 		"res://scripts/v7/encounter_composer.gd",
 		"res://scripts/v7/relic_pool_director.gd",
+		"res://scripts/v7/combat_fairness_director.gd",
 		"res://scripts/v7/sprite_quality_evaluator.gd",
 		"res://scripts/v7/actor_asset_factory_masterpiece.gd",
 		"res://scripts/v7/generated_asset_factory_masterpiece.gd",
 		"res://scripts/v7/asset_registry_masterpiece.gd",
 		"res://scripts/edenfall_v7_masterpiece_runtime.gd",
+		"res://scripts/edenfall_v7_fairness_runtime.gd",
 		FINAL_SCRIPT,
 		"res://tests/v6_product_rebuild_audit.gd",
 	]:
 		if not ResourceLoader.exists(path):
 			errors.append("Missing RC7 resource: " + path)
 
-	if not _source_contract("res://scripts/edenfall_v7_masterpiece_runtime.gd", ["spawn_room", "random_relic_id", "assisted_aim", "draw_enemies", "audit_masterpiece_contract"]):
+	if not _source_contract("res://scripts/edenfall_v7_masterpiece_runtime.gd", ["spawn_room", "random_relic_id", "assisted_aim", "draw_enemies", "post_enter_cover_resolution", "audit_masterpiece_contract"]):
 		errors.append("RC7 gameplay runtime source contract failed")
+	if not _source_contract("res://scripts/edenfall_v7_fairness_runtime.gd", ["activation_delay", "spawn_room_crossfire", "pulse_corrosive_grid", "post_transition_spawn_clearance"]):
+		errors.append("RC7 fairness runtime source contract failed")
 	if not _source_contract(FINAL_SCRIPT, ["MasterpieceRegistryScript", "audit_v6_readiness", "pixel_finish", "audit_masterpiece_contract"]):
 		errors.append("RC7 art runtime source contract failed")
 
+	var runtime_report: Dictionary = {}
+	var godmode_report: Dictionary = {}
 	var main_scene := load("res://main.tscn") as PackedScene
 	if main_scene == null:
 		errors.append("main.tscn failed to load")
@@ -104,14 +118,31 @@ func _init() -> void:
 		if script_path != FINAL_SCRIPT:
 			errors.append("main.tscn does not route to RC7 art runtime: " + script_path)
 		if instance.has_method("audit_masterpiece_contract"):
-			var runtime_report: Dictionary = instance.call("audit_masterpiece_contract")
+			runtime_report = instance.call("audit_masterpiece_contract")
 			if String(runtime_report.get("version", "")) != "0.6.1-rc7":
 				errors.append("Runtime RC7 version contract failed")
-			for flag in ["cover_aware_aim_assist", "deterministic_composition", "contextual_relic_pools", "masterpiece_asset_registry", "pixel_finish"]:
+			for flag in [
+				"cover_aware_aim_assist", "deterministic_composition", "contextual_relic_pools",
+				"post_enter_cover_resolution", "room_entry_grace", "staggered_enemy_materialization",
+				"post_transition_spawn_clearance", "hazards_respect_entry_grace",
+				"masterpiece_asset_registry", "pixel_finish",
+			]:
 				if not bool(runtime_report.get(flag, false)):
 					errors.append("Runtime RC7 contract missing: " + flag)
 		else:
 			errors.append("RC7 runtime audit method is missing")
+		if instance.has_method("audit_godmode_contract"):
+			godmode_report = instance.call("audit_godmode_contract")
+			for flag in [
+				"restore_guard", "mandatory_special_decisions", "rng_seed_and_state_restored",
+				"archive_pool_progression", "faction_ambushes", "guardian_environment_phases",
+				"all_room_spawns_rng_isolated", "serpent_resolution_choice", "ending_choice_suspend_safe",
+				"deterministic_floor_graph", "manual_new_run_clears_stale_ending",
+			]:
+				if not bool(godmode_report.get(flag, false)):
+					errors.append("Inherited RC6 contract missing under RC7: " + flag)
+		else:
+			errors.append("Inherited RC6 godmode audit method is missing")
 		instance.free()
 
 	var report := {
@@ -122,7 +153,10 @@ func _init() -> void:
 		"registry_index":index,
 		"encounter_composer":composer_report,
 		"relic_pool":relic_report,
+		"fairness":fairness_report,
 		"sprite_quality":sprite_report,
+		"runtime":runtime_report,
+		"inherited_godmode":godmode_report,
 		"errors":errors,
 		"passed":errors.is_empty(),
 	}
