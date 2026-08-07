@@ -1,4 +1,4 @@
-extends "res://scripts/v6/actor_asset_factory_rebuild.gd"
+extends "res://scripts/v6/actor_asset_factory.gd"
 
 const ART_REVISION := "0.6.1-rc7"
 const OUTLINE_OFFSETS := [
