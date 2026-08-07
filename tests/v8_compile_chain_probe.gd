@@ -1,6 +1,15 @@
 extends SceneTree
 
 const CHAIN: Array[String] = [
+	"res://scripts/v7/actor_asset_factory_masterpiece.gd",
+	"res://scripts/v7/audio_asset_factory_masterpiece.gd",
+	"res://scripts/v7/generated_asset_factory_masterpiece.gd",
+	"res://scripts/v7/asset_registry_masterpiece.gd",
+	"res://scripts/v7/sprite_quality_evaluator.gd",
+	"res://scripts/v8/enemy_genome_director.gd",
+	"res://scripts/v8/procedural_sprite_forge.gd",
+	"res://scripts/v8/procedural_sprite_forge_premium.gd",
+	"res://scripts/v8/procedural_world_director.gd",
 	"res://scripts/edenfall_v7_release_runtime.gd",
 	"res://scripts/edenfall_v8_entropy_runtime.gd",
 	"res://scripts/edenfall_v8_visual_runtime.gd",
