@@ -8,6 +8,10 @@ exports/
 *.ipa
 *.xcarchive
 
+# Cloud/local build toolchain and transient qualification logs
+.tools/
+.codespaces/
+
 # Local credentials and platform files
 .env
 .env.*
