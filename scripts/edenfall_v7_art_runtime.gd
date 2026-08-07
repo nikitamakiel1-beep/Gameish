@@ -40,7 +40,6 @@ func audit_v6_readiness() -> Dictionary:
 	var checks := 0
 	var passed := 0
 	var idx: Dictionary = production_assets.call("index")
-
 	checks += 1
 	if String(idx.get("version", "")) == V6_VERSION: passed += 1
 	else: errors.append("Production index ABI version mismatch")
@@ -56,12 +55,10 @@ func audit_v6_readiness() -> Dictionary:
 	checks += 1
 	if Array(idx.get("biome_ids", [])).size() == 5: passed += 1
 	else: errors.append("Five biome packs are required")
-
 	var asset_contract: Dictionary = production_assets.call("validate_contract", false)
 	checks += 1
 	if bool(asset_contract.get("passed", false)): passed += 1
 	else: errors.append_array(Array(asset_contract.get("errors", [])))
-
 	checks += 1
 	if bool(engine_report.get("exact_version", false)): passed += 1
 	else: errors.append("Godot runtime is not exactly 4.7.1")
@@ -78,18 +75,7 @@ func audit_v6_readiness() -> Dictionary:
 			input_complete = false
 			errors.append("Missing input action: %s" % action)
 	if input_complete: passed += 1
-
-	return {
-		"version": V6_VERSION,
-		"product_revision": ART_RUNTIME_VERSION,
-		"validation_mode": "runtime_shallow",
-		"checks": checks,
-		"passed_checks": passed,
-		"errors": errors,
-		"asset_contract": asset_contract,
-		"engine": engine_report,
-		"readiness": clampf(float(passed) / float(maxi(1, checks)) * 100.0, 0.0, 100.0),
-	}
+	return {"version":V6_VERSION,"product_revision":ART_RUNTIME_VERSION,"validation_mode":"runtime_shallow","checks":checks,"passed_checks":passed,"errors":errors,"asset_contract":asset_contract,"engine":engine_report,"readiness":clampf(float(passed) / float(maxi(1, checks)) * 100.0, 0.0, 100.0)}
 
 func _queue_frontend_prewarm() -> void:
 	for id in ["adam", "abel", "cain", "seth", "naamah"]:
@@ -103,13 +89,22 @@ func _queue_frontend_prewarm() -> void:
 func _queue_biome_prewarm() -> void:
 	if biome_index < 0 or biome_index >= BIOMES.size():
 		return
-	var biome_id := String(BIOMES[biome_index]["id"])
+	_queue_one_biome_package(biome_index, true)
+	if biome_index + 1 < BIOMES.size():
+		_queue_one_biome_package(biome_index + 1, false)
+
+func _queue_one_biome_package(index: int, include_visuals: bool) -> void:
+	var biome_id := String(BIOMES[index]["id"])
+	_queue_prewarm("biome_audio", biome_id, "music")
+	_queue_prewarm("biome_audio", biome_id, "ambience")
+	if not include_visuals:
+		return
 	for kind in ["background", "tiles", "props"]:
 		_queue_prewarm("biome", biome_id, kind)
 	for enemy_id in enemy_pool_for_biome():
 		_queue_prewarm("enemy", String(enemy_id))
-	if biome_index < BOSS_IDS.size():
-		_queue_prewarm("boss", String(BOSS_IDS[biome_index]))
+	if index < BOSS_IDS.size():
+		_queue_prewarm("boss", String(BOSS_IDS[index]))
 
 func _queue_prewarm(kind: String, id: String, subkind: String = "") -> void:
 	var key := "%s:%s:%s" % [kind, id, subkind]
@@ -119,46 +114,40 @@ func _queue_prewarm(kind: String, id: String, subkind: String = "") -> void:
 	_prewarm_queue.append({"kind":kind, "id":id, "subkind":subkind})
 
 func _can_prewarm_now() -> bool:
-	if _prewarm_queue.is_empty():
-		return false
-	if state in ["title", "select"]:
-		return true
-	if state != "run" or not enemies.is_empty() or paused or settings_open or archive_open:
-		return false
-	if not room_graph.has(current_room):
-		return false
+	if _prewarm_queue.is_empty(): return false
+	if state in ["title", "select"]: return true
+	if state != "run" or not enemies.is_empty() or paused or settings_open or archive_open: return false
+	if not room_graph.has(current_room): return false
 	var room: Dictionary = room_graph[current_room]
 	return String(room.get("kind", "")) not in ["combat", "trial", "contract", "boss"]
 
 func _prewarm_one() -> void:
-	if _prewarm_queue.is_empty():
-		return
+	if _prewarm_queue.is_empty(): return
 	var entry: Dictionary = _prewarm_queue.pop_front()
 	var kind := String(entry.get("kind", ""))
 	var id := String(entry.get("id", ""))
+	var subkind := String(entry.get("subkind", ""))
 	match kind:
 		"hero": production_assets.call("hero_sheet", id)
 		"portrait": production_assets.call("hero_portrait", id)
 		"enemy": production_assets.call("enemy_sheet", id)
 		"boss": production_assets.call("boss_sheet", id)
-		"biome": production_assets.call("biome_texture", id, String(entry.get("subkind", "background")))
+		"biome": production_assets.call("biome_texture", id, subkind if not subkind.is_empty() else "background")
+		"biome_audio": production_assets.call("biome_audio", id, subkind if not subkind.is_empty() else "music")
 		"utility": production_assets.call("utility_texture", id)
 		"sfx": production_assets.call("sfx", id)
 	_prewarm_clock = 0.10
 
 func _trim_runtime_assets() -> void:
-	if biome_index < 0 or biome_index >= BIOMES.size():
-		return
+	if biome_index < 0 or biome_index >= BIOMES.size(): return
 	var retained_enemy_ids: Array[String] = []
 	for id in enemy_pool_for_biome():
 		var enemy_id := String(id)
-		if enemy_id not in retained_enemy_ids:
-			retained_enemy_ids.append(enemy_id)
+		if enemy_id not in retained_enemy_ids: retained_enemy_ids.append(enemy_id)
 	for enemy_variant in enemies:
 		var enemy: Dictionary = enemy_variant
 		var enemy_id := String(enemy.get("id", ""))
-		if not enemy_id.is_empty() and enemy_id not in retained_enemy_ids:
-			retained_enemy_ids.append(enemy_id)
+		if not enemy_id.is_empty() and enemy_id not in retained_enemy_ids: retained_enemy_ids.append(enemy_id)
 	var active_boss := String(BOSS_IDS[biome_index]) if biome_index < BOSS_IDS.size() else ""
 	production_assets.call("trim_runtime_cache", String(BIOMES[biome_index]["id"]), retained_enemy_ids, active_boss)
 
@@ -178,5 +167,7 @@ func audit_masterpiece_contract() -> Dictionary:
 	report["pixel_finish"] = true
 	report["safe_state_asset_prewarm"] = true
 	report["biome_pool_cache_retention"] = true
+	report["transition_audio_prewarm"] = true
+	report["biome_audio_cache_retention"] = true
 	report["shallow_startup_deep_release_audit"] = true
 	return report
