@@ -1,0 +1,114 @@
+name: Generate EDEN FALL Assets
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [godmode/production-expansion]
+    paths:
+      - tools/generate_assets.py
+      - scripts/asset_catalog.gd
+      - scripts/audio_director.gd
+      - scripts/game_runtime.gd
+      - .github/workflows/generate-assets.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: eden-fall-generated-assets
+  cancel-in-progress: true
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out production branch
+        uses: actions/checkout@v4
+        with:
+          ref: godmode/production-expansion
+          persist-credentials: true
+
+      - name: Generate original visual and audio assets
+        run: python3 tools/generate_assets.py --out assets/generated
+
+      - name: Normalize deterministic manifest
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import pathlib
+
+          root = pathlib.Path('assets/generated')
+          manifest_path = root / 'manifest.json'
+          manifest = json.loads(manifest_path.read_text())
+          metadata = {'manifest.json', 'ASSET_NOTICE.txt'}
+          files = []
+          for path in sorted(root.rglob('*')):
+              if path.is_file() and path.name not in metadata:
+                  files.append({
+                      'path': path.relative_to(root).as_posix(),
+                      'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
+                      'bytes': path.stat().st_size,
+                  })
+          manifest['files'] = files
+          manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n')
+          PY
+
+      - name: Validate generated package
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import pathlib
+          import struct
+          import wave
+
+          root = pathlib.Path('assets/generated')
+          manifest = json.loads((root / 'manifest.json').read_text())
+          assert len(manifest['players']) == 5
+          assert sum(len(v) for v in manifest['enemies'].values()) == 25
+          assert len(manifest['bosses']) == 5
+          assert len(manifest['weapons']) == 10
+          assert len(manifest['music']) == 5
+          assert len(manifest['ambience']) == 5
+          assert len(manifest['sfx']) >= 20
+          assert len(manifest['files']) == 84
+
+          for png in root.rglob('*.png'):
+              data = png.read_bytes()
+              assert data[:8] == b'\x89PNG\r\n\x1a\n', png
+              width, height = struct.unpack('>II', data[16:24])
+              assert width > 0 and height > 0, png
+
+          for wav_path in root.rglob('*.wav'):
+              with wave.open(str(wav_path), 'rb') as wav:
+                  assert wav.getnchannels() == 1
+                  assert wav.getsampwidth() == 2
+                  assert wav.getframerate() == 22050
+                  assert wav.getnframes() > 1000
+
+          print('Validated', len(manifest['files']), 'generated assets')
+          PY
+
+      - name: Preserve generated package as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: eden-fall-generated-assets
+          path: assets/generated
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Commit generated PNG and WAV files
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/generated
+          if git diff --cached --quiet; then
+            echo "Generated assets already match the deterministic source."
+            exit 0
+          fi
+          git commit -m "Normalize generated asset manifest [assets]"
+          git pull --rebase origin godmode/production-expansion
+          git push origin HEAD:godmode/production-expansion

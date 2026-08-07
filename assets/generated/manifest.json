@@ -1,0 +1,1480 @@
+{
+  "ambience": {
+    "biome_01": "res://assets/generated/audio/ambience/biome_01.wav",
+    "biome_02": "res://assets/generated/audio/ambience/biome_02.wav",
+    "biome_03": "res://assets/generated/audio/ambience/biome_03.wav",
+    "biome_04": "res://assets/generated/audio/ambience/biome_04.wav",
+    "biome_05": "res://assets/generated/audio/ambience/biome_05.wav"
+  },
+  "bosses": {
+    "eden_warden": {
+      "fps": [
+        5,
+        12,
+        8,
+        7
+      ],
+      "frame": [
+        96,
+        96
+      ],
+      "frames": 8,
+      "path": "res://assets/generated/bosses/eden_warden.png",
+      "rows": {
+        "attack": 1,
+        "death": 3,
+        "idle": 0,
+        "phase": 2
+      }
+    },
+    "nephilim_king": {
+      "fps": [
+        5,
+        12,
+        8,
+        7
+      ],
+      "frame": [
+        96,
+        96
+      ],
+      "frames": 8,
+      "path": "res://assets/generated/bosses/nephilim_king.png",
+      "rows": {
+        "attack": 1,
+        "death": 3,
+        "idle": 0,
+        "phase": 2
+      }
+    },
+    "seraph_reactor": {
+      "fps": [
+        5,
+        12,
+        8,
+        7
+      ],
+      "frame": [
+        96,
+        96
+      ],
+      "frames": 8,
+      "path": "res://assets/generated/bosses/seraph_reactor.png",
+      "rows": {
+        "attack": 1,
+        "death": 3,
+        "idle": 0,
+        "phase": 2
+      }
+    },
+    "void_archon": {
+      "fps": [
+        5,
+        12,
+        8,
+        7
+      ],
+      "frame": [
+        96,
+        96
+      ],
+      "frames": 8,
+      "path": "res://assets/generated/bosses/void_archon.png",
+      "rows": {
+        "attack": 1,
+        "death": 3,
+        "idle": 0,
+        "phase": 2
+      }
+    },
+    "watcher_engine": {
+      "fps": [
+        5,
+        12,
+        8,
+        7
+      ],
+      "frame": [
+        96,
+        96
+      ],
+      "frames": 8,
+      "path": "res://assets/generated/bosses/watcher_engine.png",
+      "rows": {
+        "attack": 1,
+        "death": 3,
+        "idle": 0,
+        "phase": 2
+      }
+    }
+  },
+  "effects": {
+    "fps": 18,
+    "frame": [
+      32,
+      32
+    ],
+    "frames": 8,
+    "path": "res://assets/generated/effects/effects.png",
+    "rows": {
+      "boss_phase": 9,
+      "critical": 5,
+      "dash": 2,
+      "death": 7,
+      "heal": 3,
+      "impact": 1,
+      "muzzle": 0,
+      "pickup": 6,
+      "portal": 8,
+      "shield": 4
+    }
+  },
+  "enemies": {
+    "enhanced": [
+      {
+        "fps": [
+          5,
+          10,
+          14,
+          16,
+          10,
+          8
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "frames": 8,
+        "path": "res://assets/generated/enemies/enhanced_01.png",
+        "rows": {
+          "dash": 3,
+          "death": 5,
+          "hurt": 4,
+          "idle": 0,
+          "shoot": 2,
+          "walk": 1
+        }
+      },
+      {
+        "fps": [
+          5,
+          10,
+          14,
+          16,
+          10,
+          8
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "frames": 8,
+        "path": "res://assets/generated/enemies/enhanced_02.png",
+        "rows": {
+          "dash": 3,
+          "death": 5,
+          "hurt": 4,
+          "idle": 0,
+          "shoot": 2,
+          "walk": 1
+        }
+      },
+      {
+        "fps": [
+          5,
+          10,
+          14,
+          16,
+          10,
+          8
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "frames": 8,
+        "path": "res://assets/generated/enemies/enhanced_03.png",
+        "rows": {
+          "dash": 3,
+          "death": 5,
+          "hurt": 4,
+          "idle": 0,
+          "shoot": 2,
+          "walk": 1
+        }
+      },
+      {
+        "fps": [
+          5,
+          10,
+          14,
+          16,
+          10,
+          8
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "frames": 8,
+        "path": "res://assets/generated/enemies/enhanced_04.png",
+        "rows": {
+          "dash": 3,
+          "death": 5,
+          "hurt": 4,
+          "idle": 0,
+          "shoot": 2,
+          "walk": 1
+        }
+      },
+      {
+        "fps": [
+          5,
+          10,
+          14,
+          16,
+          10,
+          8
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "frames": 8,
+        "path": "res://assets/generated/enemies/enhanced_05.png",
+        "rows": {
+          "dash": 3,
+          "death": 5,
+          "hurt": 4,
+          "idle": 0,
+          "shoot": 2,
+          "walk": 1
+        }
+      }
+    ],
+    "fallen": [
+      {
+        "fps": [
+          5,
+          10,
+          14,
+          16,
+          10,
+          8
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "frames": 8,
+        "path": "res://assets/generated/enemies/fallen_01.png",
+        "rows": {
+          "dash": 3,
+          "death": 5,
+          "hurt": 4,
+          "idle": 0,
+          "shoot": 2,
+          "walk": 1
+        }
+      },
+      {
+        "fps": [
+          5,
+          10,
+          14,
+          16,
+          10,
+          8
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "frames": 8,
+        "path": "res://assets/generated/enemies/fallen_02.png",
+        "rows": {
+          "dash": 3,
+          "death": 5,
+          "hurt": 4,
+          "idle": 0,
+          "shoot": 2,
+          "walk": 1
+        }
+      },
+      {
+        "fps": [
+          5,
+          10,
+          14,
+          16,
+          10,
+          8
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "frames": 8,
+        "path": "res://assets/generated/enemies/fallen_03.png",
+        "rows": {
+          "dash": 3,
+          "death": 5,
+          "hurt": 4,
+          "idle": 0,
+          "shoot": 2,
+          "walk": 1
+        }
+      },
+      {
+        "fps": [
+          5,
+          10,
+          14,
+          16,
+          10,
+          8
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "frames": 8,
+        "path": "res://assets/generated/enemies/fallen_04.png",
+        "rows": {
+          "dash": 3,
+          "death": 5,
+          "hurt": 4,
+          "idle": 0,
+          "shoot": 2,
+          "walk": 1
+        }
+      },
+      {
+        "fps": [
+          5,
+          10,
+          14,
+          16,
+          10,
+          8
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "frames": 8,
+        "path": "res://assets/generated/enemies/fallen_05.png",
+        "rows": {
+          "dash": 3,
+          "death": 5,
+          "hurt": 4,
+          "idle": 0,
+          "shoot": 2,
+          "walk": 1
+        }
+      }
+    ],
+    "feral": [
+      {
+        "fps": [
+          5,
+          10,
+          14,
+          16,
+          10,
+          8
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "frames": 8,
+        "path": "res://assets/generated/enemies/feral_01.png",
+        "rows": {
+          "dash": 3,
+          "death": 5,
+          "hurt": 4,
+          "idle": 0,
+          "shoot": 2,
+          "walk": 1
+        }
+      },
+      {
+        "fps": [
+          5,
+          10,
+          14,
+          16,
+          10,
+          8
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "frames": 8,
+        "path": "res://assets/generated/enemies/feral_02.png",
+        "rows": {
+          "dash": 3,
+          "death": 5,
+          "hurt": 4,
+          "idle": 0,
+          "shoot": 2,
+          "walk": 1
+        }
+      },
+      {
+        "fps": [
+          5,
+          10,
+          14,
+          16,
+          10,
+          8
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "frames": 8,
+        "path": "res://assets/generated/enemies/feral_03.png",
+        "rows": {
+          "dash": 3,
+          "death": 5,
+          "hurt": 4,
+          "idle": 0,
+          "shoot": 2,
+          "walk": 1
+        }
+      },
+      {
+        "fps": [
+          5,
+          10,
+          14,
+          16,
+          10,
+          8
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "frames": 8,
+        "path": "res://assets/generated/enemies/feral_04.png",
+        "rows": {
+          "dash": 3,
+          "death": 5,
+          "hurt": 4,
+          "idle": 0,
+          "shoot": 2,
+          "walk": 1
+        }
+      },
+      {
+        "fps": [
+          5,
+          10,
+          14,
+          16,
+          10,
+          8
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "frames": 8,
+        "path": "res://assets/generated/enemies/feral_05.png",
+        "rows": {
+          "dash": 3,
+          "death": 5,
+          "hurt": 4,
+          "idle": 0,
+          "shoot": 2,
+          "walk": 1
+        }
+      }
+    ],
+    "nephilim": [
+      {
+        "fps": [
+          5,
+          10,
+          14,
+          16,
+          10,
+          8
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "frames": 8,
+        "path": "res://assets/generated/enemies/nephilim_01.png",
+        "rows": {
+          "dash": 3,
+          "death": 5,
+          "hurt": 4,
+          "idle": 0,
+          "shoot": 2,
+          "walk": 1
+        }
+      },
+      {
+        "fps": [
+          5,
+          10,
+          14,
+          16,
+          10,
+          8
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "frames": 8,
+        "path": "res://assets/generated/enemies/nephilim_02.png",
+        "rows": {
+          "dash": 3,
+          "death": 5,
+          "hurt": 4,
+          "idle": 0,
+          "shoot": 2,
+          "walk": 1
+        }
+      },
+      {
+        "fps": [
+          5,
+          10,
+          14,
+          16,
+          10,
+          8
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "frames": 8,
+        "path": "res://assets/generated/enemies/nephilim_03.png",
+        "rows": {
+          "dash": 3,
+          "death": 5,
+          "hurt": 4,
+          "idle": 0,
+          "shoot": 2,
+          "walk": 1
+        }
+      },
+      {
+        "fps": [
+          5,
+          10,
+          14,
+          16,
+          10,
+          8
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "frames": 8,
+        "path": "res://assets/generated/enemies/nephilim_04.png",
+        "rows": {
+          "dash": 3,
+          "death": 5,
+          "hurt": 4,
+          "idle": 0,
+          "shoot": 2,
+          "walk": 1
+        }
+      },
+      {
+        "fps": [
+          5,
+          10,
+          14,
+          16,
+          10,
+          8
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "frames": 8,
+        "path": "res://assets/generated/enemies/nephilim_05.png",
+        "rows": {
+          "dash": 3,
+          "death": 5,
+          "hurt": 4,
+          "idle": 0,
+          "shoot": 2,
+          "walk": 1
+        }
+      }
+    ],
+    "outlaw": [
+      {
+        "fps": [
+          5,
+          10,
+          14,
+          16,
+          10,
+          8
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "frames": 8,
+        "path": "res://assets/generated/enemies/outlaw_01.png",
+        "rows": {
+          "dash": 3,
+          "death": 5,
+          "hurt": 4,
+          "idle": 0,
+          "shoot": 2,
+          "walk": 1
+        }
+      },
+      {
+        "fps": [
+          5,
+          10,
+          14,
+          16,
+          10,
+          8
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "frames": 8,
+        "path": "res://assets/generated/enemies/outlaw_02.png",
+        "rows": {
+          "dash": 3,
+          "death": 5,
+          "hurt": 4,
+          "idle": 0,
+          "shoot": 2,
+          "walk": 1
+        }
+      },
+      {
+        "fps": [
+          5,
+          10,
+          14,
+          16,
+          10,
+          8
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "frames": 8,
+        "path": "res://assets/generated/enemies/outlaw_03.png",
+        "rows": {
+          "dash": 3,
+          "death": 5,
+          "hurt": 4,
+          "idle": 0,
+          "shoot": 2,
+          "walk": 1
+        }
+      },
+      {
+        "fps": [
+          5,
+          10,
+          14,
+          16,
+          10,
+          8
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "frames": 8,
+        "path": "res://assets/generated/enemies/outlaw_04.png",
+        "rows": {
+          "dash": 3,
+          "death": 5,
+          "hurt": 4,
+          "idle": 0,
+          "shoot": 2,
+          "walk": 1
+        }
+      },
+      {
+        "fps": [
+          5,
+          10,
+          14,
+          16,
+          10,
+          8
+        ],
+        "frame": [
+          48,
+          48
+        ],
+        "frames": 8,
+        "path": "res://assets/generated/enemies/outlaw_05.png",
+        "rows": {
+          "dash": 3,
+          "death": 5,
+          "hurt": 4,
+          "idle": 0,
+          "shoot": 2,
+          "walk": 1
+        }
+      }
+    ]
+  },
+  "files": [
+    {
+      "bytes": 793844,
+      "path": "audio/ambience/biome_01.wav",
+      "sha256": "c15a303c2d9f9f865d1dc71db00bf95e10477ec66b9bb198e9f63c5b78377e2a"
+    },
+    {
+      "bytes": 793844,
+      "path": "audio/ambience/biome_02.wav",
+      "sha256": "ef2197c695fcf46f8ff038a8d018b53cd2d92bfe8602f6bf4a24c4c168dfd062"
+    },
+    {
+      "bytes": 793844,
+      "path": "audio/ambience/biome_03.wav",
+      "sha256": "83346e42eed5bbcee8c55a615538444935f5a4f6b652a35470eb63f238fa10a6"
+    },
+    {
+      "bytes": 793844,
+      "path": "audio/ambience/biome_04.wav",
+      "sha256": "ba400eaae01c77d59945cb86f5a77ba459f3dc2fc4af0a9bf6b600d938966035"
+    },
+    {
+      "bytes": 793844,
+      "path": "audio/ambience/biome_05.wav",
+      "sha256": "459e2709f35af41950c082b2cdaaca6e088d902ead87c4742547d743a0135013"
+    },
+    {
+      "bytes": 1058444,
+      "path": "audio/music/biome_01.wav",
+      "sha256": "8330c1c3fe23ac761ccfe42ca9c914f336166c3dbd38945e80603c81d2d6557b"
+    },
+    {
+      "bytes": 1058444,
+      "path": "audio/music/biome_02.wav",
+      "sha256": "d208ebd3ff183c01ba19e68e41cb965d27197f40a6e62db3e32016b58579c786"
+    },
+    {
+      "bytes": 1058444,
+      "path": "audio/music/biome_03.wav",
+      "sha256": "975c24ec907457387284a76e289781f171f5fec9e810bd42904c89697c6766f7"
+    },
+    {
+      "bytes": 1058444,
+      "path": "audio/music/biome_04.wav",
+      "sha256": "9e3c084a4d4d6bc0b5aca8cf010eaf08a62f335297b3778c5cd1835fc5ad285b"
+    },
+    {
+      "bytes": 1058444,
+      "path": "audio/music/biome_05.wav",
+      "sha256": "e8b0755127e724cc2567ee846d656085f07a9bccb5fe11b9163ecd932e451ec2"
+    },
+    {
+      "bytes": 52964,
+      "path": "audio/sfx/boss_phase.wav",
+      "sha256": "b7cdd4ef0ca8f6961046288ed0488453c5e24e383b81bc64042d4e437d73f6b5"
+    },
+    {
+      "bytes": 9746,
+      "path": "audio/sfx/critical.wav",
+      "sha256": "65b2ce5768a61d70c04ba883c302c5afa5462be1b56efa9744c4f9af2eead2c2"
+    },
+    {
+      "bytes": 11068,
+      "path": "audio/sfx/dash.wav",
+      "sha256": "92883bdc07fc5178a471196a30877da5fdfd0b2ff1fdb4ce9f36227eebbea3f9"
+    },
+    {
+      "bytes": 55168,
+      "path": "audio/sfx/death.wav",
+      "sha256": "fede74f1179071e18db367207c7a718c7f869be594201f42893078fef8c4d40d"
+    },
+    {
+      "bytes": 27386,
+      "path": "audio/sfx/door.wav",
+      "sha256": "788792d127e8780109cb5027601fce527525af07ec44257117f08718be8efc51"
+    },
+    {
+      "bytes": 7982,
+      "path": "audio/sfx/enemy_shot.wav",
+      "sha256": "e3f36202193daa599c7aa4b3b00cf7f6640218cd3de87a8416801b68168bc8dc"
+    },
+    {
+      "bytes": 24298,
+      "path": "audio/sfx/heal.wav",
+      "sha256": "aebc80403f3d7a1d57b8391dd1c8d36769826235736e52cb2c4702d7d392d902"
+    },
+    {
+      "bytes": 14156,
+      "path": "audio/sfx/hurt.wav",
+      "sha256": "8296df7965aa0f109113d3aed28b9c8cde727108259538f3418a9bfd8300a677"
+    },
+    {
+      "bytes": 5776,
+      "path": "audio/sfx/impact_01.wav",
+      "sha256": "5325cd9f0bd9722b89b5dff53e2757a59bcc51c534f5de47e24db5c10fedd0fb"
+    },
+    {
+      "bytes": 5776,
+      "path": "audio/sfx/impact_02.wav",
+      "sha256": "2219c9f8667a8a60786c7bec953eae5f1da0a7902acf63b71aff666d34925a2d"
+    },
+    {
+      "bytes": 16802,
+      "path": "audio/sfx/kill.wav",
+      "sha256": "f269451830593c1ba95648e6c264f1dd42784128255db67ef64352097f8ee6e8"
+    },
+    {
+      "bytes": 14156,
+      "path": "audio/sfx/pickup.wav",
+      "sha256": "1d28e5e946412644bd0856c6c73cf72d7ee3c7acfb134377a05717b7e959f27a"
+    },
+    {
+      "bytes": 39734,
+      "path": "audio/sfx/portal.wav",
+      "sha256": "56575471b10efbee0383298637972fe7902352d3e4bcd5411f18b5a10b5e5d0e"
+    },
+    {
+      "bytes": 28708,
+      "path": "audio/sfx/relic.wav",
+      "sha256": "921113e85cd79b968f296757e7f55128476027eda238e18d7bffa30f0fe0b465"
+    },
+    {
+      "bytes": 20330,
+      "path": "audio/sfx/shield.wav",
+      "sha256": "653acba956608ecc6d8a8ad00e05cff3c51ea8f3935324292e8237dd57f250a8"
+    },
+    {
+      "bytes": 21212,
+      "path": "audio/sfx/shop.wav",
+      "sha256": "101680f5a61e5e1588a5824fd2efa9474f5d42291eddd1e9e5e77725c0b01376"
+    },
+    {
+      "bytes": 6218,
+      "path": "audio/sfx/shot_01.wav",
+      "sha256": "922c69f26cf7038d388da8acfa4e9e5345c9b637a13d4df628c109d77c304167"
+    },
+    {
+      "bytes": 6218,
+      "path": "audio/sfx/shot_02.wav",
+      "sha256": "6d33315309f7ccb1a37371bb6f363280dfd36c2cfd004e6e7d83aa338cc4e277"
+    },
+    {
+      "bytes": 6218,
+      "path": "audio/sfx/shot_03.wav",
+      "sha256": "3348fbe58525662a724227e494a901ddcd491714e28aed8bc22c0fcd65b18b51"
+    },
+    {
+      "bytes": 5336,
+      "path": "audio/sfx/ui.wav",
+      "sha256": "3e47852d2d711fd627e87b6008bd6b15c1f26766e035f15e25b316a2d0fbf35f"
+    },
+    {
+      "bytes": 75014,
+      "path": "audio/sfx/victory.wav",
+      "sha256": "d0461936fb5ec68159b1495294be7dae346446221d3088244c5a290cd135e9a8"
+    },
+    {
+      "bytes": 18868,
+      "path": "bosses/eden_warden.png",
+      "sha256": "47679a7b895caf3755b037539b16c961f0a38dfdcfbbd738d155717e49c02000"
+    },
+    {
+      "bytes": 18002,
+      "path": "bosses/nephilim_king.png",
+      "sha256": "a79d344fbd6f624f977934dc613e17e38ec951e14e6152f9708cec2ab2bbb311"
+    },
+    {
+      "bytes": 18863,
+      "path": "bosses/seraph_reactor.png",
+      "sha256": "3c55d09a0931efd7c0b8fcc93abad429ca03a5c8b3ca21f6c85f2a4fe9785352"
+    },
+    {
+      "bytes": 17999,
+      "path": "bosses/void_archon.png",
+      "sha256": "65e22eddef4e30d5ea4f0a4d5ed9eba72e7c1e80340e5210ea36abe36f2cd1d4"
+    },
+    {
+      "bytes": 18001,
+      "path": "bosses/watcher_engine.png",
+      "sha256": "63bc8d48f8b832878b0732b9ed4140b009fd509f59841e7a9d23a0c91456250c"
+    },
+    {
+      "bytes": 4709,
+      "path": "effects/effects.png",
+      "sha256": "8a3a8a5a8c9975598bcd74a318a67a905a7f2692edcdb4b7c84531cc683c2c13"
+    },
+    {
+      "bytes": 5433,
+      "path": "enemies/enhanced_01.png",
+      "sha256": "c79d89579f38c60412c22b0c0965f169a9ab9d9ca5ad6c9273059d372f61ab1c"
+    },
+    {
+      "bytes": 5464,
+      "path": "enemies/enhanced_02.png",
+      "sha256": "87966fdffba607776f9eb82b4df5776f71416fe09c336a087bc8a6901896a749"
+    },
+    {
+      "bytes": 4832,
+      "path": "enemies/enhanced_03.png",
+      "sha256": "a0ad360bcd1194c44f9d91e3cddfe760469afd873cc647874951d6ca69e5ac67"
+    },
+    {
+      "bytes": 5387,
+      "path": "enemies/enhanced_04.png",
+      "sha256": "6fe0a00644016da740c8881aeca396bffc61646330162312ad04e05b79bfd09d"
+    },
+    {
+      "bytes": 5016,
+      "path": "enemies/enhanced_05.png",
+      "sha256": "bd65b88172c4e931ff1726b4f708f7c05a5e541f081479c95d1f60119a3ab82b"
+    },
+    {
+      "bytes": 5435,
+      "path": "enemies/fallen_01.png",
+      "sha256": "abd470ed365f19fd797fe17201a938ad9f50af20ebf9643fd3f6a6fa4d24f281"
+    },
+    {
+      "bytes": 5467,
+      "path": "enemies/fallen_02.png",
+      "sha256": "4ef3ccd0ad4f085f47f144a909977d1ae731e612fe5afc4e8dc107948e5e5dcf"
+    },
+    {
+      "bytes": 4835,
+      "path": "enemies/fallen_03.png",
+      "sha256": "df4251bb7062eb2d762c24bb9c37768724d02fc1b52119336c4aff515cde8b9f"
+    },
+    {
+      "bytes": 5389,
+      "path": "enemies/fallen_04.png",
+      "sha256": "5827130199604e87ec5a080340a67a465194c0abc339b6ce2fc22061a1f0e786"
+    },
+    {
+      "bytes": 5018,
+      "path": "enemies/fallen_05.png",
+      "sha256": "de8438bdbf597e2ef7fdf4dcc3c0228517a77f0cfc3c5f182c9986dd9d621b82"
+    },
+    {
+      "bytes": 5434,
+      "path": "enemies/feral_01.png",
+      "sha256": "09f497fe692e723dcbd2389ac7bb38b6b4dec8288d9e3989f50db6f6f317e54d"
+    },
+    {
+      "bytes": 5465,
+      "path": "enemies/feral_02.png",
+      "sha256": "2bd4d5a4c7baa29e00f0f320cea9b1b9d7d498d1544bcf8b2407490e7b8f11dd"
+    },
+    {
+      "bytes": 4834,
+      "path": "enemies/feral_03.png",
+      "sha256": "be6b88f5a93ec7855dc69f96417a9def22b1224c65ce40b594c602fd49646045"
+    },
+    {
+      "bytes": 5388,
+      "path": "enemies/feral_04.png",
+      "sha256": "210cba4fdf1759038aa2efcdf67e836b8637258e78cd152004b1f39be3565f25"
+    },
+    {
+      "bytes": 5017,
+      "path": "enemies/feral_05.png",
+      "sha256": "6a7c2f79595350d62b6daecec3f08b26fee5119884179125eddf9bd23336b002"
+    },
+    {
+      "bytes": 5430,
+      "path": "enemies/nephilim_01.png",
+      "sha256": "5f4b4fb9f0e9152988f9d51c328d1a2b404699b8f881169e14b13d5aca5fa31e"
+    },
+    {
+      "bytes": 5461,
+      "path": "enemies/nephilim_02.png",
+      "sha256": "9a4a534fa05c72a9a3a819ee3f46c902eab137941d17bc9f9efabdf95a2314ba"
+    },
+    {
+      "bytes": 4829,
+      "path": "enemies/nephilim_03.png",
+      "sha256": "93843dbecafe570a356889317029bda36ca59bbdf6fae061c43338cab1e668a5"
+    },
+    {
+      "bytes": 5384,
+      "path": "enemies/nephilim_04.png",
+      "sha256": "b3e7027824728154f6d50b879609accf3da506a33afc5f00c300c2728019a6d1"
+    },
+    {
+      "bytes": 5012,
+      "path": "enemies/nephilim_05.png",
+      "sha256": "978336dc049a7c90e2e4ef6221184efbfb2e9fd2def35466f795a190d8848eba"
+    },
+    {
+      "bytes": 5432,
+      "path": "enemies/outlaw_01.png",
+      "sha256": "80cfa77f50d8a715c90c27e468ac7e77246918730ec6c7cf4d4fb5016122d55a"
+    },
+    {
+      "bytes": 5464,
+      "path": "enemies/outlaw_02.png",
+      "sha256": "ae04a6d987aceb8f8022683d32a2d237d14736868deb10a31b634d8226679b5d"
+    },
+    {
+      "bytes": 4832,
+      "path": "enemies/outlaw_03.png",
+      "sha256": "6738e55172ab3f018e89c2d8f332c4afe65cfe104a19cb86d3589ec3efe9f7c9"
+    },
+    {
+      "bytes": 5386,
+      "path": "enemies/outlaw_04.png",
+      "sha256": "0e219a78a154bca82c35259f3d39559c5b5d3d46ad61b7dcbef8558c9fbb7db7"
+    },
+    {
+      "bytes": 5015,
+      "path": "enemies/outlaw_05.png",
+      "sha256": "a57859ec1b7b74714b99c103a1664c45f5547e634afa8b8f6482f5304203e31d"
+    },
+    {
+      "bytes": 2385,
+      "path": "items/relics.png",
+      "sha256": "23ddc6fa54c3cb0acc99093732f9f28a808332be065ea9d8c579f68daef2d97a"
+    },
+    {
+      "bytes": 5356,
+      "path": "players/abel.png",
+      "sha256": "fe15b9f1e842297884cf385064de9172ffa497e8169d8147c134a65ddc7c90d0"
+    },
+    {
+      "bytes": 5274,
+      "path": "players/adam.png",
+      "sha256": "44e910728f9dea3f2456988a0a1a4f34a96d76c14c82f49705d62e0d2941df8c"
+    },
+    {
+      "bytes": 4675,
+      "path": "players/cain.png",
+      "sha256": "9bafcc6c8d7b88c539350efdf138c8e2b799c37dde7ae0d2b37f3258ff13b684"
+    },
+    {
+      "bytes": 4859,
+      "path": "players/naamah.png",
+      "sha256": "3f43dcaf2af63b84d13218afbdd403b8e9955fd91f0e27635f1db8b059abd40f"
+    },
+    {
+      "bytes": 5224,
+      "path": "players/seth.png",
+      "sha256": "01996a287b27acbd04d067cb71cdd7c01d81f09b38a574d6cad8f5085747faf8"
+    },
+    {
+      "bytes": 6612,
+      "path": "tiles/biome_01.png",
+      "sha256": "0395aee5143d05422556874d3fad0add386eb0e4b260b644336e228d1a2ca1f6"
+    },
+    {
+      "bytes": 6508,
+      "path": "tiles/biome_02.png",
+      "sha256": "c79229235f4c521489cf08b84fa1fa1aaa2790379fdd36d59cb62014b1dbc261"
+    },
+    {
+      "bytes": 6582,
+      "path": "tiles/biome_03.png",
+      "sha256": "55668cc983afe93d40f063564bfdc5935f68576db3301feb412508515393285d"
+    },
+    {
+      "bytes": 6544,
+      "path": "tiles/biome_04.png",
+      "sha256": "c85bd709e20dcb6ac450761d0b52cedc969797c1d03a14fffc8fa93add8872f0"
+    },
+    {
+      "bytes": 6585,
+      "path": "tiles/biome_05.png",
+      "sha256": "a77439d3ea612a84040269b7dc13178c45f160dc0e37ff9e0a5ed7340251c980"
+    },
+    {
+      "bytes": 9532,
+      "path": "ui/boot_splash.png",
+      "sha256": "1f94a149b5b83a7c3ca0c77d7a4708b941ad1cb9218a0f08516fc781692c1451"
+    },
+    {
+      "bytes": 367,
+      "path": "weapons/continuation_lance.png",
+      "sha256": "23ab742a044e0058ef284e80ebf25396b56ab50afdf47dd32a41a7863a11d5d1"
+    },
+    {
+      "bytes": 369,
+      "path": "weapons/eden_arc.png",
+      "sha256": "880b3e87e406511b6fac43e9e2fd76532891ff68f5b861736e9e32d2e935b088"
+    },
+    {
+      "bytes": 370,
+      "path": "weapons/genesis_rifle.png",
+      "sha256": "b652958d709b514b5a4f5bab24fecc032ac6278352f961c481b4be59d291d54e"
+    },
+    {
+      "bytes": 317,
+      "path": "weapons/mark_cannon.png",
+      "sha256": "a788214e52bab23f2fbe823b8ed1aacafdbb864e81a1c815d43cabc2b7bee05a"
+    },
+    {
+      "bytes": 317,
+      "path": "weapons/marrow_launcher.png",
+      "sha256": "171f922cb3ce5251dbb1b8f75ab6162aac4852ec11efae52a7c01fdb9235ddf3"
+    },
+    {
+      "bytes": 367,
+      "path": "weapons/salt_shotgun.png",
+      "sha256": "d6c984c59ed465e628847e72c8b0e5f35adbac2715ce9c8ce527badb4723ec29"
+    },
+    {
+      "bytes": 320,
+      "path": "weapons/seraph_beam.png",
+      "sha256": "6ba4371b88cae0a2c0432cba4633f71cbfcdc745a150335d6bf741adb1b6f13c"
+    },
+    {
+      "bytes": 333,
+      "path": "weapons/spore_repeater.png",
+      "sha256": "bef23533369f21111e87a3f494764f24c9e75e44fc64a3115ac65c6284ad3698"
+    },
+    {
+      "bytes": 331,
+      "path": "weapons/tithe_pistol.png",
+      "sha256": "86102a1d1c6988342b5a09ae301ae5cd60a032b685858701e8353517c951e151"
+    },
+    {
+      "bytes": 330,
+      "path": "weapons/watcher_carbine.png",
+      "sha256": "32379591c1f2011677f792917e1c5ce3905727938c5dd8393d71ea423cfc9acf"
+    }
+  ],
+  "items": {
+    "fps": 6,
+    "frame": [
+      32,
+      32
+    ],
+    "frames": 4,
+    "path": "res://assets/generated/items/relics.png",
+    "rows": {
+      "black_manna": 6,
+      "bone_orchard": 2,
+      "cains_mark": 3,
+      "cherub_coil": 1,
+      "eden_valve": 5,
+      "industrial_halo": 7,
+      "nephilim_marrow": 9,
+      "salt_genome": 4,
+      "seraph_lens": 0,
+      "watcher_gland": 8
+    }
+  },
+  "music": {
+    "biome_01": "res://assets/generated/audio/music/biome_01.wav",
+    "biome_02": "res://assets/generated/audio/music/biome_02.wav",
+    "biome_03": "res://assets/generated/audio/music/biome_03.wav",
+    "biome_04": "res://assets/generated/audio/music/biome_04.wav",
+    "biome_05": "res://assets/generated/audio/music/biome_05.wav"
+  },
+  "players": {
+    "abel": {
+      "fps": [
+        5,
+        10,
+        14,
+        16,
+        10,
+        8
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated/players/abel.png",
+      "rows": {
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "shoot": 2,
+        "walk": 1
+      }
+    },
+    "adam": {
+      "fps": [
+        5,
+        10,
+        14,
+        16,
+        10,
+        8
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated/players/adam.png",
+      "rows": {
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "shoot": 2,
+        "walk": 1
+      }
+    },
+    "cain": {
+      "fps": [
+        5,
+        10,
+        14,
+        16,
+        10,
+        8
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated/players/cain.png",
+      "rows": {
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "shoot": 2,
+        "walk": 1
+      }
+    },
+    "naamah": {
+      "fps": [
+        5,
+        10,
+        14,
+        16,
+        10,
+        8
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated/players/naamah.png",
+      "rows": {
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "shoot": 2,
+        "walk": 1
+      }
+    },
+    "seth": {
+      "fps": [
+        5,
+        10,
+        14,
+        16,
+        10,
+        8
+      ],
+      "frame": [
+        48,
+        48
+      ],
+      "frames": 8,
+      "path": "res://assets/generated/players/seth.png",
+      "rows": {
+        "dash": 3,
+        "death": 5,
+        "hurt": 4,
+        "idle": 0,
+        "shoot": 2,
+        "walk": 1
+      }
+    }
+  },
+  "seed": 248771601,
+  "sfx": {
+    "boss_phase": "res://assets/generated/audio/sfx/boss_phase.wav",
+    "critical": "res://assets/generated/audio/sfx/critical.wav",
+    "dash": "res://assets/generated/audio/sfx/dash.wav",
+    "death": "res://assets/generated/audio/sfx/death.wav",
+    "door": "res://assets/generated/audio/sfx/door.wav",
+    "enemy_shot": "res://assets/generated/audio/sfx/enemy_shot.wav",
+    "heal": "res://assets/generated/audio/sfx/heal.wav",
+    "hurt": "res://assets/generated/audio/sfx/hurt.wav",
+    "impact_01": "res://assets/generated/audio/sfx/impact_01.wav",
+    "impact_02": "res://assets/generated/audio/sfx/impact_02.wav",
+    "kill": "res://assets/generated/audio/sfx/kill.wav",
+    "pickup": "res://assets/generated/audio/sfx/pickup.wav",
+    "portal": "res://assets/generated/audio/sfx/portal.wav",
+    "relic": "res://assets/generated/audio/sfx/relic.wav",
+    "shield": "res://assets/generated/audio/sfx/shield.wav",
+    "shop": "res://assets/generated/audio/sfx/shop.wav",
+    "shot_01": "res://assets/generated/audio/sfx/shot_01.wav",
+    "shot_02": "res://assets/generated/audio/sfx/shot_02.wav",
+    "shot_03": "res://assets/generated/audio/sfx/shot_03.wav",
+    "ui": "res://assets/generated/audio/sfx/ui.wav",
+    "victory": "res://assets/generated/audio/sfx/victory.wav"
+  },
+  "tiles": {
+    "biome_1": {
+      "columns": 8,
+      "path": "res://assets/generated/tiles/biome_01.png",
+      "rows": 4,
+      "tile": [
+        32,
+        32
+      ]
+    },
+    "biome_2": {
+      "columns": 8,
+      "path": "res://assets/generated/tiles/biome_02.png",
+      "rows": 4,
+      "tile": [
+        32,
+        32
+      ]
+    },
+    "biome_3": {
+      "columns": 8,
+      "path": "res://assets/generated/tiles/biome_03.png",
+      "rows": 4,
+      "tile": [
+        32,
+        32
+      ]
+    },
+    "biome_4": {
+      "columns": 8,
+      "path": "res://assets/generated/tiles/biome_04.png",
+      "rows": 4,
+      "tile": [
+        32,
+        32
+      ]
+    },
+    "biome_5": {
+      "columns": 8,
+      "path": "res://assets/generated/tiles/biome_05.png",
+      "rows": 4,
+      "tile": [
+        32,
+        32
+      ]
+    }
+  },
+  "version": 1,
+  "weapons": {
+    "continuation_lance": {
+      "fps": 16,
+      "frame": [
+        32,
+        32
+      ],
+      "frames": 8,
+      "path": "res://assets/generated/weapons/continuation_lance.png"
+    },
+    "eden_arc": {
+      "fps": 16,
+      "frame": [
+        32,
+        32
+      ],
+      "frames": 8,
+      "path": "res://assets/generated/weapons/eden_arc.png"
+    },
+    "genesis_rifle": {
+      "fps": 16,
+      "frame": [
+        32,
+        32
+      ],
+      "frames": 8,
+      "path": "res://assets/generated/weapons/genesis_rifle.png"
+    },
+    "mark_cannon": {
+      "fps": 16,
+      "frame": [
+        32,
+        32
+      ],
+      "frames": 8,
+      "path": "res://assets/generated/weapons/mark_cannon.png"
+    },
+    "marrow_launcher": {
+      "fps": 16,
+      "frame": [
+        32,
+        32
+      ],
+      "frames": 8,
+      "path": "res://assets/generated/weapons/marrow_launcher.png"
+    },
+    "salt_shotgun": {
+      "fps": 16,
+      "frame": [
+        32,
+        32
+      ],
+      "frames": 8,
+      "path": "res://assets/generated/weapons/salt_shotgun.png"
+    },
+    "seraph_beam": {
+      "fps": 16,
+      "frame": [
+        32,
+        32
+      ],
+      "frames": 8,
+      "path": "res://assets/generated/weapons/seraph_beam.png"
+    },
+    "spore_repeater": {
+      "fps": 16,
+      "frame": [
+        32,
+        32
+      ],
+      "frames": 8,
+      "path": "res://assets/generated/weapons/spore_repeater.png"
+    },
+    "tithe_pistol": {
+      "fps": 16,
+      "frame": [
+        32,
+        32
+      ],
+      "frames": 8,
+      "path": "res://assets/generated/weapons/tithe_pistol.png"
+    },
+    "watcher_carbine": {
+      "fps": 16,
+      "frame": [
+        32,
+        32
+      ],
+      "frames": 8,
+      "path": "res://assets/generated/weapons/watcher_carbine.png"
+    }
+  }
+}

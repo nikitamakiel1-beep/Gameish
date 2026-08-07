@@ -1,0 +1,106 @@
+name: Production Gate
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [godmode/production-expansion]
+    paths-ignore:
+      - 'validation/**'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: production-gate-godmode-production-expansion
+  cancel-in-progress: true
+
+jobs:
+  validate-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: godmode/production-expansion
+          persist-credentials: true
+
+      - name: Install Godot 4.6.3
+        run: |
+          curl -L --fail --retry 3 \
+            -o /tmp/godot.zip \
+            https://github.com/godotengine/godot-builds/releases/download/4.6.3-stable/Godot_v4.6.3-stable_linux.x86_64.zip
+          unzip -q /tmp/godot.zip -d /tmp/godot-bin
+          mv /tmp/godot-bin/Godot_v4.6.3-stable_linux.x86_64 /tmp/godot
+          chmod +x /tmp/godot
+
+      - name: Run production checks
+        id: checks
+        shell: bash
+        run: |
+          set +e
+          mkdir -p validation
+          checked_commit="$(git rev-parse HEAD)"
+          /tmp/godot --headless --editor --path . --quit > validation/import.log 2>&1
+          import_status=$?
+          /tmp/godot --headless --path . --script res://tests/content_validation.gd > validation/content.log 2>&1
+          content_status=$?
+          /tmp/godot --headless --path . --quit-after 5 > validation/boot.log 2>&1
+          boot_status=$?
+
+          if [[ $import_status -eq 0 && $content_status -eq 0 && $boot_status -eq 0 ]]; then
+            result=PASS
+          else
+            result=FAIL
+          fi
+
+          {
+            echo '# EDEN//FALL production validation'
+            echo
+            echo "- Result: **${result}**"
+            echo "- Source commit: \`${checked_commit}\`"
+            echo "- Import/parse exit: \`${import_status}\`"
+            echo "- Content contract exit: \`${content_status}\`"
+            echo "- Main-scene boot exit: \`${boot_status}\`"
+            echo
+            echo '## Import/parse tail'
+            echo '```text'
+            tail -n 120 validation/import.log
+            echo '```'
+            echo
+            echo '## Content validation tail'
+            echo '```text'
+            tail -n 120 validation/content.log
+            echo '```'
+            echo
+            echo '## Boot tail'
+            echo '```text'
+            tail -n 120 validation/boot.log
+            echo '```'
+          } > validation/RESULT.md
+
+          cat validation/RESULT.md
+          echo "result=${result}" >> "$GITHUB_OUTPUT"
+          echo "import_status=${import_status}" >> "$GITHUB_OUTPUT"
+          echo "content_status=${content_status}" >> "$GITHUB_OUTPUT"
+          echo "boot_status=${boot_status}" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Commit validation receipt
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add validation
+          if git diff --cached --quiet; then
+            echo 'Validation receipt unchanged.'
+            exit 0
+          fi
+          git commit -m "Record EDEN FALL production validation"
+          git pull --rebase origin godmode/production-expansion
+          git push origin HEAD:godmode/production-expansion
+
+      - name: Enforce gate
+        if: steps.checks.outputs.result != 'PASS'
+        run: |
+          echo "Production validation failed: import=${{ steps.checks.outputs.import_status }}, content=${{ steps.checks.outputs.content_status }}, boot=${{ steps.checks.outputs.boot_status }}"
+          exit 1
