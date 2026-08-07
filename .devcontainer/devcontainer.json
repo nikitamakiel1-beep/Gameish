@@ -12,5 +12,6 @@
     }
   },
   "postCreateCommand": "bash .devcontainer/setup.sh",
+  "postAttachCommand": "bash tools/codespaces_serve.sh",
   "remoteUser": "vscode"
 }
