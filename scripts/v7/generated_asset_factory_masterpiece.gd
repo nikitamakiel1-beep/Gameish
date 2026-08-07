@@ -3,7 +3,7 @@ extends RefCounted
 const VERSION := "0.6.1-rc7"
 const ActorFactoryScript: Script = preload("res://scripts/v7/actor_asset_factory_masterpiece.gd")
 const SupportFactoryScript: Script = preload("res://scripts/v6/support_asset_factory_rebuild.gd")
-const AudioFactoryScript: Script = preload("res://scripts/v6/audio_asset_factory.gd")
+const AudioFactoryScript: Script = preload("res://scripts/v7/audio_asset_factory_masterpiece.gd")
 
 var actors: RefCounted = ActorFactoryScript.new()
 var support: RefCounted = SupportFactoryScript.new()
