@@ -7,7 +7,7 @@ const SpriteForgeScript: Script = preload("res://scripts/v8/procedural_sprite_fo
 const WorldDirectorScript: Script = preload("res://scripts/v8/procedural_world_director.gd")
 const VersionManifestScript: Script = preload("res://scripts/v8/version_manifest.gd")
 
-const FINAL_SCRIPT := "res://scripts/edenfall_v8_visual_runtime.gd"
+const FINAL_SCRIPT := "res://scripts/edenfall_v8_release_runtime.gd"
 const SAMPLE_ROLES := [
 	{"id":"feral_scavenger","category":"preadamic","role":"melee"},
 	{"id":"outlaw_gunner","category":"preadamic","role":"ranged"},
@@ -95,25 +95,33 @@ func _init() -> void:
 		"res://scripts/v8/procedural_sprite_forge.gd",
 		"res://scripts/v8/procedural_world_director.gd",
 		"res://scripts/edenfall_v8_entropy_runtime.gd",
+		"res://scripts/edenfall_v8_visual_runtime.gd",
 		FINAL_SCRIPT,
 	]:
 		if not ResourceLoader.exists(path): errors.append("Missing V8 resource: "+path)
 
 	var runtime_report: Dictionary = {}
+	var godmode_report: Dictionary = {}
 	var main_scene := load("res://main.tscn") as PackedScene
 	if main_scene == null:
 		errors.append("main.tscn failed to load")
 	else:
 		var instance := main_scene.instantiate()
 		var script := instance.get_script() as Script
-		if script == null or script.resource_path != FINAL_SCRIPT: errors.append("main.tscn is not routed to V8 visual runtime")
+		if script == null or script.resource_path != FINAL_SCRIPT: errors.append("main.tscn is not routed to V8 release runtime")
 		if instance.has_method("audit_entropy_contract"):
 			runtime_report = instance.call("audit_entropy_contract")
-			for flag in ["fresh_floor_entropy","stochastic_special_rooms","stochastic_encounters","stochastic_relics","stochastic_adaptations","per_instance_enemy_genomes","procedural_actor_sheets","procedural_room_recipes","suspend_preserves_generated_recipe","eight_direction_generated_sprites","procedural_floor_texture","biome_specific_cover_finishing"]:
+			for flag in ["fresh_floor_entropy","stochastic_special_rooms","stochastic_encounters","stochastic_relics","stochastic_adaptations","per_instance_enemy_genomes","procedural_actor_sheets","procedural_room_recipes","suspend_preserves_generated_recipe","eight_direction_generated_sprites","procedural_floor_texture","biome_specific_cover_finishing","release_root"]:
 				if not bool(runtime_report.get(flag,false)): errors.append("V8 runtime contract missing: "+flag)
 			if bool(runtime_report.get("fixed_seed_replay",true)): errors.append("V8 runtime still reports fixed-seed replay")
 		else:
 			errors.append("V8 entropy audit method missing")
+		if instance.has_method("audit_godmode_contract"):
+			godmode_report = instance.call("audit_godmode_contract")
+			if bool(godmode_report.get("deterministic_floor_graph",true)): errors.append("V8 release diagnostics still report deterministic floor generation")
+			if not bool(godmode_report.get("entropy_floor_graph",false)): errors.append("V8 release diagnostics do not expose entropy floor generation")
+		else:
+			errors.append("V8 godmode compatibility audit missing")
 		instance.free()
 
 	var report := {
@@ -129,6 +137,7 @@ func _init() -> void:
 		"room_signature_uniqueness":room_signatures.size(),
 		"floor_texture_uniqueness":floor_hashes.size(),
 		"runtime":runtime_report,
+		"godmode":godmode_report,
 		"errors":errors,
 		"passed":errors.is_empty(),
 	}
