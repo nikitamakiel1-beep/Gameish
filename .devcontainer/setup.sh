@@ -14,14 +14,16 @@ if [[ "$BRANCH" != "godmode/production-assets-v6-rebuild" ]]; then
   exit 2
 fi
 
+# Codespaces/Linux can report executable-bit changes for tracked helper scripts even
+# though every helper is invoked explicitly through `bash`. Ignore file-mode-only
+# differences so cloud setup never dirties the source tree.
+git config core.fileMode false
+
 sudo apt-get update -y
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
   ca-certificates curl unzip python3 git \
   libfontconfig1 libx11-6 libxcursor1 libxinerama1 libxrandr2 libxi6 \
   libgl1 libasound2t64 libpulse0 libdbus-1-3 libudev1
-
-chmod +x tools/export_web_no_actions.sh tools/publish_gh_pages_no_actions.sh || true
-chmod +x tools/codespaces_serve.sh tools/codespaces_preview.sh tools/codespaces_publish.sh 2>/dev/null || true
 
 mkdir -p .codespaces
 rm -f .codespaces/build-ok .codespaces/build-failed .codespaces/publish-ok .codespaces/publish-failed
