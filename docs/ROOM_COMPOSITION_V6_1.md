@@ -2,80 +2,101 @@
 
 ## Purpose
 
-Rooms are authored gameplay spaces, not empty rectangles with decorative backgrounds. Combat rooms contain deterministic biome-specific cover that affects movement, projectile paths and enemy approach vectors. Noncombat rooms contain a readable focal system and a decision that affects the run or persistent world memory.
+Rooms are authored combat spaces, not empty rectangles with decorative backgrounds. Every combat room may contain deterministic biome-specific cover that affects movement, projectile paths, line of sight and enemy approach vectors.
+
+RC7 extends the RC6 world layer by making enemy composition and materialization authored as well as deterministic.
 
 ## Determinism
 
-Floor topology derives from run seed, biome index and floor number. Room-local systems derive from hashed combinations of:
+Floor topology derives from run seed, biome and floor number without permanently consuming the moment-to-moment combat RNG stream.
+
+Obstacle layouts derive from:
 
 - run seed;
 - room-grid coordinate;
 - biome index;
-- room depth and room kind;
-- a subsystem-specific salt.
+- room depth and room kind.
 
-Floor generation and room spawning restore the global combat RNG after use. Re-entering or restoring the same room in the same run must therefore reproduce the same room coordinate, encounter composition and authored systems.
+Encounter signatures derive from the same room identity through a separate hashed seed. Re-entering or restoring the same room in the same run must reproduce compatible topology, semantic room state and authored encounter identity.
+
+## Room categories
+
+Combat-bearing rooms include:
+
+- combat;
+- Genome Trial;
+- enhanced-host contract;
+- guardian/boss.
+
+Decision/noncombat rooms include:
+
+- start;
+- treasure;
+- caravan/shop;
+- sanctuary;
+- preadamite settlement;
+- sacrifice bioreactor;
+- lineage memory;
+- maintenance tunnel;
+- Serpent terminal.
+
+Special decision rooms keep exits locked until their focal system is deliberately resolved.
+
+## Encounter signatures
+
+RC7 classifies all eighteen standard hostile IDs by combat role and composes rooms from authored signatures instead of treating the biome pool as an undifferentiated bag.
+
+Current signatures:
+
+- **Pressure Pack** — pincer formation with direct pressure and a limited ranged component.
+- **Crossfire Cell** — ranged/skirmisher crossfire with pressure support.
+- **Anchor & Escort** — a heavy/radial anchor with supporting hosts when the biome pool supports it.
+- **Orbital Hunt** — orbiters and skirmishers surrounding the player path.
+- **Ritual Battery** — caster-oriented diamond with pressure and charge support.
+- **Mixed Host Cell** — controlled ring for general-purpose composition.
+
+Design constraints:
+
+- casters/radial emitters are capped to avoid projectile-noise stacking;
+- trial/contract rooms do not default to the weakest generic signature;
+- a bullet-storm environmental modifier does not stack with the crossfire signature;
+- encounter count remains within the established 4–8 normal and 9 trial/contract ceiling;
+- faction retaliation may add a single deterministic ambusher within the global room ceiling.
+
+## Materialization and entry fairness
+
+Room transition happens before final actor/cover resolution. RC7 therefore applies its fairness pass only after current-room cover has been rebuilt and the actual player transition position is known.
+
+- room-entry grace: 0.72 seconds;
+- standard hostile target clearance: 152 px before arena/cover correction;
+- guardian target clearance: 210 px before correction;
+- hostile activation is staggered rather than simultaneous;
+- guardians receive a longer materialization delay;
+- crossfire and corrosive-grid room hazards are suppressed during entry grace;
+- materializing enemies expose a progress ring.
+
+The goal is not to make rooms easier. It is to prevent damage that occurs before a threat can be perceived and attributed.
 
 ## Navigation rules
 
-- Start, sanctuary and treasure rooms remain open for onboarding and reward clarity.
-- Boss rooms use large structural cover where compatible with the guardian.
+- Start, sanctuary and treasure rooms remain open for onboarding/reward clarity.
+- Boss rooms use large structural elements appropriate to the guardian and biome.
 - Normal combat rooms use three to five cover elements.
 - Horizontal and vertical door lanes remain clear.
-- Actors are pushed out of cover after room generation and after every movement update.
+- Actors are pushed out of cover after room generation and after movement updates.
 - Enemy separation still applies after obstacle collision resolution.
-- Swept collision prevents fast player dashes and enemy movement from tunnelling through narrow cover.
-- Player movement can slide along cover rather than stopping on every diagonal contact.
-- Enemy steering uses cover tangents to reduce wall-sticking.
+- Player movement supports wall sliding.
+- Enemy navigation can steer tangentially around cover.
+- Swept collision prevents high-speed dash/enemy tunnelling.
 
-## Projectile rules
+## Projectile and aim rules
 
 - Player and enemy projectiles collide with cover.
 - Fast projectile movement is sampled along the frame segment to reduce tunnelling.
-- Cover impact creates a visible effect and throttled impact sound.
-- Piercing projectiles may pierce actors but do not pierce structural cover.
-- Seth-style bounce projectiles can reflect from cover while retaining their remaining bounce budget.
-- Homing, status, explosion and chain systems remain active after structural collision was added.
-
-## Decision rooms
-
-Decision rooms have no ordinary hostile wave and do not release their gates until the focal interaction is resolved.
-
-### Preadamite settlement
-
-The player approaches a settlement parley point and chooses between trade/favor or immediate salvage/reputation loss. The represented faction becomes part of persistent reputation memory.
-
-### Sacrifice bioreactor
-
-The player may exchange current tissue for a guaranteed relic or refuse the chamber and take a smaller salvage reward. The chamber refuses a lethal sacrifice.
-
-### Lineage memory
-
-The player may recover a contradictory lineage record into the Genome Archive or erase it for immediate resources.
-
-### Maintenance tunnel
-
-A hidden service cache allows a small scrap payment for a relic or can be stripped for immediate copper/salvage.
-
-### Serpent terminal
-
-The terminal offers a deterministic build mutation or a refusal reward. It is distinct from the final Serpent Interface resolution.
-
-### Contract room
-
-Contracts are combat rooms with guaranteed enhanced hosts, elevated rewards and a relic bounty.
-
-## Faction consequences
-
-Faction reputation modifies caravan prices. Sufficiently negative reputation can generate deterministic retaliation ambushes in later combat rooms. This system records consequence without reducing the six factions to a single morality axis.
-
-## Guardian arena behavior
-
-- **Watcher Engine:** rotating radial and aimed pattern families emphasize projectile reading.
-- **First Nephilim:** later phases can destroy nearby structural cover, changing the arena during the fight.
-- **Gate Cherub:** phase transitions deploy auxiliary cherub bodies and shielding behavior.
-- **Tower of Enoch:** phase transitions reconfigure the room through machine crossfire.
-- **Serpent Interface:** phase transitions deploy forked serpent hosts; victory is withheld until the final adaptation choice is resolved.
+- Cover impact creates visible feedback.
+- Piercing projectiles may pierce actors but do not automatically pierce structural cover.
+- Bounce-capable player projectiles can reflect from structural geometry through the RC6/RC7 projectile stack.
+- RC7 aim assist rejects targets whose line to the player intersects structural cover.
 
 ## Biome cover families
 
@@ -114,22 +135,41 @@ Faction reputation modifies caravan prices. Sufficiently negative reputation can
 - bone altars;
 - collapsed towers.
 
+## Guardian arena behavior
+
+Guardian phases may change the arena rather than only increasing projectile count.
+
+- First Nephilim can destroy cover.
+- Gate Cherub can deploy auxiliary bodies.
+- Tower of Enoch can reconfigure machine crossfire.
+- Serpent Interface can deploy forked hosts.
+
+Fifteen explicit guardian pattern families remain inherited from RC6 and are required under the RC7 audit.
+
 ## Readability constraints
 
-- Cover uses the biome palette but remains darker than actors and projectiles.
-- Every cover element receives a displaced shadow and a clear collision border.
+- Cover uses the biome palette but remains darker/quieter than actors and projectiles.
+- Every cover element receives a displaced shadow and clear collision border.
 - Central combat lanes remain available even in dense rooms.
-- Cover may create flanking routes, but must not seal a player or enemy into an unreachable pocket.
+- Cover may create flanking routes, but must not seal the player or enemy into an unreachable pocket.
 - Door exits remain visible and physically reachable.
-- Decision-room focal systems use a distinct shape language and interaction radius.
-- Guardian telegraphs must remain visually stronger than room decoration.
+- Encounter signature UI is subordinate to live combat.
+- Visual and warning-audio telegraphs indicate attack class before release.
 
-## Suspend/resume contract
+## Reward cadence
 
-The suspend extension stores current room, room visit/clear/use state, shop state, RC6 player mechanics and RNG state. Uncleared combat rooms restart their encounter on restoration; cleared rooms remain cleared. Final Serpent resolution has a separate pending marker so app suspension cannot skip the ending decision.
+Room function now influences reward selection. Treasure, shop, trial, contract, sanctuary and special rooms each have a contextual relic-effect preference while preserving deterministic selection, Archive-tier gating and duplicate exclusion.
+
+Every nonfinal guardian victory introduces a separate run-only Genome Adaptation choice before the next biome begins. This creates a deliberate major decision between biome arcs instead of relying entirely on passive room-count weapon scaling.
 
 ## Verification
 
-`tests/v6_product_rebuild_audit.gd` requires world collision, swept navigation, deterministic floor topology, decision-room contracts, faction systems, fifteen guardian patterns, room-state persistence and `main.tscn` routing to `edenfall_v6_godmode_verified_runtime.gd`.
+Final RC7 verification is split across:
 
-Exact Godot 4.7.1 import, audit execution, bounded boot, screenshots and gameplay checks remain mandatory before qualification.
+- `tests/v6_product_rebuild_audit.gd` for the inherited world/navigation/RC6 contract;
+- `tests/v7_masterpiece_audit.gd` for encounter composition, deep art and progression;
+- `tests/v7_runtime_quality_audit.gd` for fairness, audio and loading behavior.
+
+`main.tscn` must route to `edenfall_v7_release_runtime.gd`.
+
+Exact Godot 4.7.1 import, audit execution, bounded boot and seeded gameplay remain mandatory before qualification.
