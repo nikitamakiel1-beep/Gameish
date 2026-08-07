@@ -11,9 +11,9 @@ func evaluate_actor(texture: Texture2D, frame_size: Vector2i, minimum_bbox: Vect
 		return {"passed":false, "reason":"empty image"}
 	if frame_size.x <= 0 or frame_size.y <= 0:
 		return {"passed":false, "reason":"invalid frame size"}
-	var frames_per_row: int = image.get_width() / frame_size.x
-	var total_rows: int = image.get_height() / frame_size.y
-	var action_rows: int = total_rows / 8
+	var frames_per_row: int = int(image.get_width() / frame_size.x)
+	var total_rows: int = int(image.get_height() / frame_size.y)
+	var action_rows: int = int(total_rows / 8)
 	if frames_per_row < 1 or action_rows < 1:
 		return {"passed":false, "reason":"atlas smaller than one 8-direction action"}
 
@@ -58,9 +58,13 @@ func evaluate_actor(texture: Texture2D, frame_size: Vector2i, minimum_bbox: Vect
 	if not occupancy_ok: reasons.append("occupancy %.4f outside [0.075,0.68]" % average_occupancy)
 	if not bbox_ok: reasons.append("bbox %.1fx%.1f below %dx%d" % [average_width,average_height,minimum_bbox.x,minimum_bbox.y])
 	if not directions_ok: reasons.append("only %d unique directional silhouettes; need %d" % [silhouettes.size(),minimum_unique_directions])
+	var reason_text := ""
+	for reason in reasons:
+		if not reason_text.is_empty(): reason_text += "; "
+		reason_text += reason
 	return {
 		"passed": passed,
-		"reason": "; ".join(reasons),
+		"reason": reason_text,
 		"occupancy": average_occupancy,
 		"bbox_width": average_width,
 		"bbox_height": average_height,
