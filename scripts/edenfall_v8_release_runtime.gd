@@ -1,12 +1,18 @@
 extends "res://scripts/edenfall_v8_streaming_runtime.gd"
 
 const V8_RELEASE_VERSION := "0.6.2-entropy"
+const PremiumSpriteForgeScript: Script = preload("res://scripts/v8/procedural_sprite_forge_premium.gd")
+
+func _ready() -> void:
+	sprite_forge = PremiumSpriteForgeScript.new()
+	super._ready()
 
 func get_v6_diagnostics() -> Dictionary:
 	var report: Dictionary = super.get_v6_diagnostics()
 	report["v8_release_version"] = V8_RELEASE_VERSION
 	report["generation_mode"] = "stochastic_condition_driven"
 	report["fixed_seed_replay"] = false
+	report["premium_sprite_forge"] = true
 	return report
 
 func audit_godmode_contract() -> Dictionary:
@@ -24,10 +30,12 @@ func audit_entropy_contract() -> Dictionary:
 	var report: Dictionary = super.audit_entropy_contract()
 	report["version"] = V8_RELEASE_VERSION
 	report["release_root"] = true
+	report["premium_sprite_forge"] = true
 	return report
 
 func audit_masterpiece_contract() -> Dictionary:
 	var report: Dictionary = super.audit_masterpiece_contract()
 	report["version"] = V8_RELEASE_VERSION
 	report["release_root"] = true
+	report["premium_sprite_forge"] = true
 	return report
