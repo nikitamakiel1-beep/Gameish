@@ -2,6 +2,8 @@ extends SceneTree
 
 const RegistryScript: Script = preload("res://scripts/v6/asset_registry_rebuild.gd")
 const BootstrapScript: Script = preload("res://scripts/v6/engine_bootstrap.gd")
+const GodmodeDirectorScript: Script = preload("res://scripts/v6/godmode_director.gd")
+const BossPatternLibraryScript: Script = preload("res://scripts/v6/boss_pattern_library.gd")
 
 const HERO_IDS: Array[String] = ["adam", "abel", "cain", "seth", "naamah"]
 const ENEMY_IDS: Array[String] = [
@@ -15,10 +17,15 @@ const UTILITY_IDS: Array[String] = [
 	"pickups", "relics", "projectiles", "effects", "hud_panel", "menu_panel",
 	"joystick_base", "joystick_thumb", "touch_dash", "touch_interact", "touch_pause",
 ]
+
 const WORLD_SCRIPT := "res://scripts/edenfall_v6_world_runtime.gd"
 const NAVIGATION_SCRIPT := "res://scripts/edenfall_v6_navigation_runtime.gd"
 const CONTENT_SCRIPT := "res://scripts/edenfall_v6_content_runtime.gd"
-const FINAL_SCRIPT := "res://scripts/edenfall_v6_polish_runtime.gd"
+const POLISH_SCRIPT := "res://scripts/edenfall_v6_polish_runtime.gd"
+const GODMODE_DIRECTOR := "res://scripts/v6/godmode_director.gd"
+const BOSS_LIBRARY := "res://scripts/v6/boss_pattern_library.gd"
+const GODMODE_SCRIPT := "res://scripts/edenfall_v6_godmode_runtime.gd"
+const FINAL_SCRIPT := "res://scripts/edenfall_v6_godmode_stable_runtime.gd"
 
 func _init() -> void:
 	var bootstrap: RefCounted = BootstrapScript.new()
@@ -75,7 +82,8 @@ func _init() -> void:
 		"res://scripts/edenfall_v6_visual_rebuild.gd",
 		"res://scripts/edenfall_v6_product_runtime.gd",
 		"res://scripts/edenfall_v6_release_candidate.gd",
-		WORLD_SCRIPT, NAVIGATION_SCRIPT, CONTENT_SCRIPT, FINAL_SCRIPT,
+		WORLD_SCRIPT, NAVIGATION_SCRIPT, CONTENT_SCRIPT, POLISH_SCRIPT,
+		GODMODE_DIRECTOR, BOSS_LIBRARY, GODMODE_SCRIPT, FINAL_SCRIPT,
 	]
 	for path in required_paths:
 		if not ResourceLoader.exists(String(path)):
@@ -88,26 +96,57 @@ func _init() -> void:
 		return
 	if not _source_contract(CONTENT_SCRIPT, ["_draw_shop_overlay", "_purchase_selected_shop_item", "draw_archive", "_draw_relic_grid"]):
 		return
-	if not _source_contract(FINAL_SCRIPT, ["_draw_guardian_strip", "_reconcile_shop_inventory"]):
+	if not _source_contract(POLISH_SCRIPT, ["_draw_guardian_strip", "_reconcile_shop_inventory"]):
+		return
+	if not _source_contract(GODMODE_DIRECTOR, ["FACTIONS", "SYNERGY_RULES", "special_room_assignments", "synergies_for", "serpent_mutation"]):
+		return
+	if not _source_contract(BOSS_LIBRARY, ["build_pattern", "_watcher_engine", "_first_nephilim", "_gate_cherub", "_tower_enoch", "_serpent_interface"]):
+		return
+	if not _source_contract(GODMODE_SCRIPT, ["update_bullets", "_apply_rc6_bullet_hit", "_release_enemy_special", "_release_boss_pattern", "_serialize_room_state", "_restore_room_state", "_refresh_build_synergies"]):
+		return
+	if not _source_contract(FINAL_SCRIPT, ["restore_suspended_run", "SPECIAL_INTERACT_RADIUS", "_special_interaction_point", "mandatory_special_decisions", "audit_godmode_contract"]):
 		return
 	if FileAccess.get_file_as_string(WORLD_SCRIPT).find(".translated(") >= 0:
 		_fail(7, "World runtime contains an unsupported Rect2 translation call")
 		return
 
+	var director: RefCounted = GodmodeDirectorScript.new()
+	var director_report: Dictionary = director.call("audit_contract")
+	if int(director_report.get("version", 0)) != 6 or int(director_report.get("factions", 0)) != 6 or int(director_report.get("synergies", 0)) < 8:
+		_fail(8, "RC6 director contract is incomplete")
+		return
+	if not bool(director_report.get("deterministic_seed", false)):
+		_fail(8, "RC6 director does not report deterministic room seeding")
+		return
+
+	var pattern_library: RefCounted = BossPatternLibraryScript.new()
+	var boss_report: Dictionary = pattern_library.call("audit_contract")
+	if int(boss_report.get("version", 0)) != 6 or int(boss_report.get("bosses", 0)) != 5 or int(boss_report.get("patterns", 0)) != 15:
+		_fail(9, "RC6 boss pattern contract must expose 15 patterns across five guardians")
+		return
+
 	var main_scene := load("res://main.tscn") as PackedScene
 	if main_scene == null:
-		_fail(8, "main.tscn failed to load")
+		_fail(10, "main.tscn failed to load")
 		return
 	var instance := main_scene.instantiate()
 	var script := instance.get_script() as Script
 	var script_path := script.resource_path if script != null else ""
-	instance.free()
 	if script_path != FINAL_SCRIPT:
-		_fail(9, "main.tscn does not route to the final product runtime: " + script_path)
+		instance.free()
+		_fail(11, "main.tscn does not route to the RC6 stable runtime: " + script_path)
+		return
+	var godmode_report: Dictionary = instance.call("audit_godmode_contract")
+	instance.free()
+	if String(godmode_report.get("version", "")) != "0.6.1-rc6":
+		_fail(12, "RC6 stable runtime version contract is incorrect")
+		return
+	if not bool(godmode_report.get("restore_guard", false)) or not bool(godmode_report.get("mandatory_special_decisions", false)) or not bool(godmode_report.get("rng_seed_and_state_restored", false)):
+		_fail(12, "RC6 persistence/decision/RNG stabilization contract is incomplete")
 		return
 
 	var report := {
-		"product_version": "0.6.1-rc5",
+		"product_version": "0.6.1-rc6",
 		"engine": engine_report,
 		"unique_atlases": uniqueness,
 		"main_script": script_path,
@@ -115,6 +154,13 @@ func _init() -> void:
 		"swept_navigation": true,
 		"atlas_archive": true,
 		"shop_interface": true,
+		"deterministic_special_rooms": true,
+		"faction_reputation": true,
+		"tag_synergies": int(director_report.get("synergies", 0)),
+		"guardian_patterns": int(boss_report.get("patterns", 0)),
+		"room_state_suspend": true,
+		"weapon_systems_restored_over_cover_collision": true,
+		"godmode": godmode_report,
 		"contract": contract,
 	}
 	print("EDEN_FALL_V6_PRODUCT_REPORT=" + JSON.stringify(report))
