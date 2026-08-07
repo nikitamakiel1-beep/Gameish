@@ -18,6 +18,13 @@ func _ready() -> void:
 		play_biome_audio(true)
 	queue_redraw()
 
+func start_new_run(lineage_index: int, seed_override: int = 0) -> void:
+	_prewarm_queue.clear()
+	_prewarm_seen.clear()
+	super.start_new_run(lineage_index, seed_override)
+	_queue_frontend_prewarm()
+	_queue_biome_prewarm()
+
 func _process(delta: float) -> void:
 	_prewarm_clock = maxf(0.0, _prewarm_clock - delta)
 	if _prewarm_clock <= 0.0 and _can_prewarm_now():
@@ -27,6 +34,62 @@ func _process(delta: float) -> void:
 func enter_room(coord: Vector2i, movement_direction: Vector2i) -> void:
 	super.enter_room(coord, movement_direction)
 	_queue_biome_prewarm()
+
+func audit_v6_readiness() -> Dictionary:
+	var errors: Array[String] = []
+	var checks := 0
+	var passed := 0
+	var idx: Dictionary = production_assets.call("index")
+
+	checks += 1
+	if String(idx.get("version", "")) == V6_VERSION: passed += 1
+	else: errors.append("Production index ABI version mismatch")
+	checks += 1
+	if Array(idx.get("hero_ids", [])).size() == 5: passed += 1
+	else: errors.append("Five hero packs are required")
+	checks += 1
+	if Array(idx.get("enemy_ids", [])).size() == 18: passed += 1
+	else: errors.append("Eighteen enemy packs are required")
+	checks += 1
+	if Array(idx.get("boss_ids", [])).size() == 5: passed += 1
+	else: errors.append("Five boss packs are required")
+	checks += 1
+	if Array(idx.get("biome_ids", [])).size() == 5: passed += 1
+	else: errors.append("Five biome packs are required")
+
+	var asset_contract: Dictionary = production_assets.call("validate_contract", false)
+	checks += 1
+	if bool(asset_contract.get("passed", false)): passed += 1
+	else: errors.append_array(Array(asset_contract.get("errors", [])))
+
+	checks += 1
+	if bool(engine_report.get("exact_version", false)): passed += 1
+	else: errors.append("Godot runtime is not exactly 4.7.1")
+	checks += 1
+	if String(ProjectSettings.get_setting("application/config/version", "")) == V6_VERSION: passed += 1
+	else: errors.append("Core project ABI version is not v0.6.0")
+	checks += 1
+	if RenderingServer.get_current_rendering_method() == "gl_compatibility": passed += 1
+	else: errors.append("GL Compatibility renderer is required for the full platform matrix")
+	checks += 1
+	var input_complete := true
+	for action in Array(engine_report.get("input_actions", [])):
+		if not InputMap.has_action(StringName(action)):
+			input_complete = false
+			errors.append("Missing input action: %s" % action)
+	if input_complete: passed += 1
+
+	return {
+		"version": V6_VERSION,
+		"product_revision": ART_RUNTIME_VERSION,
+		"validation_mode": "runtime_shallow",
+		"checks": checks,
+		"passed_checks": passed,
+		"errors": errors,
+		"asset_contract": asset_contract,
+		"engine": engine_report,
+		"readiness": clampf(float(passed) / float(maxi(1, checks)) * 100.0, 0.0, 100.0),
+	}
 
 func _queue_frontend_prewarm() -> void:
 	for id in ["adam", "abel", "cain", "seth", "naamah"]:
@@ -105,6 +168,7 @@ func get_v6_diagnostics() -> Dictionary:
 	report["art_registry"] = production_assets.call("index")
 	report["prewarm_pending"] = _prewarm_queue.size()
 	report["prewarm_seen"] = _prewarm_seen.size()
+	report["startup_validation_mode"] = "runtime_shallow"
 	return report
 
 func audit_masterpiece_contract() -> Dictionary:
@@ -114,4 +178,5 @@ func audit_masterpiece_contract() -> Dictionary:
 	report["pixel_finish"] = true
 	report["safe_state_asset_prewarm"] = true
 	report["biome_pool_cache_retention"] = true
+	report["shallow_startup_deep_release_audit"] = true
 	return report
