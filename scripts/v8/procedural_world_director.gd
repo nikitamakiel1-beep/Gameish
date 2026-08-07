@@ -78,12 +78,55 @@ func build_noise(recipe: Dictionary) -> FastNoiseLite:
 	noise.fractal_lacunarity = 2.0
 	return noise
 
+func build_floor_image(recipe: Dictionary, base_color: Color, accent: Color) -> Image:
+	var width := 256
+	var height := 144
+	var image := Image.create_empty(width,height,false,Image.FORMAT_RGBA8)
+	var noise := build_noise(recipe)
+	var vegetation := float(recipe.get("vegetation",0.3))
+	var ruin := float(recipe.get("ruin",0.3))
+	var tech := float(recipe.get("tech",0.5))
+	var wet := float(recipe.get("wet",0.1))
+	var contrast := float(recipe.get("contrast",1.0))
+	var block := 4
+	for y in range(0,height,block):
+		for x in range(0,width,block):
+			var value := noise.get_noise_2d(float(x),float(y))
+			var light := clampf((value*0.10+0.02)*contrast,-0.12,0.12)
+			var color := base_color.lightened(light) if light >= 0.0 else base_color.darkened(-light)
+			if wet > 0.2 and value < -0.36:
+				color = color.lerp(Color(0.03,0.09,0.08,1.0),wet*0.28)
+			if vegetation > 0.25 and value > 0.46:
+				color = color.lerp(accent.darkened(0.30),vegetation*0.20)
+			image.fill_rect(Rect2i(x,y,block,block),color)
+	for x in range(0,width,16):
+		image.fill_rect(Rect2i(x,0,1,height),Color(base_color.darkened(0.22),0.78))
+		if tech > 0.58 and x%32 == 0:
+			image.fill_rect(Rect2i(x+1,0,1,height),Color(accent,0.10+tech*0.08))
+	for y in range(0,height,16):
+		image.fill_rect(Rect2i(0,y,width,1),Color(base_color.darkened(0.22),0.78))
+	var scar_count := clampi(5+int(ruin*18.0),5,22)
+	var local_rng := RandomNumberGenerator.new()
+	local_rng.seed = int(recipe.get("floor_noise_seed",0)) ^ 0x51f24a
+	for scar in range(scar_count):
+		var x := local_rng.randi_range(5,width-7)
+		var y := local_rng.randi_range(5,height-7)
+		var length := local_rng.randi_range(4,14)
+		for step in range(length):
+			var px := clampi(x+step,0,width-1)
+			var py := clampi(y+roundi(sin(float(step)*0.74+scar)*3.0),0,height-1)
+			image.set_pixel(px,py,Color(base_color.darkened(0.42),0.90))
+			if vegetation > 0.55 and step%3 == 0:
+				image.set_pixel(clampi(px+1,0,width-1),py,Color(accent.darkened(0.20),0.72))
+	return image
+
 func audit_contract() -> Dictionary:
 	return {
 		"version":VERSION,
 		"biomes":BIOME_RULES.size(),
 		"condition_driven":true,
 		"fastnoise":true,
+		"procedural_floor_texture":true,
 		"room_unique_decor":true,
 		"room_unique_cover":true,
 		"fixed_seed_replay":false,
