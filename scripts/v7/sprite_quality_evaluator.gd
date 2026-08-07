@@ -1,36 +1,73 @@
 extends RefCounted
 
-const VERSION := 7
+const VERSION := 8
+const REPRESENTATIVE_FRAMES: Array[int] = [0, 2, 4, 6]
 
 func evaluate_actor(texture: Texture2D, frame_size: Vector2i, minimum_bbox: Vector2i, minimum_unique_directions: int = 4) -> Dictionary:
 	if texture == null:
 		return {"passed":false, "reason":"missing texture"}
-	var image := texture.get_image()
+	var image: Image = texture.get_image()
 	if image == null or image.is_empty():
 		return {"passed":false, "reason":"empty image"}
+	if frame_size.x <= 0 or frame_size.y <= 0:
+		return {"passed":false, "reason":"invalid frame size"}
+	var frames_per_row: int = image.get_width() / frame_size.x
+	var total_rows: int = image.get_height() / frame_size.y
+	var action_rows: int = total_rows / 8
+	if frames_per_row < 1 or action_rows < 1:
+		return {"passed":false, "reason":"atlas smaller than one 8-direction action"}
+
 	var occupancy_total := 0.0
 	var bbox_width_total := 0.0
 	var bbox_height_total := 0.0
 	var silhouettes: Dictionary = {}
+	var sampled_actions: Dictionary = {}
+
 	for direction in range(8):
-		var origin := Vector2i(0, direction * frame_size.y)
-		var metrics := _frame_metrics(image, origin, frame_size)
-		occupancy_total += float(metrics.get("occupancy", 0.0))
-		bbox_width_total += float(metrics.get("bbox_width", 0))
-		bbox_height_total += float(metrics.get("bbox_height", 0))
-		silhouettes[int(metrics.get("silhouette_hash", 0))] = true
+		var best_metrics: Dictionary = {}
+		var best_score := -1.0
+		var best_action := 0
+		for action_index in range(action_rows):
+			for frame_index in REPRESENTATIVE_FRAMES:
+				if frame_index >= frames_per_row:
+					continue
+				var origin := Vector2i(frame_index * frame_size.x, (action_index * 8 + direction) * frame_size.y)
+				var metrics := _frame_metrics(image, origin, frame_size)
+				var bbox_area := float(int(metrics.get("bbox_width",0)) * int(metrics.get("bbox_height",0)))
+				var score := bbox_area + float(metrics.get("occupancy",0.0)) * 1000.0
+				if score > best_score:
+					best_score = score
+					best_metrics = metrics
+					best_action = action_index
+		if best_metrics.is_empty():
+			continue
+		occupancy_total += float(best_metrics.get("occupancy", 0.0))
+		bbox_width_total += float(best_metrics.get("bbox_width", 0))
+		bbox_height_total += float(best_metrics.get("bbox_height", 0))
+		silhouettes[int(best_metrics.get("silhouette_hash", 0))] = true
+		sampled_actions[best_action] = true
+
 	var average_occupancy := occupancy_total / 8.0
 	var average_width := bbox_width_total / 8.0
 	var average_height := bbox_height_total / 8.0
-	var passed := average_occupancy >= 0.075 and average_occupancy <= 0.68
-	passed = passed and average_width >= float(minimum_bbox.x) and average_height >= float(minimum_bbox.y)
-	passed = passed and silhouettes.size() >= minimum_unique_directions
+	var occupancy_ok := average_occupancy >= 0.075 and average_occupancy <= 0.68
+	var bbox_ok := average_width >= float(minimum_bbox.x) and average_height >= float(minimum_bbox.y)
+	var directions_ok := silhouettes.size() >= minimum_unique_directions
+	var passed := occupancy_ok and bbox_ok and directions_ok
+	var reasons: Array[String] = []
+	if not occupancy_ok: reasons.append("occupancy %.4f outside [0.075,0.68]" % average_occupancy)
+	if not bbox_ok: reasons.append("bbox %.1fx%.1f below %dx%d" % [average_width,average_height,minimum_bbox.x,minimum_bbox.y])
+	if not directions_ok: reasons.append("only %d unique directional silhouettes; need %d" % [silhouettes.size(),minimum_unique_directions])
 	return {
 		"passed": passed,
+		"reason": "; ".join(reasons),
 		"occupancy": average_occupancy,
 		"bbox_width": average_width,
 		"bbox_height": average_height,
 		"unique_direction_silhouettes": silhouettes.size(),
+		"action_rows": action_rows,
+		"sampled_action_rows": sampled_actions.size(),
+		"representative_frames": REPRESENTATIVE_FRAMES,
 	}
 
 func _frame_metrics(image: Image, origin: Vector2i, frame_size: Vector2i) -> Dictionary:
@@ -71,6 +108,8 @@ func audit_contract() -> Dictionary:
 	return {
 		"version": VERSION,
 		"direction_samples": 8,
+		"multi_action_sampling": true,
+		"representative_frames": REPRESENTATIVE_FRAMES,
 		"occupancy_gate": true,
 		"silhouette_bbox_gate": true,
 		"directional_variation_gate": true,
