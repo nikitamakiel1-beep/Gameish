@@ -1,4 +1,4 @@
-extends "res://scripts/edenfall_v8_visual_runtime.gd"
+extends "res://scripts/edenfall_v8_streaming_runtime.gd"
 
 const V8_RELEASE_VERSION := "0.6.2-entropy"
 
