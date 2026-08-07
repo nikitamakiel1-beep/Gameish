@@ -13,6 +13,19 @@ const HERO_IDS: Array[String] = ["adam","abel","cain","seth","naamah"]
 const ENEMY_IDS: Array[String] = ["feral_scavenger","outlaw_gunner","raider_brute","wasteland_hunter","scrap_cultist","caravan_outlaw","cherub_drone","fallen_angel","watcher_acolyte","halo_sentinel","biomech_pilgrim","ophanim_scout","nephilim_husk","nephilim_giant","horned_berserker","bone_shepherd","grafted_colossus","serpent_spawn"]
 const BOSS_IDS: Array[String] = ["watcher_engine","first_nephilim","gate_cherub","tower_enoch","serpent_interface"]
 
+func _quality_error(label: String, id: String, result: Dictionary) -> String:
+	return "%s readability failed: %s // %s // occupancy=%.4f bbox=%.1fx%.1f directions=%d action_rows=%d sampled_actions=%d" % [
+		label,
+		id,
+		String(result.get("reason","unspecified")),
+		float(result.get("occupancy",0.0)),
+		float(result.get("bbox_width",0.0)),
+		float(result.get("bbox_height",0.0)),
+		int(result.get("unique_direction_silhouettes",0)),
+		int(result.get("action_rows",0)),
+		int(result.get("sampled_action_rows",0)),
+	]
+
 func _init() -> void:
 	var errors: Array[String] = []
 	var engine: Dictionary = BootstrapScript.new().call("configure")
@@ -36,13 +49,13 @@ func _init() -> void:
 	var quality: RefCounted = SpriteQualityEvaluatorScript.new()
 	for id in HERO_IDS:
 		var result: Dictionary = quality.call("evaluate_actor",registry.call("hero_sheet",id),Vector2i(48,48),Vector2i(15,24),3)
-		if not bool(result.get("passed",false)): errors.append("RC7 base hero readability failed: "+id)
+		if not bool(result.get("passed",false)): errors.append(_quality_error("RC7 base hero",id,result))
 	for id in ENEMY_IDS:
 		var result: Dictionary = quality.call("evaluate_actor",registry.call("enemy_sheet",id),Vector2i(48,48),Vector2i(14,21),3)
-		if not bool(result.get("passed",false)): errors.append("RC7 base enemy readability failed: "+id)
+		if not bool(result.get("passed",false)): errors.append(_quality_error("RC7 base enemy",id,result))
 	for id in BOSS_IDS:
 		var result: Dictionary = quality.call("evaluate_actor",registry.call("boss_sheet",id),Vector2i(96,96),Vector2i(28,34),3)
-		if not bool(result.get("passed",false)): errors.append("RC7 base guardian readability failed: "+id)
+		if not bool(result.get("passed",false)): errors.append(_quality_error("RC7 base guardian",id,result))
 
 	var runtime_report: Dictionary = {}
 	var entropy_report: Dictionary = {}
