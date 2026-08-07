@@ -1,4 +1,4 @@
-extends "res://scripts/edenfall_v8_release_runtime.gd"
+extends "res://scripts/edenfall_v8_visual_runtime.gd"
 
 const V8_STREAMING_VERSION := "0.6.2-entropy"
 const MAX_ROOM_ACTOR_TEXTURES := 12
