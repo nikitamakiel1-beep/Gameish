@@ -1,4 +1,4 @@
-# EDEN//FALL v0.6.1 — Visual, Combat and Godmode Direction
+# EDEN//FALL v0.6.1 — Visual and Combat Direction
 
 ## Product premise
 
@@ -29,7 +29,7 @@ The game is an original industrial-biblical action roguelike. External games are
 - Room-to-room progression must be legible and repeatable while retaining variation.
 - Biblical imagery is interpreted through EDEN//FALL's biotechnology and industrial history.
 
-### Horizon Zero Dawn
+### Horizon-style reclaimed-world direction
 
 - Nature reclaiming engineered ruins is the primary environmental contrast.
 - Ancient technology must feel simultaneously mechanical, organic and mythic.
@@ -64,13 +64,17 @@ A lineage must remain identifiable at normal gameplay scale without relying on i
 
 ## Enemy silhouette families
 
-Predamite enemies use recognizable scavenged human equipment: rifles, hoods, heavy armor, scrap tools and caravan hardware.
+Preadamite enemies use recognizable scavenged human equipment: rifles, hoods, heavy armor, scrap tools and caravan hardware.
 
 Fallen enemies use halos, wings, rotating rings, liturgical machinery and biomechanical implants.
 
 Nephilim enemies use abnormal mass, horns, grafts, bone implements, serpentine bodies and overscaled anatomy.
 
 No two enemy atlas sheets may produce identical image hashes. Elite status is an overlay and cannot be the only differentiator.
+
+RC7 additionally requires material readability rather than hash uniqueness alone. The sprite-quality gate measures frame occupancy, minimum silhouette dimensions and directional silhouette variation for all five lineages, eighteen standard hostiles and five guardians.
+
+RC7 actor frames add first-party hard silhouette outlines, selective rim illumination and sparse deterministic material-value variation while preserving the existing atlas dimensions.
 
 ## Biome progression
 
@@ -98,47 +102,34 @@ No two enemy atlas sheets may produce identical image hashes. Elite status is an
 ## Combat readability budgets
 
 - Normal encounter density: 4–8 enemies.
-- Trial and contract encounter ceiling: 9 enemies.
-- Initial spawn positions use separated rings rather than random clustering.
+- Trial/contract encounter ceiling: 9 enemies.
+- Encounter composition uses deterministic combat-role signatures rather than independent random picks.
+- Authored formations include pincer, crossfire, anchor, orbit, diamond and ring structures.
+- Caster/radial role caps prevent unreadable emitter stacking.
+- Room-entry grace: 0.72 seconds.
+- Standard hostile spawn clearance after transition: at least 152 px before arena correction.
+- Guardian spawn clearance: at least 210 px before arena correction.
+- Hostiles materialize with staggered activation and a visible progress ring.
 - Ranged wind-up: approximately 0.42 seconds.
 - Caster wind-up: approximately 0.54 seconds.
 - Charger wind-up: approximately 0.62 seconds before a committed charge.
-- Enemy special attacks and guardian patterns expose separate telegraph rings.
 - Enemy projectiles are larger and warmer than player projectiles.
 - Player projectiles retain lineage color and brighter cores.
-- Projectile outlines can be forced through accessibility settings.
 - Normal enemy health bars appear only after damage; elites and bosses always expose status.
 - Player and enemy sprites receive shadows and dark outlines against complex backgrounds.
 - Environmental tile contrast remains subordinate to bullets, actors and pickups.
 - Structural cover blocks actors and projectiles while preserving door lanes.
 - Swept collision prevents fast dashes and enemies from tunnelling through narrow cover.
-- First Nephilim phases can destroy structural cover; Gate Cherub deploys auxiliary bodies; Tower Enoch reconfigures crossfire; Serpent phases deploy forked hosts.
+- Aim assist cannot select a target through structural cover.
+- Melee/charge, aimed, radial/caster and guardian-phase danger use different warning-audio families.
 
-## Godmode gameplay contract
+## Build and reward direction
 
-### Deterministic run topology
+RC7 reward selection uses contextual pools rather than treating all rooms as equivalent. Shop, treasure, trial, contract, sanctuary and special rooms prefer different existing relic-effect families while remaining deterministic and respecting Archive tier gating.
 
-Every floor graph is seeded from run seed, biome index and floor number. Room generation, special-room assignment and encounter spawning are isolated from the global combat RNG. Suspend/resume therefore restores the same room coordinates instead of trying to apply state to a newly randomized graph.
+Every nonfinal guardian victory produces a deterministic two-choice Genome Adaptation. There are five run-only adaptation definitions per lineage, twenty-five total. These choices change existing weapon/player mechanics and create visible run identity without becoming permanent account-stat inflation.
 
-### Decision rooms
-
-The run may include settlements, sacrifice bioreactors, lineage memories, maintenance tunnels, contracts and the Serpent terminal. Noncombat decision rooms lock their exits until the player approaches the focal system and commits to a consequence.
-
-### Factions
-
-Salt Caravans, Ash Covenant, Tubal Foundries, Enoch Outlaws, Lamech Houses and The Unnamed maintain persistent reputation. Reputation affects shop prices and sufficiently negative reputation can generate deterministic retaliation ambushes. Reputation is not a morality score.
-
-### Relic synergies
-
-Relics continue using the sixty-cell semantic atlas, but effects are interpreted as tags. Eight RC6 synergy rules transform projectile behavior, armor, orbitals, dash attacks and guardian damage. The Archive expands available relic tiers through mastery, recovered memories and defeated guardians rather than granting permanent raw combat stats.
-
-### Weapons
-
-The inherited five lineage weapons retain their identities: Adam rifle/homing fire, Abel beam/mark/chain behavior, Cain cannon/explosion/burn behavior, Seth lance/pierce/bounce/stagger behavior and Naamah spread/spore behavior. RC6 restores those projectile systems on top of structural cover collision and adds run-based evolution without replacing the starting identities.
-
-### Serpent resolution
-
-Defeating the Serpent Interface no longer immediately terminates the run. The player must resolve the final adaptation request by rejecting or accepting the forbidden genome. The pending ending choice is saved separately so focus loss or suspension cannot skip the resolution.
+The final Serpent resolution remains separate from ordinary guardian adaptation.
 
 ## Interface contract
 
@@ -154,7 +145,7 @@ Desktop pointer input selects a lineage first and deploys through an explicit co
 
 Wide layouts use three compact header regions: player state, chapter/objective and resources/minimap. Small landscape and phone layouts use a single header plus a separate objective strip.
 
-The HUD may overlap the arena border but must not consume the central combat field. RC6 also exposes synergy, temporary armor, orbital and mutation state without obscuring central projectile space.
+The HUD may overlap the arena border but must not consume the central combat field. Synergy, temporary armor, orbital, mutation, adaptation and encounter-signature state must remain subordinate to active combat.
 
 ### Genome Archive
 
@@ -177,21 +168,33 @@ Shop rooms expose three selectable relic cards with icons, names, prices and pur
 - Compact HUD: width below 920 px or height below 610 px.
 - Arena margins scale down for short landscape displays.
 
+## Loading and performance contract
+
+Deep art validation is a release operation, not a startup operation. Runtime startup performs a light representative asset contract. Remaining assets prewarm one at a time only on title/select screens or in cleared noncombat rooms.
+
+No speculative prewarming may occur during active combat. The current biome hostile pool and guardian are retained across ordinary cache trimming.
+
 ## Verification contract
 
-`tests/v6_product_rebuild_audit.gd` must verify:
+RC7 uses two final gates while retaining the RC6 subsystem audit as inherited evidence:
 
-- Exact Godot 4.7.1 runtime.
-- The inherited v0.6 asset-dimension contract.
-- Unique hashes for all five heroes, five portraits, eighteen enemies, five bosses and each biome atlas family.
-- Non-empty utility atlases.
-- Existence of every rebuild and godmode layer.
-- World collision, swept navigation, archive and shop source contracts.
-- Six factions and at least eight tag-based synergy rules.
-- Fifteen explicit guardian patterns across five guardians.
-- Mandatory special-room decisions, deterministic room seeding and deterministic floor topology.
-- Room-state suspend/restore, final Serpent resolution persistence and stale-ending cleanup.
-- Archive pool progression, faction ambushes, guardian environment phases and mobile accessibility additions.
-- `main.tscn` routing to `edenfall_v6_godmode_verified_runtime.gd`.
+- `tests/v6_product_rebuild_audit.gd` — inherited RC6 product/world/persistence contract.
+- `tests/v7_masterpiece_audit.gd` — deep actor/art/encounter/reward/progression/product gate.
+- `tests/v7_runtime_quality_audit.gd` — audio/fairness/loading/runtime-quality gate.
 
-Static review is not a substitute for import, boot, screenshot and gameplay testing. No build may be described as qualified until the exact branch head passes those runtime checks.
+The RC7 gates require:
+
+- exact Godot 4.7.1;
+- core v0.6 ABI and RC7 product-revision consistency;
+- deep generated-asset validation;
+- unique and materially readable actor atlases;
+- all 18 enemy role classifications and at least six authored encounter signatures;
+- contextual relic pools;
+- room-entry fairness and post-transition clearance;
+- five lineage adaptation families with twenty-five run-only definitions;
+- first-party 22.05 kHz biome/warning synthesis contracts;
+- safe-state prewarming and shallow-startup/deep-release separation;
+- all inherited RC6 deterministic floor, room state, faction, synergy, guardian, final Serpent and ending-persistence guarantees;
+- `main.tscn` routing to `edenfall_v7_release_runtime.gd`.
+
+Static review is not a substitute for import, boot, screenshot, audio-listening and gameplay testing. No build may be described as qualified until the exact branch head passes the runtime checks in `docs/RC7_RELEASE_CANDIDATE.md`.
