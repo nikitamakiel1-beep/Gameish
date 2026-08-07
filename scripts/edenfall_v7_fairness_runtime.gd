@@ -8,7 +8,7 @@ var room_grace := 0.0
 
 func enter_room(coord: Vector2i, movement_direction: Vector2i) -> void:
 	super.enter_room(coord, movement_direction)
-	room_grace = float(fairness_director.ROOM_GRACE)
+	room_grace = 0.72
 	_apply_entry_fairness()
 
 func _apply_entry_fairness() -> void:
