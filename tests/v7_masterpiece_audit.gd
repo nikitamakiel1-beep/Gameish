@@ -1,13 +1,13 @@
 extends SceneTree
 
-const RegistryScript: Script = preload("res://scripts/v6/asset_registry_rebuild.gd")
+const RegistryScript: Script = preload("res://scripts/v7/asset_registry_masterpiece.gd")
 const BootstrapScript: Script = preload("res://scripts/v6/engine_bootstrap.gd")
 const EncounterComposerScript: Script = preload("res://scripts/v7/encounter_composer.gd")
 const RelicPoolDirectorScript: Script = preload("res://scripts/v7/relic_pool_director.gd")
 const SpriteQualityEvaluatorScript: Script = preload("res://scripts/v7/sprite_quality_evaluator.gd")
 const VersionManifestScript: Script = preload("res://scripts/v7/version_manifest.gd")
 
-const FINAL_SCRIPT := "res://scripts/edenfall_v7_masterpiece_runtime.gd"
+const FINAL_SCRIPT := "res://scripts/edenfall_v7_art_runtime.gd"
 const HERO_IDS: Array[String] = ["adam", "abel", "cain", "seth", "naamah"]
 const ENEMY_IDS: Array[String] = [
 	"feral_scavenger", "outlaw_gunner", "raider_brute", "wasteland_hunter", "scrap_cultist", "caravan_outlaw",
@@ -39,6 +39,8 @@ func _init() -> void:
 		errors.append("Asset registry ABI does not match version manifest")
 	if String(index.get("visual_version", "")) != String(version_report.get("visual_version", "")):
 		errors.append("Visual registry version does not match version manifest")
+	if String(index.get("art_revision", "")) != "0.6.1-rc7":
+		errors.append("Masterpiece art registry revision mismatch")
 
 	var composer: RefCounted = EncounterComposerScript.new()
 	var composer_report: Dictionary = composer.call("audit_contract")
@@ -77,14 +79,20 @@ func _init() -> void:
 		"res://scripts/v7/encounter_composer.gd",
 		"res://scripts/v7/relic_pool_director.gd",
 		"res://scripts/v7/sprite_quality_evaluator.gd",
+		"res://scripts/v7/actor_asset_factory_masterpiece.gd",
+		"res://scripts/v7/generated_asset_factory_masterpiece.gd",
+		"res://scripts/v7/asset_registry_masterpiece.gd",
+		"res://scripts/edenfall_v7_masterpiece_runtime.gd",
 		FINAL_SCRIPT,
 		"res://tests/v6_product_rebuild_audit.gd",
 	]:
 		if not ResourceLoader.exists(path):
 			errors.append("Missing RC7 resource: " + path)
 
-	if not _source_contract(FINAL_SCRIPT, ["spawn_room", "random_relic_id", "assisted_aim", "draw_enemies", "audit_masterpiece_contract"]):
-		errors.append("RC7 runtime source contract failed")
+	if not _source_contract("res://scripts/edenfall_v7_masterpiece_runtime.gd", ["spawn_room", "random_relic_id", "assisted_aim", "draw_enemies", "audit_masterpiece_contract"]):
+		errors.append("RC7 gameplay runtime source contract failed")
+	if not _source_contract(FINAL_SCRIPT, ["MasterpieceRegistryScript", "audit_v6_readiness", "pixel_finish", "audit_masterpiece_contract"]):
+		errors.append("RC7 art runtime source contract failed")
 
 	var main_scene := load("res://main.tscn") as PackedScene
 	if main_scene == null:
@@ -94,13 +102,14 @@ func _init() -> void:
 		var script := instance.get_script() as Script
 		var script_path := script.resource_path if script != null else ""
 		if script_path != FINAL_SCRIPT:
-			errors.append("main.tscn does not route to RC7 masterpiece runtime: " + script_path)
+			errors.append("main.tscn does not route to RC7 art runtime: " + script_path)
 		if instance.has_method("audit_masterpiece_contract"):
 			var runtime_report: Dictionary = instance.call("audit_masterpiece_contract")
 			if String(runtime_report.get("version", "")) != "0.6.1-rc7":
 				errors.append("Runtime RC7 version contract failed")
-			if not bool(runtime_report.get("cover_aware_aim_assist", false)):
-				errors.append("Cover-aware aim assist contract failed")
+			for flag in ["cover_aware_aim_assist", "deterministic_composition", "contextual_relic_pools", "masterpiece_asset_registry", "pixel_finish"]:
+				if not bool(runtime_report.get(flag, false)):
+					errors.append("Runtime RC7 contract missing: " + flag)
 		else:
 			errors.append("RC7 runtime audit method is missing")
 		instance.free()
@@ -110,6 +119,7 @@ func _init() -> void:
 		"engine":engine,
 		"version_manifest":version_report,
 		"registry":registry_contract,
+		"registry_index":index,
 		"encounter_composer":composer_report,
 		"relic_pool":relic_report,
 		"sprite_quality":sprite_report,
