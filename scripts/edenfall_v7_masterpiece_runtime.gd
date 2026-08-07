@@ -35,7 +35,6 @@ func spawn_room(room: Dictionary) -> void:
 	rng.seed = composition_seed
 	for index in range(ids.size()):
 		var position := Vector2(positions[index]) if index < positions.size() else random_arena_position(105.0)
-		position = _resolve_position_against_obstacles(position, 26.0)
 		spawn_enemy(String(ids[index]), position, index)
 	if kind == "trial" and not enemies.is_empty():
 		promote_enemy_to_elite(0, "armored")
@@ -77,7 +76,7 @@ func _spawn_rc7_faction_retaliation(room: Dictionary, seed_value: int) -> void:
 	var id := "caravan_outlaw" if local_rng.randf() < 0.56 else "outlaw_gunner"
 	var positions: Array = encounter_composer.call("positions", arena_rect(), 8, "pincer", seed_value ^ 0xBEEF)
 	var position := Vector2(positions[local_rng.randi_range(0, positions.size() - 1)]) if not positions.is_empty() else arena_rect().get_center()
-	spawn_enemy(id, _resolve_position_against_obstacles(position, 20.0), _enemy_uid_counter)
+	spawn_enemy(id, position, _enemy_uid_counter)
 	if reputation <= -8 and not enemies.is_empty():
 		promote_enemy_to_elite(enemies.size() - 1, "swift")
 
@@ -169,4 +168,5 @@ func audit_masterpiece_contract() -> Dictionary:
 		"cover_aware_aim_assist": true,
 		"explicit_windup_telegraphs": true,
 		"deterministic_composition": true,
+		"post_enter_cover_resolution": true,
 	}
