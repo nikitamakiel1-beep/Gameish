@@ -24,6 +24,7 @@ need curl
 need unzip
 need git
 need python3
+need timeout
 
 mkdir -p "$GODOT_DIR" "$DOWNLOAD_DIR" "$BUILD_DIR"
 
@@ -66,6 +67,10 @@ if [[ "$CURRENT_BRANCH" == "main" ]]; then
   echo "ERROR: refusing to build from main. Use godmode/production-assets-v6-rebuild." >&2
   exit 6
 fi
+if [[ -n "$CURRENT_BRANCH" && "$CURRENT_BRANCH" != "HEAD" && "$CURRENT_BRANCH" != "godmode/production-assets-v6-rebuild" ]]; then
+  echo "ERROR: refusing to build unexpected branch: $CURRENT_BRANCH" >&2
+  exit 6
+fi
 
 SOURCE_SHA="$(git rev-parse HEAD 2>/dev/null || printf 'unknown')"
 echo "[eden] source: ${CURRENT_BRANCH:-detached} @ $SOURCE_SHA"
@@ -85,21 +90,25 @@ for audit in "${AUDITS[@]}"; do
   "$GODOT_DIR/godot" --headless --path "$ROOT" --script "$audit"
 done
 
-echo "[eden] bounded headless boot"
+echo "[eden] bounded headless game boot"
+BOOT_LOG="$(mktemp)"
 set +e
-timeout 12s "$GODOT_DIR/godot" --headless --path "$ROOT" --editor-pseudolocalization >/tmp/edenfall-boot.log 2>&1
+timeout 12s "$GODOT_DIR/godot" --headless --path "$ROOT" --verbose >"$BOOT_LOG" 2>&1
 BOOT_CODE=$?
 set -e
 if [[ $BOOT_CODE -ne 0 && $BOOT_CODE -ne 124 ]]; then
-  cat /tmp/edenfall-boot.log >&2
-  echo "ERROR: bounded boot failed with code $BOOT_CODE" >&2
+  cat "$BOOT_LOG" >&2
+  rm -f "$BOOT_LOG"
+  echo "ERROR: bounded game boot failed with code $BOOT_CODE" >&2
   exit 7
 fi
-if grep -Eiq 'SCRIPT ERROR|Parse Error|Parser Error|Invalid call|ERROR:.*(script|resource)' /tmp/edenfall-boot.log; then
-  cat /tmp/edenfall-boot.log >&2
-  echo "ERROR: bounded boot emitted a fatal script/resource error" >&2
+if grep -Eiq 'SCRIPT ERROR|Parse Error|Parser Error|Invalid call|Invalid get index|ERROR:.*(script|resource|load)' "$BOOT_LOG"; then
+  cat "$BOOT_LOG" >&2
+  rm -f "$BOOT_LOG"
+  echo "ERROR: bounded game boot emitted a fatal script/resource error" >&2
   exit 8
 fi
+rm -f "$BOOT_LOG"
 
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
