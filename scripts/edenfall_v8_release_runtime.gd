@@ -1,11 +1,24 @@
 extends "res://scripts/edenfall_v8_art_integrated_runtime.gd"
 
 const V8_RELEASE_VERSION: String = "0.6.2-entropy"
-const PremiumSpriteForgeScript: Script = preload("res://scripts/v8/procedural_sprite_forge_premium.gd")
+const AUTHORED_ART_REVISION: String = "0.6.3-art3"
+const RoguelikeSpriteForgeScript: Script = preload("res://scripts/v8/procedural_sprite_forge_roguelike.gd")
+const Art3GenomeDirectorScript: Script = preload("res://scripts/v8/enemy_genome_director_art3.gd")
+const Art3WorldDirectorScript: Script = preload("res://scripts/v8/procedural_world_director_art3.gd")
 
 func _ready() -> void:
-	sprite_forge = PremiumSpriteForgeScript.new()
+	genome_director = Art3GenomeDirectorScript.new()
+	world_director = Art3WorldDirectorScript.new()
+	sprite_forge = RoguelikeSpriteForgeScript.new()
 	super._ready()
+
+func restore_suspended_run() -> void:
+	super.restore_suspended_run()
+	# Older V8 suspend files may contain randomized protagonist geometry. Never
+	# allow persistence to override the canonical lineage identity contract.
+	if not player.is_empty():
+		player["v8_visual_genome"] = genome_director.call("player_genome",entropy.call("fork","canonical_restore"),String(player.get("id","adam")),biome_index)
+		_player_entropy_texture()
 
 func spawn_enemy(id: String, position: Vector2, variant: int = 0) -> void:
 	super.spawn_enemy(id,position,variant)
@@ -166,9 +179,14 @@ func draw_enemies() -> void:
 func get_v6_diagnostics() -> Dictionary:
 	var report: Dictionary = super.get_v6_diagnostics()
 	report["v8_release_version"] = V8_RELEASE_VERSION
+	report["authored_art_revision"] = AUTHORED_ART_REVISION
 	report["generation_mode"] = "stochastic_condition_driven"
 	report["fixed_seed_replay"] = false
 	report["premium_sprite_forge"] = true
+	report["chunky_roguelike_sprite_forge"] = true
+	report["hero_identity_locked"] = true
+	report["curated_enemy_module_families"] = true
+	report["quiet_biome_visual_hierarchy"] = true
 	report["stochastic_guardian_pattern_order"] = true
 	report["generated_trait_combat_actions"] = true
 	return report
@@ -176,6 +194,7 @@ func get_v6_diagnostics() -> Dictionary:
 func audit_godmode_contract() -> Dictionary:
 	var report: Dictionary = super.audit_godmode_contract()
 	report["version"] = V8_RELEASE_VERSION
+	report["authored_art_revision"] = AUTHORED_ART_REVISION
 	report["deterministic_floor_graph"] = false
 	report["deterministic_special_rooms"] = false
 	report["fixed_seed_replay"] = false
@@ -183,13 +202,19 @@ func audit_godmode_contract() -> Dictionary:
 	report["entropy_special_rooms"] = true
 	report["active_run_recipe_persistence"] = true
 	report["stochastic_guardian_pattern_order"] = true
+	report["hero_identity_locked"] = true
 	return report
 
 func audit_entropy_contract() -> Dictionary:
 	var report: Dictionary = super.audit_entropy_contract()
 	report["version"] = V8_RELEASE_VERSION
+	report["authored_art_revision"] = AUTHORED_ART_REVISION
 	report["release_root"] = true
 	report["premium_sprite_forge"] = true
+	report["chunky_roguelike_sprite_forge"] = true
+	report["hero_identity_locked"] = true
+	report["curated_enemy_module_families"] = true
+	report["quiet_biome_visual_hierarchy"] = true
 	report["stochastic_guardian_pattern_order"] = true
 	report["generated_trait_combat_actions"] = true
 	report["trait_windups"] = true
@@ -198,7 +223,12 @@ func audit_entropy_contract() -> Dictionary:
 func audit_masterpiece_contract() -> Dictionary:
 	var report: Dictionary = super.audit_masterpiece_contract()
 	report["version"] = V8_RELEASE_VERSION
+	report["authored_art_revision"] = AUTHORED_ART_REVISION
 	report["release_root"] = true
 	report["premium_sprite_forge"] = true
+	report["chunky_roguelike_sprite_forge"] = true
+	report["hero_identity_locked"] = true
+	report["curated_enemy_module_families"] = true
+	report["quiet_biome_visual_hierarchy"] = true
 	report["generated_trait_combat_actions"] = true
 	return report
