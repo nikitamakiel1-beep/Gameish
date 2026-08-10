@@ -141,7 +141,7 @@ path = pathlib.Path(sys.argv[1])
 sha = sys.argv[2]
 data = {
     "project": "EDEN//FALL",
-    "version": "0.6.2-entropy-art2",
+    "version": "0.6.3-authored-art3",
     "channel": "github-pages-test-no-actions",
     "godot": "4.7.1",
     "source_commit": sha,
