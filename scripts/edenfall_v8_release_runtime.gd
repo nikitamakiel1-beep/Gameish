@@ -1,4 +1,4 @@
-extends "res://scripts/edenfall_v8_streaming_runtime.gd"
+extends "res://scripts/edenfall_v8_art_direction_runtime.gd"
 
 const V8_RELEASE_VERSION: String = "0.6.2-entropy"
 const PremiumSpriteForgeScript: Script = preload("res://scripts/v8/procedural_sprite_forge_premium.gd")
@@ -103,27 +103,20 @@ func _release_entropy_trait_action(index: int) -> void:
 		target = Vector2.DOWN
 	match behavior_trait:
 		"burst":
-			for angle_variant in [-0.12,0.0,0.12]:
-				enemy_shoot(origin,target.rotated(float(angle_variant)),380.0*float(genome.get("projectile_speed_mult",1.0)),1.0)
-		"marksman":
-			enemy_shoot(origin,target,520.0*float(genome.get("projectile_speed_mult",1.0)),1.2)
+			for angle_variant in [-0.12,0.0,0.12]: enemy_shoot(origin,target.rotated(float(angle_variant)),380.0*float(genome.get("projectile_speed_mult",1.0)),1.0)
+		"marksman": enemy_shoot(origin,target,520.0*float(genome.get("projectile_speed_mult",1.0)),1.2)
 		"suppression":
-			for angle_variant in [-0.42,-0.21,0.0,0.21,0.42]:
-				enemy_shoot(origin,target.rotated(float(angle_variant)),305.0,0.85)
+			for angle_variant in [-0.42,-0.21,0.0,0.21,0.42]: enemy_shoot(origin,target.rotated(float(angle_variant)),305.0,0.85)
 		"scatter":
-			for angle_variant in [-0.54,-0.36,-0.18,0.0,0.18,0.36,0.54]:
-				enemy_shoot(origin,target.rotated(float(angle_variant)),280.0,0.75)
+			for angle_variant in [-0.54,-0.36,-0.18,0.0,0.18,0.36,0.54]: enemy_shoot(origin,target.rotated(float(angle_variant)),280.0,0.75)
 		"ritual", "nova", "ring":
 			var count: int = 8 if behavior_trait != "nova" else 12
 			var phase: float = float(genome.get("phase_offset",0.0))+visual_clock*0.11
-			for shot in range(count):
-				enemy_shoot(origin,Vector2.RIGHT.rotated(TAU*float(shot)/float(count)+phase),275.0,0.9)
+			for shot in range(count): enemy_shoot(origin,Vector2.RIGHT.rotated(TAU*float(shot)/float(count)+phase),275.0,0.9)
 		"seeker":
-			for angle_variant in [-0.22,0.0,0.22]:
-				enemy_shoot(origin,target.rotated(float(angle_variant)),340.0,0.9)
+			for angle_variant in [-0.22,0.0,0.22]: enemy_shoot(origin,target.rotated(float(angle_variant)),340.0,0.9)
 		"zone", "minefield":
-			for shot in range(6):
-				enemy_shoot(origin,Vector2.RIGHT.rotated(TAU*float(shot)/6.0),205.0,0.8)
+			for shot in range(6): enemy_shoot(origin,Vector2.RIGHT.rotated(TAU*float(shot)/6.0),205.0,0.8)
 		"summoner":
 			if enemies.size() < 9:
 				var pool: Array = enemy_pool_for_biome()
@@ -153,19 +146,16 @@ func _release_entropy_trait_action(index: int) -> void:
 	enemy["v8_trait_timer"] = reset_rng.randf_range(3.0,6.2)
 	enemy["v8_trait_windup"] = 0.0
 	enemy["attack"] = 0.22
-	if index < enemies.size():
-		enemies[index] = enemy
+	if index < enemies.size(): enemies[index] = enemy
 
 func draw_enemies() -> void:
 	super.draw_enemies()
 	var strong: bool = bool(settings.get("strong_telegraphs",true))
 	for enemy_variant in enemies:
 		var enemy: Dictionary = enemy_variant
-		if bool(enemy.get("boss",false)):
-			continue
+		if bool(enemy.get("boss",false)): continue
 		var windup: float = float(enemy.get("v8_trait_windup",0.0))
-		if windup <= 0.0:
-			continue
+		if windup <= 0.0: continue
 		var maximum: float = maxf(windup,float(enemy.get("v8_trait_windup_max",windup)))
 		var progress: float = clampf(1.0-windup/maxf(0.001,maximum),0.0,1.0)
 		var pos: Vector2 = Vector2(enemy["pos"])
