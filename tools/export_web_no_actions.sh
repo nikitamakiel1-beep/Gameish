@@ -82,6 +82,7 @@ echo "[eden] compile-chain probe"
 "$GODOT_DIR/godot" --headless --path "$ROOT" --script "res://tests/v8_compile_chain_probe.gd"
 
 AUDITS=(
+  "res://tests/v8_art4_reference_audit.gd"
   "res://tests/v8_art_direction_audit.gd"
   "res://tests/v8_presentation_audit.gd"
   "res://tests/v6_product_rebuild_audit.gd"
@@ -142,7 +143,7 @@ path = pathlib.Path(sys.argv[1])
 sha = sys.argv[2]
 data = {
     "project": "EDEN//FALL",
-    "version": "0.6.3-authored-art3",
+    "version": "0.6.4-authored-art4",
     "channel": "github-pages-test-no-actions",
     "godot": "4.7.1",
     "source_commit": sha,
