@@ -1,4 +1,4 @@
-extends "res://scripts/edenfall_v8_authored_presentation_runtime.gd"
+extends "res://scripts/edenfall_v8_animation_runtime.gd"
 
 const V8_RELEASE_VERSION: String = "0.6.2-entropy"
 const AUTHORED_ART_REVISION: String = "0.6.3-art3"
