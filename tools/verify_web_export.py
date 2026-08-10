@@ -11,7 +11,7 @@ import pathlib
 import re
 import sys
 
-EXPECTED_VERSION = "0.6.2-entropy-art2"
+EXPECTED_VERSION = "0.6.3-authored-art3"
 
 
 def fail(message: str) -> None:
