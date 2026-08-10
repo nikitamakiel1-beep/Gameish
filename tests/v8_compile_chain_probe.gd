@@ -9,12 +9,14 @@ const CHAIN: Array[String] = [
 	"res://scripts/v8/enemy_genome_director.gd",
 	"res://scripts/v8/procedural_sprite_forge_stable.gd",
 	"res://scripts/v8/procedural_sprite_forge.gd",
+	"res://scripts/v8/procedural_sprite_forge_authored.gd",
 	"res://scripts/v8/procedural_sprite_forge_premium.gd",
 	"res://scripts/v8/procedural_world_director.gd",
 	"res://scripts/edenfall_v7_release_runtime.gd",
 	"res://scripts/edenfall_v8_entropy_runtime.gd",
 	"res://scripts/edenfall_v8_visual_runtime.gd",
 	"res://scripts/edenfall_v8_streaming_runtime.gd",
+	"res://scripts/edenfall_v8_art_direction_runtime.gd",
 	"res://scripts/edenfall_v8_release_runtime.gd",
 ]
 
