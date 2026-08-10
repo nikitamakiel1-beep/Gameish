@@ -22,6 +22,7 @@ const CHAIN: Array[String] = [
 	"res://scripts/edenfall_v8_streaming_runtime.gd",
 	"res://scripts/edenfall_v8_art_direction_runtime.gd",
 	"res://scripts/edenfall_v8_art_integrated_runtime.gd",
+	"res://scripts/edenfall_v8_authored_presentation_runtime.gd",
 	"res://scripts/edenfall_v8_release_runtime.gd",
 ]
 
