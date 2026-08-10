@@ -1,4 +1,4 @@
-extends "res://scripts/edenfall_v8_art_direction_runtime.gd"
+extends "res://scripts/edenfall_v8_art_integrated_runtime.gd"
 
 const V8_RELEASE_VERSION: String = "0.6.2-entropy"
 const PremiumSpriteForgeScript: Script = preload("res://scripts/v8/procedural_sprite_forge_premium.gd")
