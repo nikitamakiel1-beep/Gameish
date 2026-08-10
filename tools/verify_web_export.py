@@ -11,6 +11,8 @@ import pathlib
 import re
 import sys
 
+EXPECTED_VERSION = "0.6.2-entropy-art2"
+
 
 def fail(message: str) -> None:
     raise SystemExit(f"ERROR: {message}")
@@ -30,8 +32,8 @@ def main() -> int:
     js = (root / "index.js").read_text(encoding="utf-8", errors="replace")
     info = json.loads((root / "build-info.json").read_text(encoding="utf-8"))
 
-    if info.get("version") != "0.6.2-entropy":
-        fail(f"unexpected build version: {info.get('version')!r}")
+    if info.get("version") != EXPECTED_VERSION:
+        fail(f"unexpected build version: {info.get('version')!r}; expected {EXPECTED_VERSION!r}")
     if info.get("godot") != "4.7.1":
         fail(f"unexpected Godot version: {info.get('godot')!r}")
     if info.get("source_branch") != "godmode/production-assets-v6-rebuild":
