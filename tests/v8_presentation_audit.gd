@@ -3,6 +3,7 @@ extends SceneTree
 const BootstrapScript: Script = preload("res://scripts/v6/engine_bootstrap.gd")
 const FINAL_SCRIPT: String = "res://scripts/edenfall_v8_release_runtime.gd"
 const PRESENTATION_SCRIPT: String = "res://scripts/edenfall_v8_authored_presentation_runtime.gd"
+const ANIMATION_SCRIPT: String = "res://scripts/edenfall_v8_animation_runtime.gd"
 
 func _init() -> void:
 	var errors: Array[String] = []
@@ -19,6 +20,15 @@ func _init() -> void:
 		var symbol: String = String(symbol_variant)
 		if presentation_source.find(symbol) < 0:
 			errors.append("Authored presentation symbol missing: "+symbol)
+
+	var animation_source: String = FileAccess.get_file_as_string(ANIMATION_SCRIPT)
+	for symbol_variant in [
+		"_player_authored_frame","_enemy_authored_frame","state_addressed_frames",
+		"idle_pose","locomotion_pose","attack_recoil_pose","dash_hurt_pose"
+	]:
+		var symbol: String = String(symbol_variant)
+		if animation_source.find(symbol) < 0:
+			errors.append("Authored animation symbol missing: "+symbol)
 
 	var width: int = int(ProjectSettings.get_setting("display/window/size/viewport_width",0))
 	var height: int = int(ProjectSettings.get_setting("display/window/size/viewport_height",0))
@@ -45,7 +55,8 @@ func _init() -> void:
 			for flag_variant in [
 				"authored_lineage_dossier","compact_combat_hud","actor_screen_presence",
 				"authored_title_composition","world_surface_integrated","collision_cover_visuals_integrated",
-				"hero_first_selection","vertical_title_menu","reduced_ui_chrome","compact_icon_hud"
+				"hero_first_selection","vertical_title_menu","reduced_ui_chrome","compact_icon_hud",
+				"state_addressed_frames","idle_pose","locomotion_pose","attack_recoil_pose","dash_hurt_pose"
 			]:
 				var flag: String = String(flag_variant)
 				if not bool(runtime_contract.get(flag,false)):
