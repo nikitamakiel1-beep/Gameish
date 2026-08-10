@@ -11,7 +11,7 @@ import pathlib
 import re
 import sys
 
-EXPECTED_VERSION = "0.6.3-authored-art3"
+EXPECTED_VERSION = "0.6.4-authored-art4"
 
 
 def fail(message: str) -> None:
