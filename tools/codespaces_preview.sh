@@ -17,6 +17,12 @@ bash tools/export_web_no_actions.sh 2>&1 | tee .codespaces/build.log
 touch .codespaces/build-ok
 rm -f .codespaces/build-failed
 
+# Codespaces is an iterative preview origin. Older PWA builds may have left a
+# service worker/Cache Storage entry behind even though the current export is
+# deliberately non-PWA. Publish a one-shot retirement page next to the build;
+# it unregisters workers and clears Cache Storage without touching save data.
+cp tools/codespaces_purge.html build/web/purge.html
+
 if [[ -f .codespaces/preview.pid ]]; then
   PID="$(cat .codespaces/preview.pid 2>/dev/null || true)"
   if [[ -n "$PID" ]] && kill -0 "$PID" 2>/dev/null; then
