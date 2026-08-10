@@ -82,7 +82,7 @@ func _init() -> void:
 		var recipe: Dictionary = world.call("make_room_recipe",entropy.call("fork","world"),"industrial_eden","combat",1.22,Vector2(1600,900))
 		room_signatures[String(recipe.get("signature",""))] = true
 		var floor_image: Image = world.call("build_floor_image",recipe,Color8(20,35,30),Color8(113,159,107))
-		if floor_image == null or floor_image.get_size() != Vector2i(256,144):
+		if floor_image == null or floor_image.get_size() != Vector2i(320,180):
 			errors.append("Procedural floor texture dimensions invalid")
 		elif not floor_image.is_empty():
 			floor_hashes[hash(floor_image.get_data())] = true
