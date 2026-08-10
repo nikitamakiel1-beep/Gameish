@@ -83,6 +83,7 @@ echo "[eden] compile-chain probe"
 
 AUDITS=(
   "res://tests/v8_art_direction_audit.gd"
+  "res://tests/v8_presentation_audit.gd"
   "res://tests/v6_product_rebuild_audit.gd"
   "res://tests/v7_masterpiece_audit.gd"
   "res://tests/v7_runtime_quality_audit.gd"
