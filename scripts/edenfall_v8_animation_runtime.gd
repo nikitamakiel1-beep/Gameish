@@ -1,6 +1,18 @@
 extends "res://scripts/edenfall_v8_authored_presentation_runtime.gd"
 
 const AUTHORED_ANIMATION_VERSION: String = "0.6.4-art4"
+const Art4SpriteForgeScript: Script = preload("res://scripts/v8/procedural_sprite_forge_art4.gd")
+const Art4GenomeDirectorScript: Script = preload("res://scripts/v8/enemy_genome_director_art4.gd")
+const Art4WorldDirectorScript: Script = preload("res://scripts/v8/procedural_world_director_art4.gd")
+
+func _ready() -> void:
+	# The release root may install the prior Art3 objects before calling super.
+	# Art4 deliberately replaces them at the last pre-ready boundary so all
+	# inherited initialization, caches and restored runs use the new grammar.
+	genome_director = Art4GenomeDirectorScript.new()
+	world_director = Art4WorldDirectorScript.new()
+	sprite_forge = Art4SpriteForgeScript.new()
+	super._ready()
 
 func _player_authored_frame() -> int:
 	if dash_time > 0.0:
@@ -290,6 +302,9 @@ func audit_art_direction_contract() -> Dictionary:
 	report["soft_contact_shadows"] = true
 	report["animated_biome_pockets"] = true
 	report["landmark_wall_volume"] = true
+	report["active_art4_forge"] = true
+	report["active_art4_world"] = true
+	report["active_art4_genome"] = true
 	return report
 
 func audit_entropy_contract() -> Dictionary:
@@ -297,4 +312,7 @@ func audit_entropy_contract() -> Dictionary:
 	report["state_addressed_animation"] = true
 	report["art4_alive_presentation"] = true
 	report["procedural_environment_story_pockets"] = true
+	report["active_art4_forge"] = true
+	report["active_art4_world"] = true
+	report["active_art4_genome"] = true
 	return report
