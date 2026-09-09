@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Mutation-test the EDEN//FALL verifier and qualification counteraudit.
 
-A verifier that only passes good input is not enough; this script deliberately
-corrupts provenance, cache policy, payload presence, audit markers and hashes,
-then requires the lower-level checks to reject every mutation.
+A verifier that passes good input is insufficient. This script corrupts Web
+metadata, payload presence, exact audit markers, diagnostics and hash evidence,
+then requires the lower-level gates to reject every mutation.
 """
 from __future__ import annotations
 
@@ -40,12 +40,12 @@ def link_build(source: pathlib.Path, destination: pathlib.Path) -> None:
         shutil.copy2(source / name, destination / name)
 
 
-def expect_failure(name: str, command: list[str], errors: list[str], passed_mutations: list[str]) -> None:
+def expect_failure(name: str, command: list[str], errors: list[str], rejected: list[str]) -> None:
     result = run(command)
     if result.returncode == 0:
         errors.append(f"mutation unexpectedly passed: {name}")
     else:
-        passed_mutations.append(name)
+        rejected.append(name)
         print(f"EDEN_MUTATION_REJECTED={name}")
 
 
@@ -59,7 +59,7 @@ def main() -> int:
     build = pathlib.Path(args.build).resolve()
     validation = pathlib.Path(args.validation).resolve()
     errors: list[str] = []
-    passed_mutations: list[str] = []
+    rejected: list[str] = []
 
     baseline_verifier = run([sys.executable, str(VERIFIER), "--structural", str(build)])
     if baseline_verifier.returncode != 0 or "EDEN_WEB_EXPORT_STRUCTURAL_VERIFIER=PASS" not in baseline_verifier.stdout:
@@ -74,8 +74,6 @@ def main() -> int:
     if baseline_counteraudit.returncode != 0 or "EDEN_QUALIFICATION_COUNTERAUDIT=PASS" not in baseline_counteraudit.stdout:
         errors.append("baseline qualification counteraudit does not pass before mutation testing")
 
-    # Mutate Web metadata and HTML independently. Large WASM/PCK files remain
-    # symlinked so counter-counter-auditing is fast and does not duplicate them.
     with tempfile.TemporaryDirectory(prefix="eden-web-mutations-") as temp_root_text:
         temp_root = pathlib.Path(temp_root_text)
 
@@ -84,35 +82,33 @@ def main() -> int:
         info = json.loads((case / "build-info.json").read_text(encoding="utf-8"))
         info["version"] = "0.6.0-stale"
         (case / "build-info.json").write_text(json.dumps(info), encoding="utf-8")
-        expect_failure("stale-version", [sys.executable, str(VERIFIER), "--structural", str(case)], errors, passed_mutations)
+        expect_failure("stale-version", [sys.executable, str(VERIFIER), "--structural", str(case)], errors, rejected)
 
         case = temp_root / "malformed-source-sha"
         link_build(build, case)
         info = json.loads((case / "build-info.json").read_text(encoding="utf-8"))
         info["source_commit"] = "deadbeef"
         (case / "build-info.json").write_text(json.dumps(info), encoding="utf-8")
-        expect_failure("malformed-source-sha", [sys.executable, str(VERIFIER), "--structural", str(case)], errors, passed_mutations)
+        expect_failure("malformed-source-sha", [sys.executable, str(VERIFIER), "--structural", str(case)], errors, rejected)
 
         case = temp_root / "pwa-enabled"
         link_build(build, case)
         info = json.loads((case / "build-info.json").read_text(encoding="utf-8"))
         info["pwa"] = True
         (case / "build-info.json").write_text(json.dumps(info), encoding="utf-8")
-        expect_failure("pwa-enabled", [sys.executable, str(VERIFIER), "--structural", str(case)], errors, passed_mutations)
+        expect_failure("pwa-enabled", [sys.executable, str(VERIFIER), "--structural", str(case)], errors, rejected)
 
         case = temp_root / "service-worker-registration"
         link_build(build, case)
         html = (case / "index.html").read_text(encoding="utf-8", errors="replace")
         (case / "index.html").write_text(html + "\n<script>navigator.serviceWorker.register('bad.js')</script>\n", encoding="utf-8")
-        expect_failure("service-worker-registration", [sys.executable, str(VERIFIER), "--structural", str(case)], errors, passed_mutations)
+        expect_failure("service-worker-registration", [sys.executable, str(VERIFIER), "--structural", str(case)], errors, rejected)
 
         case = temp_root / "missing-wasm"
         link_build(build, case)
         (case / "index.wasm").unlink()
-        expect_failure("missing-wasm", [sys.executable, str(VERIFIER), "--structural", str(case)], errors, passed_mutations)
+        expect_failure("missing-wasm", [sys.executable, str(VERIFIER), "--structural", str(case)], errors, rejected)
 
-        # The higher-level counteraudit must also reject altered evidence even
-        # when the Web payload itself remains untouched.
         validation_case = temp_root / "validation-marker-missing"
         shutil.copytree(validation, validation_case)
         release_log = validation_case / "v8_release_integrity_audit.log"
@@ -123,7 +119,35 @@ def main() -> int:
             "missing-release-pass-marker",
             [sys.executable, str(COUNTERAUDIT), "--build", str(build), "--validation", str(validation_case)],
             errors,
-            passed_mutations,
+            rejected,
+        )
+
+        validation_case = temp_root / "wrong-pass-marker"
+        shutil.copytree(validation, validation_case)
+        presentation_log = validation_case / "v8_presentation_audit.log"
+        text = presentation_log.read_text(encoding="utf-8", errors="replace")
+        text = text.replace(
+            "EDEN_FALL_V8_PRESENTATION_AUDIT=PASS",
+            "EDEN_FALL_V8_ART_DIRECTION_AUDIT=PASS",
+        )
+        presentation_log.write_text(text, encoding="utf-8")
+        expect_failure(
+            "wrong-audit-pass-marker",
+            [sys.executable, str(COUNTERAUDIT), "--build", str(build), "--validation", str(validation_case)],
+            errors,
+            rejected,
+        )
+
+        validation_case = temp_root / "case-insensitive-fatal"
+        shutil.copytree(validation, validation_case)
+        entropy_log = validation_case / "v8_entropy_audit.log"
+        with entropy_log.open("a", encoding="utf-8") as handle:
+            handle.write("\nscript error: synthetic mutation\n")
+        expect_failure(
+            "case-insensitive-fatal-diagnostic",
+            [sys.executable, str(COUNTERAUDIT), "--build", str(build), "--validation", str(validation_case)],
+            errors,
+            rejected,
         )
 
         validation_case = temp_root / "validation-hash-corrupt"
@@ -138,7 +162,7 @@ def main() -> int:
             "corrupt-web-hash-evidence",
             [sys.executable, str(COUNTERAUDIT), "--build", str(build), "--validation", str(validation_case)],
             errors,
-            passed_mutations,
+            rejected,
         )
 
         case = temp_root / "premature-qualified"
@@ -152,17 +176,17 @@ def main() -> int:
             "premature-qualified-metadata",
             [sys.executable, str(COUNTERAUDIT), "--build", str(case), "--validation", str(validation)],
             errors,
-            passed_mutations,
+            rejected,
         )
 
-    expected_mutations = 8
-    if len(passed_mutations) != expected_mutations:
-        errors.append(f"expected {expected_mutations} rejected mutations, got {len(passed_mutations)}")
+    expected_mutations = 10
+    if len(rejected) != expected_mutations:
+        errors.append(f"expected {expected_mutations} rejected mutations, got {len(rejected)}")
 
     report = {
         "passed": not errors,
         "mutation_tests": expected_mutations,
-        "rejected_mutations": passed_mutations,
+        "rejected_mutations": rejected,
         "errors": errors,
     }
     serialized = json.dumps(report, indent=2, sort_keys=True) + "\n"
