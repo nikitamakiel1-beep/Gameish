@@ -131,6 +131,22 @@ def main() -> int:
             rejected,
         )
 
+        validation_case = temp_root / "expressive-marker-missing"
+        shutil.copytree(validation, validation_case)
+        expressive_log = validation_case / "v8_expressive_range_counteraudit.log"
+        text = expressive_log.read_text(encoding="utf-8", errors="replace")
+        text = text.replace(
+            "EDEN_FALL_V8_EXPRESSIVE_RANGE_COUNTERAUDIT=PASS",
+            "EDEN_FALL_V8_EXPRESSIVE_RANGE_COUNTERAUDIT=MISSING",
+        )
+        expressive_log.write_text(text, encoding="utf-8")
+        expect_failure(
+            "missing-expressive-range-pass-marker",
+            [sys.executable, str(COUNTERAUDIT), "--build", str(build), "--validation", str(validation_case)],
+            errors,
+            rejected,
+        )
+
         validation_case = temp_root / "wrong-pass-marker"
         shutil.copytree(validation, validation_case)
         presentation_log = validation_case / "v8_presentation_audit.log"
@@ -204,6 +220,44 @@ def main() -> int:
             rejected,
         )
 
+        validation_case = temp_root / "toolchain-template-mismatch"
+        shutil.copytree(validation, validation_case)
+        toolchain_path = validation_case / "toolchain-provenance.log"
+        lines = toolchain_path.read_text(encoding="utf-8").splitlines()
+        lines = [
+            "EDEN_TOOLCHAIN_WEB_TEMPLATE_SHA256=" + ("0" * 64)
+            if line.startswith("EDEN_TOOLCHAIN_WEB_TEMPLATE_SHA256=") else line
+            for line in lines
+        ]
+        toolchain_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        expect_failure(
+            "mismatched-installed-template-digest",
+            [sys.executable, str(COUNTERAUDIT), "--build", str(build), "--validation", str(validation_case)],
+            errors,
+            rejected,
+        )
+
+        validation_case = temp_root / "toolchain-template-pair-forged"
+        shutil.copytree(validation, validation_case)
+        toolchain_path = validation_case / "toolchain-provenance.log"
+        lines = toolchain_path.read_text(encoding="utf-8").splitlines()
+        forged = "0" * 64
+        rewritten = []
+        for line in lines:
+            if line.startswith("EDEN_TOOLCHAIN_EXPECTED_WEB_TEMPLATE_SHA256="):
+                rewritten.append("EDEN_TOOLCHAIN_EXPECTED_WEB_TEMPLATE_SHA256=" + forged)
+            elif line.startswith("EDEN_TOOLCHAIN_WEB_TEMPLATE_SHA256="):
+                rewritten.append("EDEN_TOOLCHAIN_WEB_TEMPLATE_SHA256=" + forged)
+            else:
+                rewritten.append(line)
+        toolchain_path.write_text("\n".join(rewritten) + "\n", encoding="utf-8")
+        expect_failure(
+            "forged-matching-template-digests",
+            [sys.executable, str(COUNTERAUDIT), "--build", str(build), "--validation", str(validation_case)],
+            errors,
+            rejected,
+        )
+
         case = temp_root / "premature-qualified"
         link_build(build, case)
         info = json.loads((case / "build-info.json").read_text(encoding="utf-8"))
@@ -218,7 +272,7 @@ def main() -> int:
             rejected,
         )
 
-    expected_mutations = 12
+    expected_mutations = 15
     if len(rejected) != expected_mutations:
         errors.append(f"expected {expected_mutations} rejected mutations, got {len(rejected)}")
 
