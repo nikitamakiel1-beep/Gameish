@@ -52,6 +52,16 @@ AUDITS: dict[str, tuple[str, ...]] = {
         "push_error",
         "quit(1)",
     ),
+    "tests/v8_art4_pixel_counteraudit.gd": (
+        "EDEN_FALL_V8_ART4_PIXEL_COUNTERAUDIT=PASS",
+        EXPECTED_REVISION,
+        "get_used_rect",
+        "build_player_sheet",
+        "build_enemy_sheet",
+        "build_floor_image",
+        "push_error",
+        "quit(1)",
+    ),
 }
 
 PIPELINE_REQUIRED = (
@@ -62,6 +72,7 @@ PIPELINE_REQUIRED = (
     '"res://tests/v8_release_integrity_audit.gd"',
     '"res://tests/v8_live_binding_counteraudit.gd"',
     '"res://tests/v8_art4_reference_audit.gd"',
+    '"res://tests/v8_art4_pixel_counteraudit.gd"',
     "qualification_counteraudit.py",
     "qualification_countercounteraudit.py",
     "verify_web_export.py",
