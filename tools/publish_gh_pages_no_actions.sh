@@ -10,7 +10,7 @@ SOURCE_BRANCH="godmode/production-assets-v6-rebuild"
 PUBLISH_BRANCH="gh-pages"
 TMP_BRANCH="__eden_pages_publish"
 PRODUCT_REVISION="0.6.4-authored-art4"
-FULL_QUALIFICATION="all-gdscript+release-integrity+live-binding+art4-reference+art4-pixel+systems-stress+input-lifecycle+legacy+boot+web+counteraudit+mutation-countercounteraudit+final-artifact-countercounteraudit"
+FULL_QUALIFICATION="all-gdscript+release-integrity+live-binding+art4-reference+art4-pixel+systems-stress+expressive-range+input-lifecycle+legacy+boot+web+counteraudit+mutation-countercounteraudit+final-artifact-countercounteraudit"
 
 for tool in git python3 awk find; do
   command -v "$tool" >/dev/null 2>&1 || { echo "ERROR: $tool is required" >&2; exit 2; }
