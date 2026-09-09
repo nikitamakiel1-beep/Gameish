@@ -9,7 +9,9 @@ const EXPECTED_REVISION: String = "0.6.4-authored-art4"
 func _script_path(value: Variant) -> String:
 	if value == null or not (value is Object):
 		return ""
-	var object: Object = value
+	var object: Object = value as Object
+	if object == null:
+		return ""
 	var script: Script = object.get_script() as Script
 	return script.resource_path if script != null else ""
 
