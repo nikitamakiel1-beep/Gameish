@@ -5,12 +5,14 @@ Two modes are intentional:
 
 * --structural validates the freshly exported payload while it is still marked
   pending/unqualified.
-* strict/default validates a publishable artifact and requires the qualification
-  proof written only after audit, counteraudit and mutation countercounteraudit.
+* strict/default validates a publishable artifact and requires portable
+  qualification evidence written only after audit, counteraudit and mutation
+  countercounteraudit.
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import pathlib
 import re
@@ -19,7 +21,7 @@ import sys
 EXPECTED_VERSION = "0.6.4-authored-art4"
 EXPECTED_BRANCH = "godmode/production-assets-v6-rebuild"
 EXPECTED_CHANNEL = "github-pages-test-no-actions"
-EXPECTED_QUALIFICATION = "all-gdscript+release-integrity+live-binding+art4+legacy+boot+web+counteraudit+mutation-countercounteraudit"
+EXPECTED_QUALIFICATION = "all-gdscript+release-integrity+live-binding+art4-reference+art4-pixel+systems-stress+input-lifecycle+legacy+boot+web+counteraudit+mutation-countercounteraudit"
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -38,6 +40,14 @@ def load_json(path: pathlib.Path, label: str) -> dict:
     return value
 
 
+def sha256(path: pathlib.Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("root", nargs="?", default="build/web")
@@ -47,7 +57,11 @@ def main() -> int:
     root = pathlib.Path(args.root).resolve()
     required = ["index.html", "index.js", "index.wasm", "index.pck", ".nojekyll", "build-info.json"]
     if not args.structural:
-        required.append("qualification-proof.json")
+        required.extend([
+            "qualification-proof.json",
+            "qualification/counteraudit-report.json",
+            "qualification/countercounteraudit-report.json",
+        ])
     for name in required:
         path = root / name
         if not path.exists():
@@ -114,13 +128,44 @@ def main() -> int:
             fail("qualification proof does not attest counteraudit success")
         if proof.get("countercounteraudit_passed") is not True:
             fail("qualification proof does not attest countercounteraudit success")
-        for key in ("counteraudit_report_sha256", "countercounteraudit_report_sha256"):
-            value = str(proof.get(key, ""))
+
+        counter_path = root / "qualification" / "counteraudit-report.json"
+        countercounter_path = root / "qualification" / "countercounteraudit-report.json"
+        counter = load_json(counter_path, "qualification/counteraudit-report.json")
+        countercounter = load_json(countercounter_path, "qualification/countercounteraudit-report.json")
+        if counter.get("passed") is not True:
+            fail("portable counteraudit report is not passing")
+        if counter.get("revision") != EXPECTED_VERSION:
+            fail("portable counteraudit report revision mismatch")
+        if counter.get("source_commit") != source_commit:
+            fail("portable counteraudit report source commit mismatch")
+        if countercounter.get("passed") is not True:
+            fail("portable countercounteraudit report is not passing")
+        if int(countercounter.get("mutation_tests", 0)) < 8:
+            fail("portable countercounteraudit report contains too few mutation tests")
+        rejected = countercounter.get("rejected_mutations", [])
+        if not isinstance(rejected, list) or len(rejected) != int(countercounter.get("mutation_tests", 0)):
+            fail("portable countercounteraudit report does not prove rejection of every mutation")
+
+        expected_counter_hash = str(proof.get("counteraudit_report_sha256", ""))
+        expected_countercounter_hash = str(proof.get("countercounteraudit_report_sha256", ""))
+        for key, value in (
+            ("counteraudit_report_sha256", expected_counter_hash),
+            ("countercounteraudit_report_sha256", expected_countercounter_hash),
+        ):
             if not SHA256.fullmatch(value):
                 fail(f"qualification proof has malformed {key}")
+        actual_counter_hash = sha256(counter_path)
+        actual_countercounter_hash = sha256(countercounter_path)
+        if actual_counter_hash != expected_counter_hash:
+            fail("portable counteraudit report hash does not match qualification proof")
+        if actual_countercounter_hash != expected_countercounter_hash:
+            fail("portable countercounteraudit report hash does not match qualification proof")
+
         proof_summary = {
-            "counteraudit_report_sha256": proof["counteraudit_report_sha256"],
-            "countercounteraudit_report_sha256": proof["countercounteraudit_report_sha256"],
+            "counteraudit_report_sha256": actual_counter_hash,
+            "countercounteraudit_report_sha256": actual_countercounter_hash,
+            "mutation_tests": int(countercounter.get("mutation_tests", 0)),
         }
 
     report = {
