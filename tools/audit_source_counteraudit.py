@@ -201,6 +201,8 @@ def main() -> int:
     require(pipeline, PIPELINE_REQUIRED, "export pipeline", errors)
     if f'FULL_QUALIFICATION="{FULL_QUALIFICATION}"' not in pipeline:
         errors.append("export pipeline final qualification contract drifted")
+    if "--test-log-only-toolchain" in pipeline:
+        errors.append("production export pipeline must never use the mutation-only toolchain fast path")
 
     try:
         counteraudit = read("tools/qualification_counteraudit.py")
@@ -219,6 +221,9 @@ def main() -> int:
             "EDEN_TOOLCHAIN_EXPECTED_WEB_TEMPLATE_SHA256",
             "recompute_toolchain",
             "unique_zip_member",
+            "--test-log-only-toolchain",
+            "EDEN_MUTATION_TEST",
+            '"toolchain_recomputed": not args.test_log_only_toolchain',
             "installed Godot editor differs from the member in the verified official archive",
         ),
         "qualification counteraudit",
@@ -244,11 +249,13 @@ def main() -> int:
             "qualification_stage",
             "verify_payload_hashes",
             "verify_portable_counteraudit",
+            "toolchain_recomputed",
             "EXPECTED_AUDIT_LOGS = 17",
             "EXPECTED_REQUIRED_LOGS = 24",
             "EXPECTED_EXACT_MARKERS = 21",
             "EXPECTED_COUNTERCOUNTER_MUTATIONS = 15",
-            "EXPECTED_FINAL_MUTATIONS = 12",
+            "EXPECTED_FULL_TOOLCHAIN_RECOMPUTATIONS = 2",
+            "EXPECTED_FINAL_MUTATIONS = 13",
             "final_countercounteraudit_report_sha256",
             "portable countercounteraudit report source commit mismatch",
             "serviceWorker.register",
@@ -323,7 +330,11 @@ def main() -> int:
         (
             EXPECTED_REVISION,
             "source_commit",
+            "counteraudit_command",
+            "full=True",
+            'env["EDEN_MUTATION_TEST"] = "1"',
             "expected_mutations = 15",
+            '"full_toolchain_recomputations": 2',
             "missing-expressive-range-pass-marker",
             "wrong-audit-pass-marker",
             "case-insensitive-fatal-diagnostic",
@@ -349,8 +360,10 @@ def main() -> int:
             "proof-payload-hash-forged",
             "counter-report-expressive-contract-forged",
             "counter-report-toolchain-evidence-forged",
+            "countercounter-toolchain-depth-forged",
             "rebind_counter_hash",
-            "expected = 12",
+            "rebind_countercounter_hash",
+            "expected = 13",
             "--pre-final",
             "mutation_tests",
         ),
