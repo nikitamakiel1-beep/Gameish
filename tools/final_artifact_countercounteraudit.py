@@ -2,9 +2,9 @@
 """Mutation-test the finalized EDEN//FALL qualification boundary.
 
 This runs after the first two counteraudit reports have been embedded and the
-artifact has been provisionally promoted. It requires the pre-final strict
-verifier to reject forged final metadata/proofs/evidence before the final
-countercounteraudit report itself is bound into the qualification proof.
+artifact has been provisionally promoted. It requires the pre-final verifier to
+reject forged metadata, proofs, portable evidence and post-audit payload edits
+before the final mutation report itself is bound into qualification-proof.json.
 """
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 VERIFIER = ROOT / "tools" / "verify_web_export.py"
+EXPECTED_VERSION = "0.6.4-authored-art4"
 
 
 def run(command: list[str]) -> subprocess.CompletedProcess[str]:
@@ -63,9 +64,16 @@ def main() -> int:
     errors: list[str] = []
     rejected: list[str] = []
 
+    try:
+        baseline_info = json.loads((build / "build-info.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"ERROR: cannot read baseline build metadata: {exc}", file=sys.stderr)
+        return 1
+    source_commit = str(baseline_info.get("source_commit", ""))
+
     baseline = run([sys.executable, str(VERIFIER), "--pre-final", str(build)])
     if baseline.returncode != 0 or "EDEN_WEB_EXPORT_PRE_FINAL_VERIFIER=PASS" not in baseline.stdout:
-        errors.append("baseline pre-final strict verifier does not pass")
+        errors.append("baseline pre-final verifier does not pass")
 
     with tempfile.TemporaryDirectory(prefix="eden-final-mutations-") as temporary:
         root = pathlib.Path(temporary)
@@ -98,6 +106,24 @@ def main() -> int:
         write_json(case / "qualification-proof.json", proof)
         expect_rejected("proof-counter-hash-forged", case, errors, rejected)
 
+        case = root / "proof-payload-hash-forged"
+        clone_lightweight(build, case)
+        proof = json.loads((case / "qualification-proof.json").read_text(encoding="utf-8"))
+        payload = dict(proof.get("payload_sha256", {}))
+        payload["index.pck"] = "0" * 64
+        proof["payload_sha256"] = payload
+        write_json(case / "qualification-proof.json", proof)
+        expect_rejected("proof-payload-hash-forged", case, errors, rejected)
+
+        case = root / "payload-html-tamper"
+        clone_lightweight(build, case)
+        html_path = case / "index.html"
+        html_path.write_text(
+            html_path.read_text(encoding="utf-8", errors="replace") + "\n<!-- mutation -->\n",
+            encoding="utf-8",
+        )
+        expect_rejected("payload-html-tamper", case, errors, rejected)
+
         case = root / "counter-report-failed"
         clone_lightweight(build, case)
         report_path = case / "qualification" / "counteraudit-report.json"
@@ -127,11 +153,13 @@ def main() -> int:
         write_json(case / "build-info.json", info)
         expect_rejected("malformed-source-sha", case, errors, rejected)
 
-    expected = 8
+    expected = 10
     if len(rejected) != expected:
         errors.append(f"expected {expected} final-artifact mutations to be rejected, got {len(rejected)}")
 
     report = {
+        "revision": EXPECTED_VERSION,
+        "source_commit": source_commit,
         "passed": not errors,
         "mutation_tests": expected,
         "rejected_mutations": rejected,
