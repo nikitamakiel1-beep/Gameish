@@ -10,7 +10,7 @@ SOURCE_BRANCH="godmode/production-assets-v6-rebuild"
 PUBLISH_BRANCH="gh-pages"
 TMP_BRANCH="__eden_pages_publish"
 PRODUCT_REVISION="0.6.4-authored-art4"
-FULL_QUALIFICATION="all-gdscript+release-integrity+live-binding+art4+legacy+boot+web+counteraudit+mutation-countercounteraudit"
+FULL_QUALIFICATION="all-gdscript+release-integrity+live-binding+art4-reference+art4-pixel+systems-stress+input-lifecycle+legacy+boot+web+counteraudit+mutation-countercounteraudit"
 
 for tool in git python3 awk find; do
   command -v "$tool" >/dev/null 2>&1 || { echo "ERROR: $tool is required" >&2; exit 2; }
@@ -34,8 +34,11 @@ fi
 
 [[ -s "$BUILD_DIR/build-info.json" ]] || { echo "ERROR: build-info.json missing" >&2; exit 5; }
 [[ -s "$BUILD_DIR/qualification-proof.json" ]] || { echo "ERROR: qualification-proof.json missing; rebuild and complete counteraudits" >&2; exit 5; }
+[[ -s "$BUILD_DIR/qualification/counteraudit-report.json" ]] || { echo "ERROR: portable counteraudit report missing" >&2; exit 5; }
+[[ -s "$BUILD_DIR/qualification/countercounteraudit-report.json" ]] || { echo "ERROR: portable countercounteraudit report missing" >&2; exit 5; }
 
-# Strict verifier requires the finalized qualification proof.
+# Strict verifier requires the finalized qualification proof and recomputes the
+# portable evidence hashes before anything can be copied to gh-pages.
 python3 "$ROOT/tools/verify_web_export.py" "$BUILD_DIR"
 
 EMAIL="$(git config user.email || true)"
