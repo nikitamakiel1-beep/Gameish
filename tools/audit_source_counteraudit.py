@@ -265,7 +265,15 @@ def main() -> int:
         lower_mutation = ""
     require(
         lower_mutation,
-        (EXPECTED_REVISION, "source_commit", "mutation_tests", "wrong-audit-pass-marker", "case-insensitive-fatal-diagnostic"),
+        (
+            EXPECTED_REVISION,
+            "source_commit",
+            "mutation_tests",
+            "wrong-audit-pass-marker",
+            "case-insensitive-fatal-diagnostic",
+            "corrupt-toolchain-archive-digest",
+            "malformed-installed-template-digest",
+        ),
         "qualification mutation audit",
         errors,
     )
