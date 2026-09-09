@@ -2,8 +2,8 @@
 """Counteraudit the EDEN//FALL qualification machinery itself.
 
 Independent of Godot: verifies critical runtime hardening, audit failure paths,
-qualification wiring, pinned toolchain provenance, and agreement between the
-exporter/verifier/publisher on the exact final qualification contract.
+qualification wiring, pinned/recomputed toolchain provenance, and agreement
+between exporter/verifier/publisher/preview on the final qualification contract.
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ GODOT_ARCHIVE_SHA256 = "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27a
 TEMPLATES_ARCHIVE_SHA256 = "86409db6200b6f8fd3230989c2d2002851f3dd18acf11d7bdbafddf5a0dd0f72"
 FULL_QUALIFICATION = (
     "all-gdscript+release-integrity+live-binding+art4-reference+art4-pixel+"
-    "systems-stress+input-lifecycle+legacy+boot+web+counteraudit+"
+    "systems-stress+expressive-range+input-lifecycle+legacy+boot+web+counteraudit+"
     "mutation-countercounteraudit+final-artifact-countercounteraudit"
 )
 
@@ -39,7 +39,13 @@ RUNTIME_HARDENING: dict[str, tuple[str, ...]] = {
         "RECOVERY_SAMPLES",
         "effective_limit",
         "post_frame_auto_observation",
+        "gameplay_only_observation",
         "player_bullet_priority",
+    ),
+    "scripts/edenfall_v6_runtime.gd": (
+        'performance_budget.call("enforce_post_frame"',
+        'state == "run" and not paused',
+        'performance_budget.call("report")',
     ),
     "scripts/v8/entropy_director.gd": (
         "func derive_seed",
@@ -84,6 +90,18 @@ AUDITS: dict[str, tuple[str, ...]] = {
         "push_error",
         "quit(1)",
     ),
+    "tests/v8_expressive_range_counteraudit.gd": (
+        "EDEN_FALL_V8_EXPRESSIVE_RANGE_COUNTERAUDIT=PASS",
+        EXPECTED_REVISION,
+        "story_landmark_pairs",
+        "semantic_cells",
+        "global_semantic_cells",
+        "identity_anchor_cells",
+        "legal_variant_cells",
+        "approved_modules_only",
+        "push_error",
+        "quit(1)",
+    ),
     "tests/v6_input_lifecycle_audit.gd": (
         "EDEN_FALL_V6_INPUT_LIFECYCLE_AUDIT=PASS", "Input.action_press", "NOTIFICATION_OS_MEMORY_WARNING", "NOTIFICATION_APPLICATION_FOCUS_OUT", "get_tree().quit(1)"
     ),
@@ -95,8 +113,12 @@ PIPELINE_REQUIRED = (
     GODOT_ARCHIVE_SHA256,
     TEMPLATES_ARCHIVE_SHA256,
     "ensure_verified_archive",
+    "zipfile.ZipFile",
+    "EXPECTED_TEMPLATE_HASH",
     "EDEN_TOOLCHAIN_GODOT_ARCHIVE_SHA256",
     "EDEN_TOOLCHAIN_TEMPLATES_ARCHIVE_SHA256",
+    "EDEN_TOOLCHAIN_WEB_TEMPLATE_MEMBER",
+    "EDEN_TOOLCHAIN_EXPECTED_WEB_TEMPLATE_SHA256",
     "EDEN_TOOLCHAIN_WEB_TEMPLATE_SHA256",
     "EDEN_TOOLCHAIN_PROVENANCE=PASS",
     "toolchain-provenance.log",
@@ -107,6 +129,7 @@ PIPELINE_REQUIRED = (
     '"res://tests/v8_art4_reference_audit.gd"',
     '"res://tests/v8_art4_pixel_counteraudit.gd"',
     '"res://tests/v8_systems_stress_counteraudit.gd"',
+    '"res://tests/v8_expressive_range_counteraudit.gd"',
     'run_scene_audit "res://tests/v6_input_lifecycle_audit.tscn" "v6_input_lifecycle_audit"',
     "qualification_counteraudit.py",
     "qualification_countercounteraudit.py",
@@ -189,9 +212,14 @@ def main() -> int:
         (
             GODOT_ARCHIVE_SHA256,
             TEMPLATES_ARCHIVE_SHA256,
+            "v8_expressive_range_counteraudit.log",
+            "EDEN_FALL_V8_EXPRESSIVE_RANGE_COUNTERAUDIT=PASS",
             "toolchain-provenance.log",
-            "EDEN_TOOLCHAIN_WEB_TEMPLATE_SHA256",
-            "parse_toolchain_log",
+            "EDEN_TOOLCHAIN_WEB_TEMPLATE_MEMBER",
+            "EDEN_TOOLCHAIN_EXPECTED_WEB_TEMPLATE_SHA256",
+            "recompute_toolchain",
+            "unique_zip_member",
+            "installed Godot editor differs from the member in the verified official archive",
         ),
         "qualification counteraudit",
         errors,
@@ -219,6 +247,7 @@ def main() -> int:
             "portable countercounteraudit report source commit mismatch",
             "serviceWorker.register",
             "\\x00asm",
+            "expressive-range",
         ),
         "Web verifier",
         errors,
@@ -243,12 +272,32 @@ def main() -> int:
             "final_countercounteraudit_passed",
             "final_countercounteraudit_report_sha256",
             "git rev-parse HEAD",
+            "expressive-range",
         ),
         "Pages publisher",
         errors,
     )
     if f'FULL_QUALIFICATION="{FULL_QUALIFICATION}"' not in publisher:
         errors.append("Pages publisher final qualification contract drifted")
+
+    try:
+        preview = read("tools/codespaces_serve.sh")
+    except (OSError, UnicodeError) as exc:
+        errors.append(f"cannot inspect Codespaces preview boundary: {exc}")
+        preview = ""
+    require(
+        preview,
+        (
+            "verify_web_export.py",
+            "qualification/final-artifact-countercounteraudit-report.json",
+            "final_countercounteraudit_passed",
+            "source_commit",
+            "qualified",
+            "playable",
+        ),
+        "Codespaces preview boundary",
+        errors,
+    )
 
     try:
         static_audit = read("tools/static_tooling_audit.py")
@@ -269,10 +318,13 @@ def main() -> int:
             EXPECTED_REVISION,
             "source_commit",
             "mutation_tests",
+            "missing-expressive-range-pass-marker",
             "wrong-audit-pass-marker",
             "case-insensitive-fatal-diagnostic",
             "corrupt-toolchain-archive-digest",
             "malformed-installed-template-digest",
+            "mismatched-installed-template-digest",
+            "forged-matching-template-digests",
         ),
         "qualification mutation audit",
         errors,
