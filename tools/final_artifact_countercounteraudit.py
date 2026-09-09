@@ -9,6 +9,7 @@ before the final mutation report itself is bound into qualification-proof.json.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import pathlib
@@ -53,6 +54,18 @@ def expect_rejected(name: str, case: pathlib.Path, errors: list[str], rejected: 
 
 def write_json(path: pathlib.Path, value: dict) -> None:
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def sha256(path: pathlib.Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def rebind_counter_hash(case: pathlib.Path) -> None:
+    report_path = case / "qualification" / "counteraudit-report.json"
+    proof_path = case / "qualification-proof.json"
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    proof["counteraudit_report_sha256"] = sha256(report_path)
+    write_json(proof_path, proof)
 
 
 def main() -> int:
@@ -134,6 +147,26 @@ def main() -> int:
         write_json(report_path, report)
         expect_rejected("counter-report-failed", case, errors, rejected)
 
+        # Rebind the proof hash after semantic forgery. These two cases prove the
+        # verifier validates the report's meaning rather than only its checksum.
+        case = root / "counter-report-expressive-contract-forged"
+        clone_lightweight(build, case)
+        report_path = case / "qualification" / "counteraudit-report.json"
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        report["audit_logs"] = 16
+        write_json(report_path, report)
+        rebind_counter_hash(case)
+        expect_rejected("counter-report-expressive-contract-forged", case, errors, rejected)
+
+        case = root / "counter-report-toolchain-evidence-forged"
+        clone_lightweight(build, case)
+        report_path = case / "qualification" / "counteraudit-report.json"
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        report["recomputed_toolchain"] = {}
+        write_json(report_path, report)
+        rebind_counter_hash(case)
+        expect_rejected("counter-report-toolchain-evidence-forged", case, errors, rejected)
+
         case = root / "countercounter-evidence-truncated"
         clone_lightweight(build, case)
         report_path = case / "qualification" / "countercounteraudit-report.json"
@@ -155,7 +188,7 @@ def main() -> int:
         write_json(case / "build-info.json", info)
         expect_rejected("malformed-source-sha", case, errors, rejected)
 
-    expected = 10
+    expected = 12
     if len(rejected) != expected:
         errors.append(f"expected {expected} final-artifact mutations to be rejected, got {len(rejected)}")
 
