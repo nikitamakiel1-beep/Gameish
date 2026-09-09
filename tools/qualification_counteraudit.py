@@ -261,6 +261,9 @@ def main() -> int:
     parser.add_argument("--build", default=str(ROOT / "build" / "web"))
     parser.add_argument("--validation", default=str(ROOT / "validation" / "no-actions-art4"))
     parser.add_argument("--report")
+    # Test-only optimization used by qualification_countercounteraudit.py after
+    # its baseline full recomputation. Production exporter never passes it.
+    parser.add_argument("--test-log-only-toolchain", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
 
     build = pathlib.Path(args.build).resolve()
@@ -329,7 +332,12 @@ def main() -> int:
             marker_exact_once(path, marker, errors)
 
     toolchain = parse_toolchain_log(validation / "toolchain-provenance.log", errors)
-    recomputed_toolchain = recompute_toolchain(toolchain, errors)
+    if args.test_log_only_toolchain:
+        if os.environ.get("EDEN_MUTATION_TEST") != "1":
+            errors.append("test-only toolchain fast path requires EDEN_MUTATION_TEST=1")
+        recomputed_toolchain: dict[str, str] = {}
+    else:
+        recomputed_toolchain = recompute_toolchain(toolchain, errors)
 
     hash_manifest_path = validation / "web-sha256.txt"
     try:
@@ -367,6 +375,7 @@ def main() -> int:
         "core_hashes_checked": len(CORE_FILES),
         "toolchain": toolchain,
         "recomputed_toolchain": recomputed_toolchain,
+        "toolchain_recomputed": not args.test_log_only_toolchain,
         "errors": errors,
         "passed": not errors,
     }
