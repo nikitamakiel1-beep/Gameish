@@ -1,0 +1,10 @@
+{
+  "project": "EDEN//FALL",
+  "version": "0.6.0",
+  "godot": "4.7.1",
+  "source_commit": "7cce10d23b9ec5730c8f4a78acefd5b16313d2e2",
+  "source_branch": "godmode/production-assets-v6-rebuild",
+  "published_branch": "gh-pages",
+  "playable": true,
+  "built_at": "2026-09-09T11:48:27Z"
+}
