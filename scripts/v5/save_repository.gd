@@ -36,10 +36,12 @@ func write_json_atomic(path: String, payload: Dictionary) -> bool:
 		DirAccess.remove_absolute(temporary)
 		return false
 
-	# Never replace a previous-good backup with a corrupt-but-parseable primary.
+	# Preserve both integrity-verified primaries and readable legacy schema-v5
+	# primaries as previous-good backups. A checksum-bearing mismatch is never
+	# promoted into the backup slot.
 	var primary_exists := FileAccess.file_exists(path)
-	var primary_valid := primary_exists and _candidate_is_valid(path)
-	if primary_valid:
+	var primary_good := primary_exists and _candidate_is_previous_good(path)
+	if primary_good:
 		if FileAccess.file_exists(backup):
 			DirAccess.remove_absolute(backup)
 		if DirAccess.rename_absolute(path, backup) != OK:
@@ -77,19 +79,13 @@ func audit_contract() -> Dictionary:
 		"prepromotion_readback": true,
 		"preserve_good_backup_on_bad_primary": true,
 		"legacy_read_compatibility": true,
+		"legacy_backup_preservation": true,
 	}
 
 func _read_candidate(path: String) -> Dictionary:
-	if not FileAccess.file_exists(path):
+	var document := _parse_dictionary(path)
+	if document.is_empty():
 		return {}
-	var file := FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		return {}
-	var parsed = JSON.parse_string(file.get_as_text())
-	file.close()
-	if not parsed is Dictionary:
-		return {}
-	var document := Dictionary(parsed)
 	if document.has(INTEGRITY_FIELD):
 		var expected := String(document.get(INTEGRITY_FIELD, ""))
 		var actual := _checksum_for(document)
@@ -99,20 +95,32 @@ func _read_candidate(path: String) -> Dictionary:
 	return document
 
 func _candidate_is_valid(path: String) -> bool:
-	if not FileAccess.file_exists(path):
-		return false
-	var file := FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		return false
-	var parsed = JSON.parse_string(file.get_as_text())
-	file.close()
-	if not parsed is Dictionary:
-		return false
-	var document := Dictionary(parsed)
-	if not document.has(INTEGRITY_FIELD):
+	var document := _parse_dictionary(path)
+	if document.is_empty() or not document.has(INTEGRITY_FIELD):
 		return false
 	var expected := String(document.get(INTEGRITY_FIELD, ""))
 	return not expected.is_empty() and expected == _checksum_for(document)
+
+func _candidate_is_previous_good(path: String) -> bool:
+	var document := _parse_dictionary(path)
+	if document.is_empty():
+		return false
+	if document.has(INTEGRITY_FIELD):
+		var expected := String(document.get(INTEGRITY_FIELD, ""))
+		return not expected.is_empty() and expected == _checksum_for(document)
+	return int(document.get("schema_version", -1)) == VERSION
+
+func _parse_dictionary(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		return {}
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return {}
+	var parsed = JSON.parse_string(file.get_as_text())
+	file.close()
+	if not (parsed is Dictionary):
+		return {}
+	return Dictionary(parsed)
 
 func _checksum_for(payload: Dictionary) -> String:
 	var canonical := payload.duplicate(true)
