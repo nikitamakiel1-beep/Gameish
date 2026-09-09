@@ -62,6 +62,25 @@ AUDITS: dict[str, tuple[str, ...]] = {
         "push_error",
         "quit(1)",
     ),
+    "tests/v8_systems_stress_counteraudit.gd": (
+        "EDEN_FALL_V8_SYSTEMS_STRESS_COUNTERAUDIT=PASS",
+        EXPECTED_REVISION,
+        "write_json_atomic",
+        "backup_corruption_recovery",
+        "admit_bullet",
+        "materialize_delay",
+        "compose",
+        "unique_tokens",
+        "push_error",
+        "quit(1)",
+    ),
+    "tests/v6_input_lifecycle_audit.gd": (
+        "EDEN_FALL_V6_INPUT_LIFECYCLE_AUDIT=PASS",
+        "Input.action_press",
+        "NOTIFICATION_OS_MEMORY_WARNING",
+        "NOTIFICATION_APPLICATION_FOCUS_OUT",
+        "get_tree().quit(1)",
+    ),
 }
 
 PIPELINE_REQUIRED = (
@@ -73,8 +92,12 @@ PIPELINE_REQUIRED = (
     '"res://tests/v8_live_binding_counteraudit.gd"',
     '"res://tests/v8_art4_reference_audit.gd"',
     '"res://tests/v8_art4_pixel_counteraudit.gd"',
+    '"res://tests/v8_systems_stress_counteraudit.gd"',
+    'run_scene_audit "res://tests/v6_input_lifecycle_audit.tscn" "v6_input_lifecycle_audit"',
     "qualification_counteraudit.py",
     "qualification_countercounteraudit.py",
+    "qualification/counteraudit-report.json",
+    "qualification/countercounteraudit-report.json",
     "verify_web_export.py",
 )
 
@@ -118,6 +141,9 @@ def main() -> int:
         "source_commit",
         "qualified",
         "qualification-proof.json",
+        "qualification/counteraudit-report.json",
+        "qualification/countercounteraudit-report.json",
+        "sha256(counter_path)",
         "serviceWorker.register",
         "\\x00asm",
     ):
@@ -133,6 +159,8 @@ def main() -> int:
         "verify_web_export.py",
         "source_commit",
         "qualification-proof.json",
+        "qualification/counteraudit-report.json",
+        "qualification/countercounteraudit-report.json",
         "git rev-parse HEAD",
     ):
         if needle not in publisher:
