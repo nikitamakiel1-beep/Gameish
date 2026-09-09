@@ -140,6 +140,7 @@ def main() -> int:
             "qualification_stage",
             "verify_payload_hashes",
             "final_countercounteraudit_report_sha256",
+            "portable countercounteraudit report source commit mismatch",
             "serviceWorker.register",
             "\\x00asm",
         ),
@@ -180,6 +181,18 @@ def main() -> int:
         static_audit = ""
     if 'TOOLS / "final_artifact_countercounteraudit.py"' not in static_audit:
         errors.append("static tooling audit does not classify final-artifact countercounteraudit as critical")
+
+    try:
+        lower_mutation = read("tools/qualification_countercounteraudit.py")
+    except (OSError, UnicodeError) as exc:
+        errors.append(f"cannot inspect qualification mutation audit: {exc}")
+        lower_mutation = ""
+    require(
+        lower_mutation,
+        (EXPECTED_REVISION, "source_commit", "mutation_tests", "wrong-audit-pass-marker", "case-insensitive-fatal-diagnostic"),
+        "qualification mutation audit",
+        errors,
+    )
 
     try:
         final_mutation = read("tools/final_artifact_countercounteraudit.py")
