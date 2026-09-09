@@ -19,13 +19,13 @@ TEMPLATE_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/godot/export_templates/${GOD
 BUILD_DIR="$ROOT/build/web"
 VALIDATION_DIR="$ROOT/validation/no-actions-art4"
 PRODUCT_REVISION="0.6.4-authored-art4"
-FULL_QUALIFICATION="all-gdscript+release-integrity+live-binding+art4+legacy+boot+web+counteraudit+mutation-countercounteraudit"
+FULL_QUALIFICATION="all-gdscript+release-integrity+live-binding+art4-reference+art4-pixel+systems-stress+input-lifecycle+legacy+boot+web+counteraudit+mutation-countercounteraudit"
 SOURCE_BRANCH="godmode/production-assets-v6-rebuild"
 
 need() {
   command -v "$1" >/dev/null 2>&1 || { echo "ERROR: required command not found: $1" >&2; exit 2; }
 }
-for tool in bash curl unzip git python3 timeout tee grep find sha256sum basename; do
+for tool in bash curl unzip git python3 timeout tee grep find sha256sum basename cp mkdir; do
   need "$tool"
 done
 
@@ -120,20 +120,40 @@ run_audit() {
   fatal_log "$log"
 }
 
+run_scene_audit() {
+  local scene="$1"
+  local name="$2"
+  local log="$VALIDATION_DIR/${name}.log"
+  echo "[eden] scene audit: $scene"
+  set +e
+  timeout 30s "$GODOT" --headless --audio-driver Dummy --path "$ROOT" "$scene" >"$log" 2>&1
+  local code=$?
+  set -e
+  cat "$log"
+  if [[ $code -ne 0 ]]; then
+    echo "ERROR: scene audit $scene failed with code $code" >&2
+    exit 21
+  fi
+  fatal_log "$log"
+}
+
 echo "[eden] clean editor import / project parse"
 IMPORT_LOG="$VALIDATION_DIR/import.log"
 "$GODOT" --headless --audio-driver Dummy --path "$ROOT" --editor --quit --verbose 2>&1 | tee "$IMPORT_LOG"
 fatal_log "$IMPORT_LOG"
 
-# Audit layer 1: every script and the explicitly ordered production dependency chain.
+# Audit layer 1A: every script and the explicitly ordered production dependency chain.
 run_audit "res://tests/all_gdscript_compile_audit.gd"
 run_audit "res://tests/v8_compile_chain_probe.gd"
 
+# Audit layer 1B: release identity, live Art4 binding, direct generated-pixel checks,
+# persistence/entropy/fairness/performance stress, then inherited compatibility gates.
 AUDITS=(
   "res://tests/v8_release_integrity_audit.gd"
   "res://tests/v8_live_binding_counteraudit.gd"
   "res://tests/v8_art4_reference_audit.gd"
   "res://tests/v8_art4_pixel_counteraudit.gd"
+  "res://tests/v8_systems_stress_counteraudit.gd"
   "res://tests/v8_art_direction_audit.gd"
   "res://tests/v8_presentation_audit.gd"
   "res://tests/v6_factory_audit.gd"
@@ -146,6 +166,10 @@ AUDITS=(
 for audit in "${AUDITS[@]}"; do
   run_audit "$audit"
 done
+
+# This legacy audit is a Node/scene test, not a SceneTree --script test. Run the
+# actual .tscn so action-map input, memory warnings and app focus lifecycle execute.
+run_scene_audit "res://tests/v6_input_lifecycle_audit.tscn" "v6_input_lifecycle_audit"
 
 echo "[eden] bounded headless game boot"
 BOOT_LOG="$VALIDATION_DIR/boot.log"
@@ -222,10 +246,19 @@ python3 "$ROOT/tools/qualification_countercounteraudit.py" \
   --build "$BUILD_DIR" --validation "$VALIDATION_DIR" --report "$COUNTERCOUNTER_REPORT" \
   | tee "$VALIDATION_DIR/qualification-countercounteraudit.log"
 
-# Only now promote the artifact to playable/qualified and bind the two independent
-# reports into a publishable qualification proof.
+# Make compact evidence portable with the Web artifact. Strict verification and
+# gh-pages publishing will reparse and rehash these exact copies.
+PORTABLE_QUALIFICATION="$BUILD_DIR/qualification"
+mkdir -p "$PORTABLE_QUALIFICATION"
+PORTABLE_COUNTER="$PORTABLE_QUALIFICATION/counteraudit-report.json"
+PORTABLE_COUNTERCOUNTER="$PORTABLE_QUALIFICATION/countercounteraudit-report.json"
+cp "$COUNTER_REPORT" "$PORTABLE_COUNTER"
+cp "$COUNTERCOUNTER_REPORT" "$PORTABLE_COUNTERCOUNTER"
+
+# Only now promote the artifact to playable/qualified and bind the portable
+# independent reports into the publishable proof.
 python3 - "$BUILD_DIR/build-info.json" "$BUILD_DIR/qualification-proof.json" \
-  "$COUNTER_REPORT" "$COUNTERCOUNTER_REPORT" "$SOURCE_SHA" "$PRODUCT_REVISION" "$FULL_QUALIFICATION" <<'PY'
+  "$PORTABLE_COUNTER" "$PORTABLE_COUNTERCOUNTER" "$SOURCE_SHA" "$PRODUCT_REVISION" "$FULL_QUALIFICATION" <<'PY'
 import hashlib, json, pathlib, sys
 info_path = pathlib.Path(sys.argv[1])
 proof_path = pathlib.Path(sys.argv[2])
@@ -242,6 +275,8 @@ counter = json.loads(counter_path.read_text(encoding="utf-8"))
 countercounter = json.loads(countercounter_path.read_text(encoding="utf-8"))
 if counter.get("passed") is not True or countercounter.get("passed") is not True:
     raise SystemExit("ERROR: cannot finalize qualification from failing counteraudit report")
+if counter.get("source_commit") != source_sha or counter.get("revision") != revision:
+    raise SystemExit("ERROR: portable counteraudit report provenance mismatch")
 
 info = json.loads(info_path.read_text(encoding="utf-8"))
 info["playable"] = True
