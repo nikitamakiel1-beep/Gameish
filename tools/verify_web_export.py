@@ -23,6 +23,8 @@ EXPECTED_CHANNEL = "github-pages-test-no-actions"
 EXPECTED_AUDIT_LOGS = 17
 EXPECTED_REQUIRED_LOGS = 24
 EXPECTED_EXACT_MARKERS = 21
+EXPECTED_COUNTERCOUNTER_MUTATIONS = 15
+EXPECTED_FINAL_MUTATIONS = 12
 EXPECTED_QUALIFICATION = (
     "all-gdscript+release-integrity+live-binding+art4-reference+art4-pixel+"
     "systems-stress+expressive-range+input-lifecycle+legacy+boot+web+counteraudit+"
@@ -249,7 +251,11 @@ def main() -> int:
             fail("portable countercounteraudit report revision mismatch")
         if countercounter.get("source_commit") != source_commit:
             fail("portable countercounteraudit report source commit mismatch")
-        countercounter_tests = verify_mutation_report(countercounter, "portable countercounteraudit report", minimum=15)
+        countercounter_tests = verify_mutation_report(
+            countercounter,
+            "portable countercounteraudit report",
+            minimum=EXPECTED_COUNTERCOUNTER_MUTATIONS,
+        )
 
         expected_counter_hash = str(proof.get("counteraudit_report_sha256", ""))
         expected_countercounter_hash = str(proof.get("countercounteraudit_report_sha256", ""))
@@ -283,7 +289,11 @@ def main() -> int:
                 fail("final-artifact countercounteraudit revision mismatch")
             if final_report.get("source_commit") != source_commit:
                 fail("final-artifact countercounteraudit source commit mismatch")
-            final_tests = verify_mutation_report(final_report, "final-artifact countercounteraudit report", minimum=10)
+            final_tests = verify_mutation_report(
+                final_report,
+                "final-artifact countercounteraudit report",
+                minimum=EXPECTED_FINAL_MUTATIONS,
+            )
             expected_final_hash = str(proof.get("final_countercounteraudit_report_sha256", ""))
             if not SHA256.fullmatch(expected_final_hash):
                 fail("qualification proof has malformed final_countercounteraudit_report_sha256")
