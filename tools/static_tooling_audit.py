@@ -23,6 +23,9 @@ CRITICAL = [
     TOOLS / "publish_gh_pages_no_actions.sh",
     TOOLS / "verify_web_export.py",
     TOOLS / "codespaces_no_cache_server.py",
+    TOOLS / "audit_source_counteraudit.py",
+    TOOLS / "qualification_counteraudit.py",
+    TOOLS / "qualification_countercounteraudit.py",
 ]
 
 
