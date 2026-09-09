@@ -3,9 +3,9 @@ set -euo pipefail
 
 # EDEN//FALL — Codespaces/local Web export, explicitly without GitHub Actions.
 # Qualification is staged and fail-closed:
-# source/tooling -> Godot audits -> Web structure -> evidence counteraudit ->
-# mutation countercounteraudit -> provisional proof -> final-artifact mutation
-# countercounteraudit -> strict publishable verifier.
+# source/tooling -> verified toolchain -> Godot audits -> Web structure ->
+# evidence counteraudit -> mutation countercounteraudit -> provisional proof ->
+# final-artifact mutation countercounteraudit -> strict publishable verifier.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TOOLS_DIR="${EDEN_TOOLS_DIR:-$ROOT/.tools}"
@@ -16,9 +16,14 @@ GODOT_ZIP="$DOWNLOAD_DIR/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
 TEMPLATES_TPZ="$DOWNLOAD_DIR/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
 GODOT_URL="https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=linux.x86_64.zip&version=${GODOT_VERSION}"
 TEMPLATES_URL="https://downloads.godotengine.org/?flavor=stable&platform=templates&slug=export_templates.tpz&version=${GODOT_VERSION}"
+# Pinned from the official godotengine/godot-builds 4.7.1-stable release assets.
+GODOT_ZIP_SHA256="c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba"
+TEMPLATES_TPZ_SHA256="86409db6200b6f8fd3230989c2d2002851f3dd18acf11d7bdbafddf5a0dd0f72"
 TEMPLATE_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/godot/export_templates/${GODOT_VERSION}.stable"
+TEMPLATE_STAMP="$TEMPLATE_HOME/.eden-verified-template"
 BUILD_DIR="$ROOT/build/web"
 VALIDATION_DIR="$ROOT/validation/no-actions-art4"
+TOOLCHAIN_LOG="$VALIDATION_DIR/toolchain-provenance.log"
 PRODUCT_REVISION="0.6.4-authored-art4"
 FULL_QUALIFICATION="all-gdscript+release-integrity+live-binding+art4-reference+art4-pixel+systems-stress+input-lifecycle+legacy+boot+web+counteraudit+mutation-countercounteraudit+final-artifact-countercounteraudit"
 SOURCE_BRANCH="godmode/production-assets-v6-rebuild"
@@ -26,9 +31,42 @@ SOURCE_BRANCH="godmode/production-assets-v6-rebuild"
 need() {
   command -v "$1" >/dev/null 2>&1 || { echo "ERROR: required command not found: $1" >&2; exit 2; }
 }
-for tool in bash curl unzip git python3 timeout tee grep find sha256sum basename cp mkdir; do
+for tool in bash curl unzip git python3 timeout tee grep find sha256sum basename cp mkdir rm mv chmod; do
   need "$tool"
 done
+
+sha256_of() {
+  local file="$1"
+  local line
+  line="$(sha256sum "$file")"
+  printf '%s' "${line%% *}"
+}
+
+ensure_verified_archive() {
+  local file="$1"
+  local url="$2"
+  local expected="$3"
+  local label="$4"
+  local actual=""
+  if [[ -s "$file" ]]; then
+    actual="$(sha256_of "$file")"
+    if [[ "$actual" != "$expected" ]]; then
+      echo "[eden] cached $label checksum mismatch; discarding cached archive" >&2
+      rm -f "$file"
+    fi
+  fi
+  if [[ ! -s "$file" ]]; then
+    echo "[eden] downloading verified $label"
+    curl --fail --location --retry 3 --retry-delay 2 --output "$file" "$url"
+  fi
+  actual="$(sha256_of "$file")"
+  if [[ "$actual" != "$expected" ]]; then
+    rm -f "$file"
+    echo "ERROR: $label SHA-256 mismatch: got $actual expected $expected" >&2
+    exit 3
+  fi
+  printf '%s\n' "$actual"
+}
 
 python3 "$ROOT/tools/static_tooling_audit.py"
 python3 "$ROOT/tools/audit_source_counteraudit.py"
@@ -64,18 +102,20 @@ mkdir -p "$GODOT_DIR" "$DOWNLOAD_DIR" "$BUILD_DIR" "$VALIDATION_DIR"
 python3 "$ROOT/tools/static_tooling_audit.py" | tee "$VALIDATION_DIR/tooling-audit.log"
 python3 "$ROOT/tools/audit_source_counteraudit.py" | tee "$VALIDATION_DIR/audit-source-counteraudit.log"
 printf '%s\n' "$SOURCE_SHA" > "$VALIDATION_DIR/source-commit.txt"
+: > "$TOOLCHAIN_LOG"
 
-if [[ ! -x "$GODOT_DIR/godot" ]]; then
-  echo "[eden] downloading Godot ${GODOT_VERSION} Linux editor"
-  curl --fail --location --retry 3 --retry-delay 2 --output "$GODOT_ZIP" "$GODOT_URL"
-  rm -rf "$GODOT_DIR/unpacked"
-  mkdir -p "$GODOT_DIR/unpacked"
-  unzip -q -o "$GODOT_ZIP" -d "$GODOT_DIR/unpacked"
-  GODOT_BIN="$(find "$GODOT_DIR/unpacked" -maxdepth 1 -type f -name 'Godot_v*-stable_linux.x86_64' | head -n1)"
-  [[ -n "$GODOT_BIN" ]] || { echo "ERROR: Godot executable missing from archive" >&2; exit 3; }
-  mv "$GODOT_BIN" "$GODOT_DIR/godot"
-  chmod +x "$GODOT_DIR/godot"
-fi
+# Reconstruct the editor from the verified official archive on every qualification
+# so a stale/tampered cached executable can never inherit trust from --version alone.
+GODOT_ARCHIVE_HASH="$(ensure_verified_archive "$GODOT_ZIP" "$GODOT_URL" "$GODOT_ZIP_SHA256" "Godot ${GODOT_VERSION} Linux x86_64 editor")"
+printf 'EDEN_TOOLCHAIN_GODOT_ARCHIVE_SHA256=%s\n' "$GODOT_ARCHIVE_HASH" | tee -a "$TOOLCHAIN_LOG"
+rm -rf "$GODOT_DIR/unpacked"
+mkdir -p "$GODOT_DIR/unpacked"
+unzip -q -o "$GODOT_ZIP" -d "$GODOT_DIR/unpacked"
+GODOT_BIN="$(find "$GODOT_DIR/unpacked" -maxdepth 1 -type f -name 'Godot_v*-stable_linux.x86_64' | head -n1)"
+[[ -n "$GODOT_BIN" ]] || { echo "ERROR: Godot executable missing from verified archive" >&2; exit 3; }
+rm -f "$GODOT_DIR/godot"
+mv "$GODOT_BIN" "$GODOT_DIR/godot"
+chmod +x "$GODOT_DIR/godot"
 
 GODOT="$GODOT_DIR/godot"
 ENGINE_VERSION="$($GODOT --version | head -n1)"
@@ -85,17 +125,40 @@ case "$ENGINE_VERSION" in
 esac
 printf '%s\n' "$ENGINE_VERSION" | tee "$VALIDATION_DIR/engine-version.log"
 
-if [[ ! -f "$TEMPLATE_HOME/web_nothreads_release.zip" ]]; then
-  echo "[eden] downloading Godot ${GODOT_VERSION} export templates"
-  curl --fail --location --retry 3 --retry-delay 2 --output "$TEMPLATES_TPZ" "$TEMPLATES_URL"
+# The 1.2+ GiB template archive does not need to be re-unpacked every run. The
+# first verified installation records both the official TPZ digest and the inner
+# Web no-threads template digest; subsequent runs re-hash the installed template.
+TEMPLATE_OK=0
+if [[ -s "$TEMPLATE_HOME/web_nothreads_release.zip" && -s "$TEMPLATE_STAMP" ]]; then
+  mapfile -t STAMP_LINES < "$TEMPLATE_STAMP"
+  if [[ "${STAMP_LINES[0]:-}" == "$TEMPLATES_TPZ_SHA256" && "${STAMP_LINES[1]:-}" =~ ^[0-9a-f]{64}$ ]]; then
+    INSTALLED_TEMPLATE_HASH="$(sha256_of "$TEMPLATE_HOME/web_nothreads_release.zip")"
+    if [[ "$INSTALLED_TEMPLATE_HASH" == "${STAMP_LINES[1]}" ]]; then
+      TEMPLATE_OK=1
+    fi
+  fi
+fi
+if [[ $TEMPLATE_OK -ne 1 ]]; then
+  TEMPLATES_ARCHIVE_HASH="$(ensure_verified_archive "$TEMPLATES_TPZ" "$TEMPLATES_URL" "$TEMPLATES_TPZ_SHA256" "Godot ${GODOT_VERSION} export templates")"
   TMP_TEMPLATES="$(mktemp -d)"
-  trap 'rm -rf "$TMP_TEMPLATES"' EXIT
   unzip -q -o "$TEMPLATES_TPZ" -d "$TMP_TEMPLATES"
   SRC_TEMPLATES="$(find "$TMP_TEMPLATES" -type f -name 'web_nothreads_release.zip' -printf '%h\n' | head -n1)"
-  [[ -n "$SRC_TEMPLATES" ]] || { echo "ERROR: Web no-threads export template not found" >&2; exit 5; }
+  [[ -n "$SRC_TEMPLATES" ]] || { rm -rf "$TMP_TEMPLATES"; echo "ERROR: Web no-threads export template not found" >&2; exit 5; }
   mkdir -p "$TEMPLATE_HOME"
   cp -a "$SRC_TEMPLATES"/. "$TEMPLATE_HOME"/
+  rm -rf "$TMP_TEMPLATES"
+  INSTALLED_TEMPLATE_HASH="$(sha256_of "$TEMPLATE_HOME/web_nothreads_release.zip")"
+  printf '%s\n%s\n' "$TEMPLATES_ARCHIVE_HASH" "$INSTALLED_TEMPLATE_HASH" > "$TEMPLATE_STAMP"
+else
+  TEMPLATES_ARCHIVE_HASH="$TEMPLATES_TPZ_SHA256"
 fi
+# Re-read the payload after install/cache validation; the logged value is the
+# exact template bytes that the exporter will consume below.
+INSTALLED_TEMPLATE_HASH="$(sha256_of "$TEMPLATE_HOME/web_nothreads_release.zip")"
+printf 'EDEN_TOOLCHAIN_TEMPLATES_ARCHIVE_SHA256=%s\n' "$TEMPLATES_ARCHIVE_HASH" | tee -a "$TOOLCHAIN_LOG"
+printf 'EDEN_TOOLCHAIN_WEB_TEMPLATE_SHA256=%s\n' "$INSTALLED_TEMPLATE_HASH" | tee -a "$TOOLCHAIN_LOG"
+printf 'EDEN_TOOLCHAIN_ENGINE_VERSION=%s\n' "$ENGINE_VERSION" | tee -a "$TOOLCHAIN_LOG"
+printf 'EDEN_TOOLCHAIN_PROVENANCE=PASS\n' | tee -a "$TOOLCHAIN_LOG"
 
 fatal_log() {
   local log="$1"
@@ -265,6 +328,8 @@ if counter.get("passed") is not True or countercounter.get("passed") is not True
     raise SystemExit("ERROR: cannot finalize qualification from failing counteraudit report")
 if counter.get("source_commit") != source_sha or counter.get("revision") != revision:
     raise SystemExit("ERROR: portable counteraudit report provenance mismatch")
+if countercounter.get("source_commit") != source_sha or countercounter.get("revision") != revision:
+    raise SystemExit("ERROR: portable countercounteraudit report provenance mismatch")
 
 info = json.loads(info_path.read_text(encoding="utf-8"))
 info["playable"] = False
