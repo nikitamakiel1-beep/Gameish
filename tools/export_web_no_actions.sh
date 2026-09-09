@@ -2,9 +2,10 @@
 set -euo pipefail
 
 # EDEN//FALL — Codespaces/local Web export, explicitly without GitHub Actions.
-# Builds the production feature branch with exact Godot 4.7.1 and fails closed
-# through audit -> counteraudit -> mutation countercounteraudit before an artifact
-# can be marked playable/qualified.
+# Qualification is staged and fail-closed:
+# source/tooling -> Godot audits -> Web structure -> evidence counteraudit ->
+# mutation countercounteraudit -> provisional proof -> final-artifact mutation
+# countercounteraudit -> strict publishable verifier.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TOOLS_DIR="${EDEN_TOOLS_DIR:-$ROOT/.tools}"
@@ -19,7 +20,7 @@ TEMPLATE_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/godot/export_templates/${GOD
 BUILD_DIR="$ROOT/build/web"
 VALIDATION_DIR="$ROOT/validation/no-actions-art4"
 PRODUCT_REVISION="0.6.4-authored-art4"
-FULL_QUALIFICATION="all-gdscript+release-integrity+live-binding+art4-reference+art4-pixel+systems-stress+input-lifecycle+legacy+boot+web+counteraudit+mutation-countercounteraudit"
+FULL_QUALIFICATION="all-gdscript+release-integrity+live-binding+art4-reference+art4-pixel+systems-stress+input-lifecycle+legacy+boot+web+counteraudit+mutation-countercounteraudit+final-artifact-countercounteraudit"
 SOURCE_BRANCH="godmode/production-assets-v6-rebuild"
 
 need() {
@@ -29,7 +30,6 @@ for tool in bash curl unzip git python3 timeout tee grep find sha256sum basename
   need "$tool"
 done
 
-# Counteraudit the helpers and the audit wiring before any expensive engine work.
 python3 "$ROOT/tools/static_tooling_audit.py"
 python3 "$ROOT/tools/audit_source_counteraudit.py"
 
@@ -43,8 +43,6 @@ if [[ -n "$CURRENT_BRANCH" && "$CURRENT_BRANCH" != "HEAD" && "$CURRENT_BRANCH" !
   echo "ERROR: refusing to build unexpected branch: $CURRENT_BRANCH" >&2
   exit 6
 fi
-# Provenance must describe the exact bytes being built. Untracked Godot-generated
-# .uid/.import metadata is tolerated, but tracked or staged edits are not.
 if ! git diff --quiet --ignore-submodules -- || ! git diff --cached --quiet --ignore-submodules --; then
   echo "ERROR: tracked source is dirty; commit/stash tracked edits before qualification" >&2
   git status --short >&2
@@ -57,8 +55,6 @@ if [[ ! "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
 fi
 echo "[eden] source: ${CURRENT_BRANCH:-detached} @ $SOURCE_SHA"
 
-# Invalidate any previous preview immediately. A failed new qualification must
-# never leave an older qualified build available under build/web.
 mkdir -p "$ROOT/.codespaces"
 rm -f "$ROOT/.codespaces/build-ok"
 touch "$ROOT/.codespaces/build-failed"
@@ -142,12 +138,9 @@ IMPORT_LOG="$VALIDATION_DIR/import.log"
 "$GODOT" --headless --audio-driver Dummy --path "$ROOT" --editor --quit --verbose 2>&1 | tee "$IMPORT_LOG"
 fatal_log "$IMPORT_LOG"
 
-# Audit layer 1A: every script and the explicitly ordered production dependency chain.
 run_audit "res://tests/all_gdscript_compile_audit.gd"
 run_audit "res://tests/v8_compile_chain_probe.gd"
 
-# Audit layer 1B: release identity, live Art4 binding, direct generated-pixel checks,
-# persistence/entropy/fairness/performance stress, then inherited compatibility gates.
 AUDITS=(
   "res://tests/v8_release_integrity_audit.gd"
   "res://tests/v8_live_binding_counteraudit.gd"
@@ -167,8 +160,6 @@ for audit in "${AUDITS[@]}"; do
   run_audit "$audit"
 done
 
-# This legacy audit is a Node/scene test, not a SceneTree --script test. Run the
-# actual .tscn so action-map input, memory warnings and app focus lifecycle execute.
 run_scene_audit "res://tests/v6_input_lifecycle_audit.tscn" "v6_input_lifecycle_audit"
 
 echo "[eden] bounded headless game boot"
@@ -206,7 +197,6 @@ if ! grep -Fq "$PRODUCT_REVISION" "$BUILD_DIR/index.html"; then
 fi
 
 touch "$BUILD_DIR/.nojekyll"
-# Deliberately pending: no failed run may leave a publishable metadata claim.
 python3 - "$BUILD_DIR/build-info.json" "$SOURCE_SHA" "$PRODUCT_REVISION" <<'PY'
 import datetime, json, pathlib, sys
 path = pathlib.Path(sys.argv[1])
@@ -230,24 +220,19 @@ data = {
 path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 PY
 
-# Structural verification is allowed before qualification; strict verification is not.
 python3 "$ROOT/tools/verify_web_export.py" --structural "$BUILD_DIR" | tee "$VALIDATION_DIR/structural-verifier.log"
 sha256sum "$BUILD_DIR/index.html" "$BUILD_DIR/index.js" "$BUILD_DIR/index.wasm" "$BUILD_DIR/index.pck" > "$VALIDATION_DIR/web-sha256.txt"
 
-# Audit layer 2: independently re-read raw logs, PASS markers, provenance and hashes.
 COUNTER_REPORT="$VALIDATION_DIR/qualification-counteraudit-report.json"
 python3 "$ROOT/tools/qualification_counteraudit.py" \
   --build "$BUILD_DIR" --validation "$VALIDATION_DIR" --report "$COUNTER_REPORT" \
   | tee "$VALIDATION_DIR/qualification-counteraudit.log"
 
-# Audit layer 3: mutation-test both the structural verifier and layer-2 counteraudit.
 COUNTERCOUNTER_REPORT="$VALIDATION_DIR/qualification-countercounteraudit-report.json"
 python3 "$ROOT/tools/qualification_countercounteraudit.py" \
   --build "$BUILD_DIR" --validation "$VALIDATION_DIR" --report "$COUNTERCOUNTER_REPORT" \
   | tee "$VALIDATION_DIR/qualification-countercounteraudit.log"
 
-# Make compact evidence portable with the Web artifact. Strict verification and
-# gh-pages publishing will reparse and rehash these exact copies.
 PORTABLE_QUALIFICATION="$BUILD_DIR/qualification"
 mkdir -p "$PORTABLE_QUALIFICATION"
 PORTABLE_COUNTER="$PORTABLE_QUALIFICATION/counteraudit-report.json"
@@ -255,8 +240,8 @@ PORTABLE_COUNTERCOUNTER="$PORTABLE_QUALIFICATION/countercounteraudit-report.json
 cp "$COUNTER_REPORT" "$PORTABLE_COUNTER"
 cp "$COUNTERCOUNTER_REPORT" "$PORTABLE_COUNTERCOUNTER"
 
-# Only now promote the artifact to playable/qualified and bind the portable
-# independent reports into the publishable proof.
+# Provisional proof: report hashes and exact Web payload hashes are bound before
+# the final-artifact mutation stage. Strict publishing is still impossible here.
 python3 - "$BUILD_DIR/build-info.json" "$BUILD_DIR/qualification-proof.json" \
   "$PORTABLE_COUNTER" "$PORTABLE_COUNTERCOUNTER" "$SOURCE_SHA" "$PRODUCT_REVISION" "$FULL_QUALIFICATION" <<'PY'
 import hashlib, json, pathlib, sys
@@ -267,6 +252,8 @@ countercounter_path = pathlib.Path(sys.argv[4])
 source_sha = sys.argv[5]
 revision = sys.argv[6]
 qualification = sys.argv[7]
+build = info_path.parent
+core_files = ("index.html", "index.js", "index.wasm", "index.pck")
 
 def digest(path: pathlib.Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -292,11 +279,38 @@ proof = {
     "countercounteraudit_passed": True,
     "counteraudit_report_sha256": digest(counter_path),
     "countercounteraudit_report_sha256": digest(countercounter_path),
+    "payload_sha256": {name: digest(build / name) for name in core_files},
 }
-proof_path.write_text(json.dumps(proof, indent=2) + "\n", encoding="utf-8")
+proof_path.write_text(json.dumps(proof, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 PY
 
-# Strict verifier is the only state accepted by the publisher/preview server.
+python3 "$ROOT/tools/verify_web_export.py" --pre-final "$BUILD_DIR" | tee "$VALIDATION_DIR/web-pre-final-verifier.log"
+
+FINAL_REPORT="$VALIDATION_DIR/final-artifact-countercounteraudit-report.json"
+python3 "$ROOT/tools/final_artifact_countercounteraudit.py" \
+  --build "$BUILD_DIR" --report "$FINAL_REPORT" \
+  | tee "$VALIDATION_DIR/final-artifact-countercounteraudit.log"
+PORTABLE_FINAL="$PORTABLE_QUALIFICATION/final-artifact-countercounteraudit-report.json"
+cp "$FINAL_REPORT" "$PORTABLE_FINAL"
+
+# Finalize the proof only after the final-artifact mutation suite passes.
+python3 - "$BUILD_DIR/qualification-proof.json" "$PORTABLE_FINAL" "$SOURCE_SHA" "$PRODUCT_REVISION" <<'PY'
+import hashlib, json, pathlib, sys
+proof_path = pathlib.Path(sys.argv[1])
+report_path = pathlib.Path(sys.argv[2])
+source_sha = sys.argv[3]
+revision = sys.argv[4]
+report = json.loads(report_path.read_text(encoding="utf-8"))
+if report.get("passed") is not True:
+    raise SystemExit("ERROR: final-artifact countercounteraudit did not pass")
+if report.get("source_commit") != source_sha or report.get("revision") != revision:
+    raise SystemExit("ERROR: final-artifact countercounteraudit provenance mismatch")
+proof = json.loads(proof_path.read_text(encoding="utf-8"))
+proof["final_countercounteraudit_passed"] = True
+proof["final_countercounteraudit_report_sha256"] = hashlib.sha256(report_path.read_bytes()).hexdigest()
+proof_path.write_text(json.dumps(proof, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+PY
+
 python3 "$ROOT/tools/verify_web_export.py" "$BUILD_DIR" | tee "$VALIDATION_DIR/web-verifier.log"
 rm -f "$ROOT/.codespaces/build-failed" "$ROOT/.codespaces/build-in-progress"
 touch "$ROOT/.codespaces/build-ok"
