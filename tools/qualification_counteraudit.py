@@ -30,23 +30,29 @@ AUDIT_LOGS = [
     "v8_live_binding_counteraudit.log",
     "v8_art4_reference_audit.log",
     "v8_art4_pixel_counteraudit.log",
+    "v8_systems_stress_counteraudit.log",
     "v8_art_direction_audit.log",
     "v8_presentation_audit.log",
     "v6_factory_audit.log",
     "v6_product_rebuild_audit.log",
+    "v6_input_lifecycle_audit.log",
     "v7_masterpiece_audit.log",
     "v7_runtime_quality_audit.log",
     "v8_entropy_audit.log",
     "v8_sprite_streaming_audit.log",
 ]
-REQUIRED_LOGS = ["import.log", *AUDIT_LOGS, "boot.log", "export.log", "structural-verifier.log"]
+REQUIRED_LOGS = ["tooling-audit.log", "audit-source-counteraudit.log", "import.log", *AUDIT_LOGS, "boot.log", "export.log", "structural-verifier.log"]
 CRITICAL_MARKERS = {
+    "tooling-audit.log": "EDEN_STATIC_TOOLING_AUDIT=PASS",
+    "audit-source-counteraudit.log": "EDEN_AUDIT_SOURCE_COUNTERAUDIT=PASS",
     "all_gdscript_compile_audit.log": "EDEN_ALL_GDSCRIPT_COMPILE_AUDIT=PASS",
     "v8_compile_chain_probe.log": "EDEN_COMPILE_CHAIN=PASS",
     "v8_release_integrity_audit.log": "EDEN_FALL_V8_RELEASE_INTEGRITY_AUDIT=PASS",
     "v8_live_binding_counteraudit.log": "EDEN_FALL_V8_LIVE_BINDING_COUNTERAUDIT=PASS",
     "v8_art4_reference_audit.log": "EDEN_FALL_V8_ART4_REFERENCE_AUDIT=PASS",
     "v8_art4_pixel_counteraudit.log": "EDEN_FALL_V8_ART4_PIXEL_COUNTERAUDIT=PASS",
+    "v8_systems_stress_counteraudit.log": "EDEN_FALL_V8_SYSTEMS_STRESS_COUNTERAUDIT=PASS",
+    "v6_input_lifecycle_audit.log": "EDEN_FALL_V6_INPUT_LIFECYCLE_AUDIT=PASS",
     "structural-verifier.log": "EDEN_WEB_EXPORT_STRUCTURAL_VERIFIER=PASS",
 }
 FATAL_TEXT = (
