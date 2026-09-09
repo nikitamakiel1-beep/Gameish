@@ -68,6 +68,14 @@ def rebind_counter_hash(case: pathlib.Path) -> None:
     write_json(proof_path, proof)
 
 
+def rebind_countercounter_hash(case: pathlib.Path) -> None:
+    report_path = case / "qualification" / "countercounteraudit-report.json"
+    proof_path = case / "qualification-proof.json"
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    proof["countercounteraudit_report_sha256"] = sha256(report_path)
+    write_json(proof_path, proof)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--build", default=str(ROOT / "build" / "web"))
@@ -147,8 +155,8 @@ def main() -> int:
         write_json(report_path, report)
         expect_rejected("counter-report-failed", case, errors, rejected)
 
-        # Rebind the proof hash after semantic forgery. These two cases prove the
-        # verifier validates the report's meaning rather than only its checksum.
+        # Rebind proof hashes after semantic forgery. These cases prove the
+        # verifier validates report meaning rather than only checksums.
         case = root / "counter-report-expressive-contract-forged"
         clone_lightweight(build, case)
         report_path = case / "qualification" / "counteraudit-report.json"
@@ -163,6 +171,7 @@ def main() -> int:
         report_path = case / "qualification" / "counteraudit-report.json"
         report = json.loads(report_path.read_text(encoding="utf-8"))
         report["recomputed_toolchain"] = {}
+        report["toolchain_recomputed"] = False
         write_json(report_path, report)
         rebind_counter_hash(case)
         expect_rejected("counter-report-toolchain-evidence-forged", case, errors, rejected)
@@ -176,6 +185,15 @@ def main() -> int:
         write_json(report_path, report)
         expect_rejected("countercounter-evidence-truncated", case, errors, rejected)
 
+        case = root / "countercounter-toolchain-depth-forged"
+        clone_lightweight(build, case)
+        report_path = case / "qualification" / "countercounteraudit-report.json"
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        report["full_toolchain_recomputations"] = 0
+        write_json(report_path, report)
+        rebind_countercounter_hash(case)
+        expect_rejected("countercounter-toolchain-depth-forged", case, errors, rejected)
+
         case = root / "counter-report-missing"
         clone_lightweight(build, case)
         (case / "qualification" / "counteraudit-report.json").unlink()
@@ -188,7 +206,7 @@ def main() -> int:
         write_json(case / "build-info.json", info)
         expect_rejected("malformed-source-sha", case, errors, rejected)
 
-    expected = 12
+    expected = 13
     if len(rejected) != expected:
         errors.append(f"expected {expected} final-artifact mutations to be rejected, got {len(rejected)}")
 
