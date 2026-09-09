@@ -137,10 +137,10 @@ func admit_effect(effects: Array) -> bool:
 		return true
 	return false
 
-func enforce_post_frame(damage_numbers: Array, pickups: Array) -> void:
+func enforce_post_frame(damage_numbers: Array, pickups: Array, active_gameplay: bool = true) -> void:
 	var now_usec := Time.get_ticks_usec()
 	if _last_post_frame_usec > 0:
-		observe_frame(float(now_usec - _last_post_frame_usec) / 1000000.0, true)
+		observe_frame(float(now_usec - _last_post_frame_usec) / 1000000.0, active_gameplay)
 	_last_post_frame_usec = now_usec
 	var damage_limit := effective_limit("max_damage_numbers")
 	while damage_numbers.size() > damage_limit:
@@ -181,6 +181,7 @@ func audit_contract() -> Dictionary:
 	return {
 		"frame_time_feedback": true,
 		"post_frame_auto_observation": true,
+		"gameplay_only_observation": true,
 		"ema_smoothing": true,
 		"hysteresis": true,
 		"bounded_quality_floor": true,
