@@ -2,8 +2,9 @@
 """Mutation-test the EDEN//FALL verifier and qualification counteraudit.
 
 A verifier that passes good input is insufficient. This script corrupts Web
-metadata, payload presence, exact audit markers, diagnostics and hash evidence,
-then requires the lower-level gates to reject every mutation.
+metadata, payload presence, exact audit markers, diagnostics, toolchain
+provenance and hash evidence, then requires the lower-level gates to reject
+every mutation.
 """
 from __future__ import annotations
 
@@ -20,6 +21,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 VERIFIER = ROOT / "tools" / "verify_web_export.py"
 COUNTERAUDIT = ROOT / "tools" / "qualification_counteraudit.py"
 EXPECTED_VERSION = "0.6.4-authored-art4"
+GODOT_ARCHIVE_SHA256 = "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba"
 
 
 def run(command: list[str]) -> subprocess.CompletedProcess[str]:
@@ -172,6 +174,36 @@ def main() -> int:
             rejected,
         )
 
+        validation_case = temp_root / "toolchain-archive-corrupt"
+        shutil.copytree(validation, validation_case)
+        toolchain_path = validation_case / "toolchain-provenance.log"
+        text = toolchain_path.read_text(encoding="utf-8")
+        text = text.replace(GODOT_ARCHIVE_SHA256, "0" * 64)
+        toolchain_path.write_text(text, encoding="utf-8")
+        expect_failure(
+            "corrupt-toolchain-archive-digest",
+            [sys.executable, str(COUNTERAUDIT), "--build", str(build), "--validation", str(validation_case)],
+            errors,
+            rejected,
+        )
+
+        validation_case = temp_root / "toolchain-template-malformed"
+        shutil.copytree(validation, validation_case)
+        toolchain_path = validation_case / "toolchain-provenance.log"
+        lines = toolchain_path.read_text(encoding="utf-8").splitlines()
+        lines = [
+            "EDEN_TOOLCHAIN_WEB_TEMPLATE_SHA256=deadbeef"
+            if line.startswith("EDEN_TOOLCHAIN_WEB_TEMPLATE_SHA256=") else line
+            for line in lines
+        ]
+        toolchain_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        expect_failure(
+            "malformed-installed-template-digest",
+            [sys.executable, str(COUNTERAUDIT), "--build", str(build), "--validation", str(validation_case)],
+            errors,
+            rejected,
+        )
+
         case = temp_root / "premature-qualified"
         link_build(build, case)
         info = json.loads((case / "build-info.json").read_text(encoding="utf-8"))
@@ -186,7 +218,7 @@ def main() -> int:
             rejected,
         )
 
-    expected_mutations = 10
+    expected_mutations = 12
     if len(rejected) != expected_mutations:
         errors.append(f"expected {expected_mutations} rejected mutations, got {len(rejected)}")
 
