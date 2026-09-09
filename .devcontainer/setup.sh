@@ -28,41 +28,26 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
 mkdir -p .codespaces
 rm -f .codespaces/build-ok .codespaces/build-failed .codespaces/publish-ok .codespaces/publish-failed
 
-echo "[codespaces] Preparing exact Godot 4.7.1 and V8 Web build in the cloud..."
+echo "[codespaces] Preparing exact Godot 4.7.1 and the qualified Art4 Web preview..."
 set +e
 bash tools/export_web_no_actions.sh 2>&1 | tee .codespaces/build.log
 BUILD_CODE=${PIPESTATUS[0]}
 set -e
 
 if [[ $BUILD_CODE -eq 0 ]]; then
-  touch .codespaces/build-ok
-  echo "[codespaces] V8 Web build is qualified. Port 8000 will open as an online preview."
-
-  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-    echo "[codespaces] GitHub authentication detected; publishing this exact verified build to gh-pages..."
-    set +e
-    bash tools/codespaces_publish.sh --use-existing 2>&1 | tee .codespaces/publish.log
-    PUBLISH_CODE=${PIPESTATUS[0]}
-    set -e
-    if [[ $PUBLISH_CODE -eq 0 ]]; then
-      touch .codespaces/publish-ok
-      echo "[codespaces] V8 is published to gh-pages."
-    else
-      touch .codespaces/publish-failed
-      echo "[codespaces] Automatic gh-pages publish failed, but the online port-8000 preview is valid." >&2
-      echo "[codespaces] See .codespaces/publish.log, then retry: bash tools/codespaces_publish.sh --use-existing" >&2
-    fi
-  else
-    touch .codespaces/publish-failed
-    echo "[codespaces] GitHub CLI authentication is unavailable; the browser preview is still ready." >&2
-    echo "[codespaces] Once authenticated, publish with: bash tools/codespaces_publish.sh --use-existing" >&2
-  fi
+  SOURCE_SHA="$(git rev-parse HEAD)"
+  printf '%s\n' "$SOURCE_SHA" > .codespaces/build-ok
+  rm -f .codespaces/build-failed
+  echo "[codespaces] Art4 Web build is qualified for preview. Port 8000 will open after attach."
+  echo "[codespaces] Publishing is intentionally NOT automatic. Review the exact preview first."
+  echo "[codespaces] After visual review, publish explicitly with: bash tools/codespaces_publish.sh --use-existing"
 else
-  touch .codespaces/build-failed
+  printf '%s\n' "failed" > .codespaces/build-failed
   echo "[codespaces] Native Godot qualification/export failed. The Codespace remains usable for fixing the reported error." >&2
   echo "[codespaces] Read .codespaces/build.log, then rerun: bash tools/codespaces_preview.sh" >&2
 fi
 
 # Do not make Codespace creation itself unusable on a game-build failure; all
-# qualification/publish failures are retained in .codespaces/*.log.
+# qualification failures are retained in .codespaces/*.log. Publication is a
+# separate explicit release action after visual review.
 exit 0
