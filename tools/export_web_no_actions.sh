@@ -56,7 +56,7 @@ ensure_verified_archive() {
     fi
   fi
   if [[ ! -s "$file" ]]; then
-    echo "[eden] downloading verified $label"
+    echo "[eden] downloading verified $label" >&2
     curl --fail --location --retry 3 --retry-delay 2 --output "$file" "$url"
   fi
   actual="$(sha256_of "$file")"
@@ -152,8 +152,6 @@ if [[ $TEMPLATE_OK -ne 1 ]]; then
 else
   TEMPLATES_ARCHIVE_HASH="$TEMPLATES_TPZ_SHA256"
 fi
-# Re-read the payload after install/cache validation; the logged value is the
-# exact template bytes that the exporter will consume below.
 INSTALLED_TEMPLATE_HASH="$(sha256_of "$TEMPLATE_HOME/web_nothreads_release.zip")"
 printf 'EDEN_TOOLCHAIN_TEMPLATES_ARCHIVE_SHA256=%s\n' "$TEMPLATES_ARCHIVE_HASH" | tee -a "$TOOLCHAIN_LOG"
 printf 'EDEN_TOOLCHAIN_WEB_TEMPLATE_SHA256=%s\n' "$INSTALLED_TEMPLATE_HASH" | tee -a "$TOOLCHAIN_LOG"
