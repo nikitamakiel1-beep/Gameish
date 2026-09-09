@@ -60,6 +60,7 @@ var recycled_enemy_bullets := 0
 var dropped_effects := 0
 var trimmed_damage_numbers := 0
 var trimmed_pickups := 0
+var _last_post_frame_usec := 0
 
 func configure() -> Dictionary:
 	profile_name = "mobile" if OS.has_feature("mobile") else ("web" if OS.has_feature("web") else "desktop")
@@ -71,6 +72,7 @@ func configure() -> Dictionary:
 	recovery_streak = 0
 	quality_reductions = 0
 	quality_recoveries = 0
+	_last_post_frame_usec = 0
 	if profile_name != "desktop":
 		Engine.max_fps = int(profile["target_fps"])
 	return report()
@@ -136,6 +138,10 @@ func admit_effect(effects: Array) -> bool:
 	return false
 
 func enforce_post_frame(damage_numbers: Array, pickups: Array) -> void:
+	var now_usec := Time.get_ticks_usec()
+	if _last_post_frame_usec > 0:
+		observe_frame(float(now_usec - _last_post_frame_usec) / 1000000.0, true)
+	_last_post_frame_usec = now_usec
 	var damage_limit := effective_limit("max_damage_numbers")
 	while damage_numbers.size() > damage_limit:
 		damage_numbers.remove_at(0)
@@ -174,6 +180,7 @@ func report() -> Dictionary:
 func audit_contract() -> Dictionary:
 	return {
 		"frame_time_feedback": true,
+		"post_frame_auto_observation": true,
 		"ema_smoothing": true,
 		"hysteresis": true,
 		"bounded_quality_floor": true,
