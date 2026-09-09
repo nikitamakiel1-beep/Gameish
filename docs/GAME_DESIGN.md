@@ -2,293 +2,347 @@
 
 ## 1. Product definition
 
-**Genre:** Single-player, top-down, room-based action roguelike.
+**Genre:** single-player, top-down, room-based action roguelike.
 
-**Primary platform:** iPhone and iPad, landscape orientation.
+**Primary product target:** mobile-first landscape play, with first-class browser/desktop development and validation.
 
-**Secondary development platform:** Windows, macOS, and Linux desktop.
+**Engine target:** Godot 4.7.1 stable, GL Compatibility.
 
-**Session target:** 15–30 minute complete runs, with useful progress from failed runs.
+**Current production candidate:** `0.6.4-authored-art4`.
 
-**Core promise:** Every excursion begins with a deliberately engineered human body and ends in a biological argument about what humanity was before Adam, what it became after Eden, and who is entitled to inherit the ruined world.
+**Session target:** approximately 15–30 minutes for a complete excursion, with meaningful progress and information gained from failed runs.
 
-## 2. World premise
+**Core promise:** every excursion begins with a deliberately engineered human lineage inside Eden and becomes a biological, technological and historical argument about what humanity was before Adam, what Eden changed, what survived outside it, and who is entitled to inherit the ruined world.
 
-The Eden Biolaboratory is not a natural paradise. It is a sealed industrial biosphere constructed by a vanished civilization to manufacture a stable successor species after ecological collapse, war, mutagenic contamination, and uncontrolled human enhancement.
+## 2. World premise and progression
 
-The five playable lineages awaken from genomic cradles inside Eden. Their inherited records call them the Adamic Line: an intentionally constrained form of humanity designed to remain fertile, socially coherent, and biologically repairable.
+The Eden Biolaboratory is not a natural paradise. It is a sealed industrial biosphere constructed by a vanished civilization to manufacture a stable successor species after ecological collapse, war, mutagenic contamination and uncontrolled human enhancement.
 
-Outside the laboratory live the **preadamic peoples**. They are human populations whose ancestry predates the Adamic program. Some survived naturally; others inherited crude or unstable enhancement systems. They are not a single enemy faction. They form settlements, caravans, workshops, cults, militias, raider bands, and outlaw companies. The player can trade with some and fight others.
+The five playable lineages awaken in genomic cradles inside an overgrown laboratory. Their inherited records call them the Adamic Line: intentionally constrained descendants designed to remain fertile, socially coherent and biologically repairable.
+
+The excursion moves physically and aesthetically outward:
+
+1. **Industrial Eden** — sealed biotechnology, containment infrastructure, failed greenhouses, pressure systems and roots penetrating the laboratory.
+2. **Ash Wastes** — broken road systems, wrecked convoys, salvage settlements, checkpoints and devastated urban approaches.
+3. **Temple-Lab** — surviving scientific infrastructure reorganized into ritual machine culture, archives and sanctums.
+4. **Fungal Garden** — mycelial ecologies consuming laboratories, streets, structures and engineered organisms.
+5. **Nephilim Ruins** — megacity-scale devastation, giant biological architecture, monoliths, buried gates and ancient machine remains.
+
+Outside Eden live the **preadamic peoples**. Their ancestry predates the Adamic program. Some survived naturally; others inherited crude, unstable or deliberately divergent enhancement systems. They are not one enemy faction. They form settlements, caravans, workshops, cults, militias, raider bands and outlaw companies. The player can trade with some, fight others and learn from groups that understand Eden better than the protagonist does.
 
 The deeper regions contain entities interpreted through damaged religious language:
 
 - **Nephilim:** enlarged human war-lineages with unstable growth and skeletal reinforcement.
 - **Fallen Angels:** airborne or levitating biomechanical custodians that rejected central control.
-- **Cherubim:** autonomous security constructs protecting restricted genomic or industrial sites.
-- **Watchers:** supervisory intelligences embedded in bodies, factories, towers, and orbital remnants.
-- **The Serpent:** a later narrative system associated with forbidden adaptation, self-modifying genomes, and knowledge that Eden deliberately suppressed.
+- **Cherubim:** autonomous security constructs protecting restricted genomic/industrial sites.
+- **Watchers:** supervisory intelligences embedded in bodies, factories, towers and surviving infrastructure.
+- **The Serpent:** a later narrative/adaptation system associated with forbidden self-modifying genomes and knowledge Eden suppressed.
 
-The religious names are survivor interpretations of biotechnology, machine intelligence, industrial infrastructure, and ancient political events. The game should preserve ambiguity rather than explicitly declaring that every myth has one technological explanation.
+Religious names are survivor interpretations of biotechnology, machine intelligence, industrial infrastructure and ancient political events. The game preserves ambiguity instead of reducing every myth to one definitive technical answer.
 
-## 3. Player lineages
+## 3. Canonical lineages
 
-The launch design uses exactly five selectable engineered descendants.
+The launch design uses exactly five selectable engineered descendants. Their gameplay identity may evolve through run builds; their base visual identity does not reroll.
 
-### Adam — The First Pattern
+### Adam — Edenic Survivor
 
-The stable baseline. High vitality, reliable damage, and forgiving handling.
+A stable baseline built to survive outside Eden without specializing into one extreme.
 
-- Role: Beginner/generalist.
-- Trait: Genesis Tissue restores one cell when the boss enters a new phase.
-- Narrative tension: Adam is treated as the intended heir, but may be less adaptable than the populations Eden excluded.
+- Role: generalist/ranged.
+- Canonical visual language: olive/green, dark-hair survivor silhouette, Genesis Rifle, living-Eden detail.
+- Trait direction: reliable recovery/continuation rather than burst specialization.
+- Narrative tension: Adam is treated as the intended heir but may be less adaptable than populations Eden excluded.
 
-### Abel — The Offering
+### Abel — Shepherd of Light
 
-A high-precision, high-mobility body designed for observation, diplomacy, and sacrificial risk.
+A precision/ritual lineage built around observation, sacrifice and controlled luminous systems.
 
-- Role: Fast critical-hit specialist.
-- Trait: Blood Tithe increases critical chance below half health.
-- Narrative tension: Abel's genome contains deliberate fail-safe vulnerabilities that may have been political rather than medical.
+- Role: caster/precision specialist.
+- Canonical visual language: ivory/gold, halo/focus silhouette and light-oriented accents.
+- Trait direction: risk/reward around health, accuracy and critical output.
+- Narrative tension: Abel's fail-safe vulnerabilities may have been political rather than medical.
 
-### Cain — The Marked Weapon
+### Cain — Marked Warrior
 
-A combat lineage with accelerated aggression, dense motor recruitment, and a visible regulatory implant called the Mark.
+A combat lineage with accelerated aggression, dense motor recruitment and the visible regulatory Mark.
 
-- Role: High damage, low health, aggressive dash combat.
-- Trait: Mark of Violence damages enemies near the start of a dash.
-- Narrative tension: Cain may have been created as Eden's external enforcement body, then blamed for doing what it was designed to do.
+- Role: heavy ranged/aggressive dash combat.
+- Canonical visual language: black/red mass, Mark implant, permanent Mark Cannon, braced recoil.
+- Trait direction: violence rewarded by positioning, momentum and close pressure.
+- Narrative tension: Cain may have been Eden's external enforcement body and later blamed for doing what it was designed to do.
 
-### Seth — The Continuation
+### Seth — Guardian Engineer
 
-A maintenance and colonization lineage engineered to preserve infrastructure and survive attrition.
+A maintenance/colonization lineage engineered to preserve infrastructure and survive attrition.
 
-- Role: Defensive engineer.
-- Trait: Second Skin blocks one hit and refreshes when entering or clearing a chamber.
-- Narrative tension: Seth carries the strongest obedience architecture and may be the least free lineage.
+- Role: defensive engineer/ranged.
+- Canonical visual language: blue-steel armor, visor/nodes, Watcher Carbine and technical appendages.
+- Trait direction: shields, continuity and infrastructure interaction.
+- Narrative tension: Seth may carry the strongest obedience architecture and therefore the weakest claim to free will.
 
-### Naamah — The Resonant Genome
+### Naamah — Voice of Mycelia
 
-A fungal, microbial, and ecological integration specialist able to exchange signals with altered environments.
+A fungal, microbial and ecological integration specialist able to exchange signals with altered environments.
 
-- Role: Rapid fire and probabilistic sustain.
-- Trait: Mycelial Recall can restore health after kills.
-- Narrative tension: Naamah can understand organisms the other lineages classify as contamination and may discover that Eden itself is the invasive species.
+- Role: caster/rapid sustain.
+- Canonical visual language: violet mycelial body language, fungal cap/buds/tendrils and Spore Repeater.
+- Trait direction: probabilistic sustain, spores and ecological interaction.
+- Narrative tension: Naamah can understand organisms other lineages call contamination and may discover that Eden itself is the invasive species.
 
-## 4. Core run loop
+## 4. Core excursion loop
 
-1. Select a lineage in the Eden Biolaboratory.
-2. Receive a deterministic run seed.
-3. Enter a compact procedural room graph.
-4. Clear sealed chambers using twin-stick movement, shooting, and dashing.
-5. Collect scrap, healing cells, and run-only relics.
-6. Meet pre-Adamite traders and choose whether to spend scarce scrap.
-7. Reach the biome guardian or Watcher boss.
-8. Die and lose the run build, or defeat the boss and extract a larger genomic sample.
-9. Spend or accumulate Genome Archive currency to expand future item and encounter pools.
+1. Select a canonical lineage in the Eden Biolaboratory.
+2. Begin a fresh stochastic excursion.
+3. Enter a procedurally reconfigured room graph whose visible recipe is created as the run unfolds.
+4. Clear sealed chambers using independent movement/aim, weapons, dashing and positioning.
+5. Collect scrap, healing resources, relics and Genome information.
+6. Encounter traders, factions, special rooms and environmental story beats.
+7. Choose routes and risk rather than following one fixed encounter sequence.
+8. Defeat a biome guardian or deeper Watcher/Serpent encounter.
+9. Die and lose the run build, or extract genomic/archive progress.
+10. Expand future possibility space without turning early encounters into trivial stat checks.
 
-The player should make meaningful decisions every 30–90 seconds: route, risk, purchase, item choice, health sacrifice, challenge room, or narrative interaction.
+The player should face a meaningful decision roughly every 30–90 seconds: route, risk, purchase, relic, sacrifice, faction interaction, challenge, mutation or narrative discovery.
 
-## 5. Procedural map grammar
+## 5. Stochastic generation rules
 
-The current vertical slice generates 8–11 connected rooms on a bounded grid.
+Ordinary excursions are deliberately **not** fixed-seed replays. `fixed_seed_replay` is false in the active V8 contract.
 
-Guaranteed room types:
+Fresh entropy controls:
 
-- **Biolaboratory Start:** Safe entry room and narrative anchor.
-- **Contaminated Chambers:** Standard combat rooms with sealed doors.
-- **Genome Reliquary:** Guaranteed run item.
-- **Preadamic Exchange:** Three purchasable items.
-- **Watcher Sanctum:** Farthest-room boss encounter.
+- room topology;
+- special-room placement;
+- encounter composition;
+- legal enemy-instance genomes;
+- relic/reward order;
+- environmental dressing and biome story beats;
+- guardian pattern order.
 
-Planned room types:
+Procedural generation is constrained, not arbitrary:
 
-- Elite mutation room.
-- Sacrifice chamber.
-- Environmental hazard room.
-- Preadamic settlement encounter.
-- Challenge contract room.
-- Secret maintenance tunnel.
-- Serpent terminal.
-- Lineage-specific memory chamber.
+- canonical heroes cannot be replaced by RNG;
+- enemy families stay inside authored silhouette/material/motion/weapon rules;
+- room surfaces use quiet texture plus biome macro forms and story landmarks;
+- gameplay-critical collision and visible structural cover must agree;
+- random micro-detail cannot overwhelm projectile/enemy readability.
 
-Map generation must guarantee boss reachability, avoid isolated rooms, provide at least one shop and one relic, and remain reproducible from the run seed.
+Suspend/resume preserves already-generated active-run recipes and state. It does not visibly rebuild a suspended room from an exposed seed.
 
-## 6. Combat language
+A future Daily Protocol may define shared challenge constraints, but ordinary excursions remain fresh. A daily should not contaminate the normal entropy model merely for leaderboard reproducibility.
 
-Combat should be readable on a phone screen and mechanically closer to a bullet-hell duel than to a stat-driven RPG.
+## 6. Room grammar
+
+Every generated graph must preserve navigability and progression requirements while allowing meaningful structural variation.
+
+Room families include:
+
+- laboratory/start spaces;
+- standard combat chambers;
+- elite/challenge encounters;
+- reliquary/reward rooms;
+- preadamic exchange/trader spaces;
+- faction/special rooms;
+- environmental hazard rooms;
+- secret/maintenance spaces;
+- guardian/boss rooms;
+- Serpent/choice interfaces.
+
+A room recipe should describe gameplay type, encounter composition, environmental identity and already-generated story dressing. It should be persisted once it becomes active-run state.
+
+## 7. Combat language
+
+Combat is a readable action duel, not a stat-check RPG.
 
 Player verbs:
 
-- Move continuously.
-- Aim independently.
-- Fire continuously or in weapon-specific patterns.
-- Dash through danger with a short invulnerability window.
-- Position around cover and door geometry in later builds.
-- Build item synergies that visibly alter projectiles, movement, defense, or kill effects.
+- move continuously;
+- aim independently;
+- fire or cast through weapon-specific patterns;
+- dash through danger with a short invulnerability window;
+- use cover/door geometry where the room supports it;
+- interact with room/faction systems;
+- build relic synergies that visibly alter projectiles, movement, defense or kill effects.
 
 Design rules:
 
-- Enemy projectiles need strong silhouette and contrast.
-- Contact damage must be clearly telegraphed.
-- Boss attacks should form learnable patterns rather than unavoidable noise.
-- Mobile controls should not require more than two simultaneous touch regions plus one dash button.
-- Damage should produce immediate visual, audio, and haptic feedback.
-- The player should understand why they were hit.
+- enemy projectiles have strong silhouette/contrast against each biome;
+- contact damage and dangerous movement are telegraphed;
+- enemy windups communicate role before damage occurs;
+- bosses use learnable patterns and phase language rather than unavoidable noise;
+- mobile controls avoid precision UI demands during combat;
+- damage produces immediate visual/audio/haptic feedback where the platform supports it;
+- the player should be able to explain why they were hit;
+- background dressing may be rich but must visually recede from actors/projectiles.
 
-## 7. Enemy progression
+## 8. Sprite and motion language
 
-### Tier 1 — Preadamic frontier
+The Art4 reference is compact action-roguelike pixel art with original designs.
 
-- Feral melee pursuers.
-- Outlaw ranged fighters.
-- Scrap drones.
-- Improvised turrets.
+Normal actor frames retain a 48x48 ABI; bosses may use 96x96 frames. The active four-state frame grammar is:
 
-### Tier 2 — Enhanced populations
+1. idle/read;
+2. locomotion;
+3. attack/recoil/cast;
+4. dash/special/hurt response.
 
-- Reinforced raiders.
-- Hormonal berserkers.
-- Symbiotic marksmen.
-- Salvaged cherub operators.
+Required visual properties:
 
-### Tier 3 — Nephilim contamination
+- strong silhouette before internal detail;
+- large readable heads/face direction at gameplay scale;
+- compact body proportions;
+- explicit arms/hands where needed to communicate weapon action;
+- deliberately oversized, readable weapon shapes;
+- limited coherent value ramps;
+- sparse material accents instead of random texture noise;
+- family-specific motion and material identity;
+- runtime bob/recoil/muzzle/hit/dash feedback that makes sprites feel alive rather than stamped onto the floor.
 
-- Nephilim Husk: large health pool and radial shock pattern.
-- Bone Shepherd: summons or reassembles smaller mutants.
-- Giant-Blood Charger: telegraphed lane attack.
+Enter the Gungeon, Soul Knight and The Binding of Isaac are reference points for readability, authored modularity, pacing and combat hierarchy only. EDEN//FALL must not copy their sprites, characters, rooms or UI.
 
-### Tier 4 — Fallen custodians
+## 9. Enemy progression and family identity
 
-- Fallen Angel: orbital movement and spread fire.
-- Broken Cherub: rotating defensive fields.
-- Ophanim Wheel: moving projectile emitter.
+Preadamic/frontier enemies should read as people and improvised systems before later regions become increasingly biomechanical, ritualized and biologically impossible.
 
-### Bosses
+Representative families:
 
-- **Watcher Engine:** Current vertical-slice boss with escalating radial patterns.
-- **First Nephilim:** Grapple, shockwave, and arena destruction.
-- **The Gate Cherub:** Multi-body security encounter.
-- **Tower of Enoch:** Industrial boss fought while ascending a machine complex.
-- **The Serpent Interface:** A nontraditional final encounter based on build mutation and player choice.
+- feral scavengers — skittering short-melee bodies;
+- outlaw gunners/hunters — braced long-weapon silhouettes;
+- raider brutes — heavy lurching plate/scrap mass;
+- cultists/acolytes — ritual cloth, focus/staff and casting language;
+- Cherub drones — compact ivory machine cores, wings and halo geometry;
+- Fallen — broken glide, cold halo/plate language;
+- biomech pilgrims — servo-driven hybrid machine bodies;
+- Ophanim — radial/wheel movement and eye-centric silhouette;
+- Nephilim husks/giants/berserkers — bone/flesh/plate mass with oversized melee/ram language;
+- serpent spawn — swaying body-weapon ecology.
 
-## 8. Factions and morality
+Elite generation can intensify a family; it cannot replace the family identity with an unrelated random body.
 
-Preadamic humans must not be represented as universally primitive or evil. Their technological level varies by settlement and access to surviving infrastructure. Some understand Eden better than the player does.
+### Guardians
 
-Proposed factions:
+The guardian set includes Watcher Engine, First Nephilim, Gate Cherub, Tower Enoch and Serpent Interface identities. Bosses require bespoke silhouette/pattern recognition beyond standard enemy scaling.
 
-- **Salt Caravans:** Neutral traders and route guides.
-- **Ash Covenant:** Religious isolationists who consider Adamic bodies artificial invaders.
-- **Tubal Foundries:** Industrial settlements specializing in weapon and implant fabrication.
-- **Enoch Outlaws:** Mobile raider companies using stolen enhancement rigs.
-- **Lamech Houses:** Kinship militias that trade safely until lineage reputation turns hostile.
-- **The Unnamed:** Communities that reject Eden's inherited classification system.
+## 10. Biome art grammar
 
-Reputation should later influence prices, ambush probability, quests, room replacements, and endings. It should not become a simple good/evil meter.
+### Industrial Eden
 
-## 9. Item system
+Failed containment, pipes, tanks, service channels, greenhouse breaches, coolant and engineered growth. The starting world should communicate that Eden was industrial infrastructure before it was myth.
 
-Items are run-only unless explicitly described as an Archive unlock. Strong items should alter behavior, not merely increase numbers.
+### Ash Wastes
 
-Current prototype items:
+Broken road geometry, checkpoints, wrecks, burned convoys, rebar, craters and salvage structures. This is the transition from sealed laboratory to devastated human geography.
 
-- Seraph Lens: damage and projectile speed.
-- Cherub Coil: fire-rate increase.
-- Bone Orchard: maximum health and healing.
-- Cain's Mark: projectile penetration.
-- Salt Genome: parallel projectile.
-- Eden Valve: movement and dash recharge.
-- Black Manna: kill-based healing chance.
-- Industrial Halo: orbiting projectile defense.
-- Watcher Gland: critical-hit secondary shard.
-- Nephilim Marrow: damage increase with movement penalty.
+### Temple-Lab
 
-Planned synergy examples:
+Ritual circuitry, archive/process machinery, sacred geometry, glass/process structures and sealed sanctums. Religion and engineering become visually inseparable.
 
-- Salt Genome + Seraph Lens = refracted parallel beams.
-- Cain's Mark + Nephilim Marrow = heavy penetrating rounds with recoil.
-- Industrial Halo + Cherub Coil = halo stores destroyed bullets and releases them after a reload cycle.
-- Black Manna + Bone Orchard = overhealing grows temporary fungal armor.
-- Watcher Gland + Abel's Blood Tithe = critical shards seek the nearest marked target.
+### Fungal Garden
 
-Synergies should be implemented through tags and interactions rather than one-off checks for every possible pair.
+Mycelial veins, root structures, spore basins, fruiting nurseries and drifting spores consume laboratory/urban remains.
 
-## 10. Meta-progression
+### Nephilim Ruins
 
-The persistent layer is the **Genome Archive**.
+Monoliths, buried gates, rib causeways, colossal remains and megacity-scale destruction suggest entities and construction far larger than the player.
+
+A floor is never just a tiled noisy texture. Composition hierarchy is:
+
+**quiet base -> macro landmark -> collision/cover structure -> localized wear/growth -> actors/projectiles/FX.**
+
+## 11. Factions and morality
+
+Preadamic humans are not universally primitive or evil. Technological level, history and attitude vary by settlement and surviving infrastructure.
+
+Faction direction includes Salt Caravans, Ash Covenant, Tubal Foundries, Enoch Outlaws, Lamech Houses and communities that reject Eden's inherited labels.
+
+Reputation may influence prices, ambushes, quests, room replacements, testimony and endings. It should not become a simple good/evil bar.
+
+## 12. Relics, weapons and synergies
+
+Run-only items should change behavior rather than only adding percentages.
+
+Synergies should be tag/context driven so new content can combine with existing systems without one hard-coded pair check for every possible build.
+
+Useful tags include projectile, critical, fungal, halo, penetration, healing, sacrifice, industrial, seraphic, nephilim, shield, dash and summon.
+
+Build expression must remain visually legible: projectile shape, cadence, trails, orbitals, status FX or movement behavior should communicate major synergy changes.
+
+## 13. Meta-progression
+
+The persistent layer is the Genome Archive.
 
 Allowed persistent advantages:
 
-- New items added to the run pool.
-- New room types and factions.
-- New lineages or lineage variants.
-- Starting-sidegrade choices.
-- Lore and memory records.
-- Cosmetic biolab changes.
-- Additional challenge modifiers.
+- additional relics/weapons in future pools;
+- new room/special encounter possibilities;
+- faction/lore access;
+- lineage sidegrades/variants that preserve base identity rules;
+- starting choice breadth;
+- challenge modifiers;
+- cosmetic/biolab progression.
 
-Avoid permanent raw-stat inflation that makes early rooms trivial. Mastery, knowledge, and broader build possibilities should remain more important than account age.
+Avoid permanent raw-stat inflation that makes early combat irrelevant. Mastery, knowledge and possibility-space expansion matter more than account age.
 
-## 11. Mobile product rules
+## 14. Mobile/browser product rules
 
-- Landscape-first.
-- Playable offline.
-- Run pause/resume must be robust when the app backgrounds.
-- Local save writes must be atomic and versioned.
-- No mandatory account for single-player.
-- No paid randomized functional loot boxes.
-- No interstitial advertising during a run.
-- Haptics must be adjustable or disableable.
-- Aim assist, control sizing, control opacity, left-handed layout, frame-rate cap, and reduced-flash options should be included before release.
+- landscape-first;
+- offline single-player remains viable;
+- robust suspend/resume when mobile lifecycle interrupts play;
+- local save writes are migration-aware and recoverable;
+- no mandatory account;
+- no paid randomized functional loot boxes;
+- no interstitial advertising during an excursion;
+- adjustable haptics where available;
+- aim assist/control sizing/control opacity/left-handed layout/reduced-flash/reduced-motion options before commercial release;
+- browser development must not rely on stale service workers or cached PCK files.
 
-A premium paid release is the cleanest initial commercial model. A free demo plus one-time full-game unlock is the second-best option. Monetization should not compromise roguelike balance.
+The Codespaces preview channel is non-threaded and non-PWA by design. A no-cache server and scoped `/purge.html` retirement page prevent obsolete Web assets from being mistaken for the newest qualified build.
 
-## 12. Art and audio direction
+## 15. Audio direction
 
-Visual language:
+Audio language is mechanical liturgy:
 
-- Industrial Eden rather than pastoral Eden.
-- Rusted pressure vessels, stained glass diagnostics, irrigation arteries, cracked cloning glass, concrete roots, halo-shaped machinery, and botanical growth consuming old factories.
-- Geometric religious silhouettes interpreted through engineering forms.
-- Strong projectile contrast and restrained background detail during combat.
-- Original designs only; no imitation of commercial reference-game sprites.
+- ventilation/turbine drones;
+- machinery pulses as rhythm;
+- synthetic choir-like texture without copied liturgical recordings;
+- biome-specific environmental motifs;
+- distinct functional warning families;
+- weapon/impact feedback differentiated by role.
 
-Palette:
+Gameplay audio variation must not mutate progression-critical entropy state.
 
-- Carbon black, oxidized green, bone ivory, faded gold, arterial red, laboratory cyan, and bruised violet.
+## 16. Narrative delivery
 
-Audio language:
+Narrative arrives in short, interruptible fragments suited to repeated runs:
 
-- Mechanical liturgy.
-- Ventilation drones and distant turbines.
-- Process alarms treated as musical rhythm.
-- Choir-like synthesis without direct liturgical sampling.
-- Distinct warning sound families for melee, aimed shots, radial attacks, and boss phase transitions.
+- trader/faction dialogue;
+- lineage memories;
+- environmental story beats;
+- inscriptions/terminals;
+- boss identification records;
+- contradictory Archive entries;
+- faction testimony;
+- end-of-run discoveries.
 
-## 13. Narrative delivery
+Long records belong in the optional Archive rather than interrupting active combat.
 
-Narrative should occur in short, interruptible fragments suited to repeated runs:
+## 17. Acceptance criteria for the Art4 vertical product
 
-- Trader dialogue.
-- Lineage memories.
-- Environmental inscriptions.
-- Boss identification records.
-- Contradictory Archive entries.
-- Faction testimony.
-- End-of-run discoveries.
+The current candidate should not be called qualified unless:
 
-The game should never pause a combat run for long exposition. Full records belong in an optional Archive interface in the biolab.
+- exact Godot 4.7.1 imports the project without parser/resource errors;
+- every production/test GDScript loads and can instantiate;
+- the curated V7/V8 compile chain passes;
+- the final release root is explicitly bound to Art4 forge/genome/world;
+- all five canonical hero identities remain stable across unrelated RNG state;
+- representative enemy families remain materially distinct;
+- Art4 action states are visually distinct;
+- all five biome generators produce distinct, story-bearing room surfaces;
+- inherited RC6/RC7/V8 gameplay/persistence/entropy/presentation/streaming gates pass;
+- the real main scene survives bounded headless boot without fatal diagnostics;
+- the Web export is non-threaded/non-PWA and carries exact source provenance;
+- the static Web verifier passes;
+- browser screenshots are visually inspected for hierarchy, sprite scale, combat clarity and clipping;
+- hands-on gameplay confirms that the player understands hits, doors, objectives and rewards;
+- no third-party copyrighted commercial-game assets are present.
 
-## 14. Vertical-slice acceptance criteria
-
-The first slice is acceptable when:
-
-- A new player can start without instructions and understand movement, shooting, and dashing.
-- Every generated map can reach its boss.
-- A complete run can be won and lost.
-- All five lineages feel mechanically distinct.
-- At least five item combinations create visibly different play.
-- Touch controls work on multiple iPhone aspect ratios without covering critical play space.
-- Backgrounding and restoring the app does not corrupt progression.
-- The build remains playable without a network connection.
-- No third-party copyrighted game assets are present.
+Automated success is necessary but not sufficient for visual/gameplay quality. Fresh browser and device observation remains part of qualification.
