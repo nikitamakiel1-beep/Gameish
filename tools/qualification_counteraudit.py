@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Independent counteraudit for an EDEN//FALL qualification run.
 
-Re-reads raw Godot logs, exact PASS markers, source provenance and Web payload
-hashes while build-info.json is still explicitly pending/unqualified.
+Re-reads raw Godot logs, exact PASS markers, source/toolchain provenance and Web
+payload hashes while build-info.json is still explicitly pending/unqualified.
 """
 from __future__ import annotations
 
@@ -18,7 +18,10 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 EXPECTED_VERSION = "0.6.4-authored-art4"
 EXPECTED_BRANCH = "godmode/production-assets-v6-rebuild"
 PENDING_QUALIFICATION = "pending-counteraudits"
+GODOT_ARCHIVE_SHA256 = "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba"
+TEMPLATES_ARCHIVE_SHA256 = "86409db6200b6f8fd3230989c2d2002851f3dd18acf11d7bdbafddf5a0dd0f72"
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
+SHA256 = re.compile(r"^[0-9a-f]{64}$")
 FAIL_RE = re.compile(r"\bEDEN_[A-Z0-9_]*(?:AUDIT|CHAIN|COUNTERAUDIT)=FAIL\b", re.IGNORECASE)
 FATAL_RE = re.compile(
     r"SCRIPT ERROR|Parse Error|Parser Error|Compile Error|Invalid call|Invalid get index|"
@@ -48,6 +51,7 @@ EXPECTED_AUDIT_MARKERS = {
 REQUIRED_LOGS = [
     "tooling-audit.log",
     "audit-source-counteraudit.log",
+    "toolchain-provenance.log",
     "import.log",
     *EXPECTED_AUDIT_MARKERS,
     "boot.log",
@@ -57,6 +61,7 @@ REQUIRED_LOGS = [
 NON_GODOT_MARKERS = {
     "tooling-audit.log": "EDEN_STATIC_TOOLING_AUDIT=PASS",
     "audit-source-counteraudit.log": "EDEN_AUDIT_SOURCE_COUNTERAUDIT=PASS",
+    "toolchain-provenance.log": "EDEN_TOOLCHAIN_PROVENANCE=PASS",
     "structural-verifier.log": "EDEN_WEB_EXPORT_STRUCTURAL_VERIFIER=PASS",
 }
 CORE_FILES = ("index.html", "index.js", "index.wasm", "index.pck")
@@ -109,6 +114,36 @@ def marker_exact_once(path: pathlib.Path, marker: str, errors: list[str]) -> Non
     text = path.read_text(encoding="utf-8", errors="replace")
     if text.count(marker) != 1:
         errors.append(f"required marker must appear exactly once in {path.name}: {marker}")
+
+
+def parse_toolchain_log(path: pathlib.Path, errors: list[str]) -> dict[str, str]:
+    values: dict[str, str] = {}
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.startswith("EDEN_TOOLCHAIN_") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            if key in values:
+                errors.append(f"duplicate toolchain evidence key: {key}")
+            values[key] = value.strip()
+    except OSError as exc:
+        errors.append(f"cannot read toolchain provenance: {exc}")
+        return values
+    expected = {
+        "EDEN_TOOLCHAIN_GODOT_ARCHIVE_SHA256": GODOT_ARCHIVE_SHA256,
+        "EDEN_TOOLCHAIN_TEMPLATES_ARCHIVE_SHA256": TEMPLATES_ARCHIVE_SHA256,
+        "EDEN_TOOLCHAIN_PROVENANCE": "PASS",
+    }
+    for key, value in expected.items():
+        if values.get(key) != value:
+            errors.append(f"toolchain provenance mismatch for {key}")
+    template_hash = values.get("EDEN_TOOLCHAIN_WEB_TEMPLATE_SHA256", "")
+    if not SHA256.fullmatch(template_hash):
+        errors.append("installed Web template evidence is not a SHA-256 digest")
+    engine_version = values.get("EDEN_TOOLCHAIN_ENGINE_VERSION", "")
+    if not engine_version.startswith("4.7.1.stable"):
+        errors.append(f"toolchain engine evidence is not exact 4.7.1 stable: {engine_version!r}")
+    return values
 
 
 def main() -> int:
@@ -183,6 +218,8 @@ def main() -> int:
         if path.is_file():
             marker_exact_once(path, marker, errors)
 
+    toolchain = parse_toolchain_log(validation / "toolchain-provenance.log", errors)
+
     hash_manifest_path = validation / "web-sha256.txt"
     try:
         manifest = parse_hash_manifest(hash_manifest_path)
@@ -217,6 +254,7 @@ def main() -> int:
         "audit_logs": len(EXPECTED_AUDIT_MARKERS),
         "exact_markers": len(EXPECTED_AUDIT_MARKERS) + len(NON_GODOT_MARKERS),
         "core_hashes_checked": len(CORE_FILES),
+        "toolchain": toolchain,
         "errors": errors,
         "passed": not errors,
     }
