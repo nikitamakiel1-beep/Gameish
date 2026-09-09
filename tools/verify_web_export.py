@@ -5,8 +5,7 @@ Modes are deliberately staged:
 
 * --structural validates a freshly exported payload while metadata is pending.
 * --pre-final validates the provisionally qualified artifact plus the first two
-  portable counteraudit reports; this is used only to mutation-test the final
-  proof boundary.
+  portable counteraudit reports and payload digests.
 * strict/default additionally requires the final-artifact mutation report and
   binds its hash into qualification-proof.json. Only strict mode is publishable.
 """
@@ -21,7 +20,12 @@ import re
 EXPECTED_VERSION = "0.6.4-authored-art4"
 EXPECTED_BRANCH = "godmode/production-assets-v6-rebuild"
 EXPECTED_CHANNEL = "github-pages-test-no-actions"
-EXPECTED_QUALIFICATION = "all-gdscript+release-integrity+live-binding+art4-reference+art4-pixel+systems-stress+input-lifecycle+legacy+boot+web+counteraudit+mutation-countercounteraudit+final-artifact-countercounteraudit"
+EXPECTED_QUALIFICATION = (
+    "all-gdscript+release-integrity+live-binding+art4-reference+art4-pixel+"
+    "systems-stress+input-lifecycle+legacy+boot+web+counteraudit+"
+    "mutation-countercounteraudit+final-artifact-countercounteraudit"
+)
+CORE_FILES = ("index.html", "index.js", "index.wasm", "index.pck")
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -62,6 +66,24 @@ def verify_mutation_report(report: dict, label: str, minimum: int = 8) -> int:
     return count
 
 
+def verify_payload_hashes(root: pathlib.Path, proof: dict) -> dict[str, str]:
+    payload = proof.get("payload_sha256")
+    if not isinstance(payload, dict):
+        fail("qualification proof is missing payload_sha256")
+    if set(payload) != set(CORE_FILES):
+        fail("qualification proof payload hash set does not exactly match core Web files")
+    actual: dict[str, str] = {}
+    for name in CORE_FILES:
+        expected = str(payload.get(name, ""))
+        if not SHA256.fullmatch(expected):
+            fail(f"qualification proof has malformed payload hash for {name}")
+        digest = sha256(root / name)
+        actual[name] = digest
+        if digest != expected:
+            fail(f"qualified Web payload changed after audit: {name}")
+    return actual
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("root", nargs="?", default="build/web")
@@ -74,7 +96,7 @@ def main() -> int:
     strictish = not args.structural
     fully_strict = not args.structural and not args.pre_final
 
-    required = ["index.html", "index.js", "index.wasm", "index.pck", ".nojekyll", "build-info.json"]
+    required = [*CORE_FILES, ".nojekyll", "build-info.json"]
     if strictish:
         required.extend([
             "qualification-proof.json",
@@ -150,6 +172,8 @@ def main() -> int:
         if proof.get("countercounteraudit_passed") is not True:
             fail("qualification proof does not attest countercounteraudit success")
 
+        payload_hashes = verify_payload_hashes(root, proof)
+
         counter_path = root / "qualification" / "counteraudit-report.json"
         countercounter_path = root / "qualification" / "countercounteraudit-report.json"
         counter = load_json(counter_path, "qualification/counteraudit-report.json")
@@ -178,6 +202,7 @@ def main() -> int:
             fail("portable countercounteraudit report hash does not match qualification proof")
 
         proof_summary = {
+            "payload_sha256": payload_hashes,
             "counteraudit_report_sha256": actual_counter_hash,
             "countercounteraudit_report_sha256": actual_countercounter_hash,
             "countercounteraudit_mutation_tests": countercounter_tests,
@@ -188,7 +213,11 @@ def main() -> int:
                 fail("qualification proof does not attest final-artifact countercounteraudit success")
             final_path = root / "qualification" / "final-artifact-countercounteraudit-report.json"
             final_report = load_json(final_path, "qualification/final-artifact-countercounteraudit-report.json")
-            final_tests = verify_mutation_report(final_report, "final-artifact countercounteraudit report")
+            if final_report.get("revision") != EXPECTED_VERSION:
+                fail("final-artifact countercounteraudit revision mismatch")
+            if final_report.get("source_commit") != source_commit:
+                fail("final-artifact countercounteraudit source commit mismatch")
+            final_tests = verify_mutation_report(final_report, "final-artifact countercounteraudit report", minimum=10)
             expected_final_hash = str(proof.get("final_countercounteraudit_report_sha256", ""))
             if not SHA256.fullmatch(expected_final_hash):
                 fail("qualification proof has malformed final_countercounteraudit_report_sha256")
