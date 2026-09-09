@@ -1,0 +1,336 @@
+#!/usr/bin/env python3
+"""Fail closed on an EDEN//FALL Web export.
+
+Modes are deliberately staged:
+
+* --structural validates a freshly exported payload while metadata is pending.
+* --pre-final validates the provisionally qualified artifact plus the first two
+  portable counteraudit reports and payload digests.
+* strict/default additionally requires the final-artifact mutation report and
+  binds its hash into qualification-proof.json. Only strict mode is publishable.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import pathlib
+import re
+
+EXPECTED_VERSION = "0.6.4-authored-art4"
+EXPECTED_BRANCH = "godmode/production-assets-v6-rebuild"
+EXPECTED_CHANNEL = "github-pages-test-no-actions"
+EXPECTED_AUDIT_LOGS = 17
+EXPECTED_REQUIRED_LOGS = 24
+EXPECTED_EXACT_MARKERS = 21
+EXPECTED_COUNTERCOUNTER_MUTATIONS = 15
+EXPECTED_FULL_TOOLCHAIN_RECOMPUTATIONS = 2
+EXPECTED_FINAL_MUTATIONS = 13
+EXPECTED_QUALIFICATION = (
+    "all-gdscript+release-integrity+live-binding+art4-reference+art4-pixel+"
+    "systems-stress+expressive-range+input-lifecycle+legacy+boot+web+counteraudit+"
+    "mutation-countercounteraudit+final-artifact-countercounteraudit"
+)
+CORE_FILES = ("index.html", "index.js", "index.wasm", "index.pck")
+SHA40 = re.compile(r"^[0-9a-f]{40}$")
+SHA256 = re.compile(r"^[0-9a-f]{64}$")
+
+
+def fail(message: str) -> None:
+    raise SystemExit(f"ERROR: {message}")
+
+
+def load_json(path: pathlib.Path, label: str) -> dict:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        fail(f"invalid {label}: {exc}")
+    if not isinstance(value, dict):
+        fail(f"{label} must contain a JSON object")
+    return value
+
+
+def sha256(path: pathlib.Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def verify_mutation_report(report: dict, label: str, minimum: int = 8) -> int:
+    if report.get("passed") is not True:
+        fail(f"{label} is not passing")
+    count = int(report.get("mutation_tests", 0))
+    if count < minimum:
+        fail(f"{label} contains too few mutation tests")
+    rejected = report.get("rejected_mutations", [])
+    if not isinstance(rejected, list) or len(rejected) != count:
+        fail(f"{label} does not prove rejection of every mutation")
+    if len(set(str(value) for value in rejected)) != count:
+        fail(f"{label} contains duplicate mutation evidence")
+    return count
+
+
+def verify_payload_hashes(root: pathlib.Path, proof: dict) -> dict[str, str]:
+    payload = proof.get("payload_sha256")
+    if not isinstance(payload, dict):
+        fail("qualification proof is missing payload_sha256")
+    if set(payload) != set(CORE_FILES):
+        fail("qualification proof payload hash set does not exactly match core Web files")
+    actual: dict[str, str] = {}
+    for name in CORE_FILES:
+        expected = str(payload.get(name, ""))
+        if not SHA256.fullmatch(expected):
+            fail(f"qualification proof has malformed payload hash for {name}")
+        digest = sha256(root / name)
+        actual[name] = digest
+        if digest != expected:
+            fail(f"qualified Web payload changed after audit: {name}")
+    return actual
+
+
+def verify_portable_counteraudit(counter: dict) -> dict[str, str]:
+    if counter.get("passed") is not True:
+        fail("portable counteraudit report is not passing")
+    if counter.get("toolchain_recomputed") is not True:
+        fail("portable counteraudit report was not produced by a full independent toolchain recomputation")
+    if int(counter.get("audit_logs", 0)) != EXPECTED_AUDIT_LOGS:
+        fail("portable counteraudit report does not attest the exact audit-log contract including expressive-range")
+    if int(counter.get("required_logs", 0)) != EXPECTED_REQUIRED_LOGS:
+        fail("portable counteraudit report required-log contract drifted")
+    if int(counter.get("exact_markers", 0)) != EXPECTED_EXACT_MARKERS:
+        fail("portable counteraudit report exact-marker contract drifted")
+
+    logged = counter.get("toolchain")
+    if not isinstance(logged, dict) or logged.get("EDEN_TOOLCHAIN_PROVENANCE") != "PASS":
+        fail("portable counteraudit report lacks passing toolchain log evidence")
+    recomputed = counter.get("recomputed_toolchain")
+    if not isinstance(recomputed, dict):
+        fail("portable counteraudit report lacks independently recomputed toolchain evidence")
+
+    editor_member_hash = str(recomputed.get("editor_member_sha256", ""))
+    installed_editor_hash = str(recomputed.get("installed_editor_sha256", ""))
+    template_member_hash = str(recomputed.get("template_member_sha256", ""))
+    installed_template_hash = str(recomputed.get("installed_template_sha256", ""))
+    for label, value in (
+        ("editor member", editor_member_hash),
+        ("installed editor", installed_editor_hash),
+        ("template member", template_member_hash),
+        ("installed template", installed_template_hash),
+    ):
+        if not SHA256.fullmatch(value):
+            fail(f"portable counteraudit report has malformed {label} SHA-256 evidence")
+    if editor_member_hash != installed_editor_hash:
+        fail("portable counteraudit report editor member/install evidence disagrees")
+    if template_member_hash != installed_template_hash:
+        fail("portable counteraudit report template member/install evidence disagrees")
+    template_member = str(recomputed.get("template_member", ""))
+    if not template_member.endswith("web_nothreads_release.zip"):
+        fail("portable counteraudit report has unexpected Web template member")
+    return {
+        "editor_sha256": installed_editor_hash,
+        "web_template_sha256": installed_template_hash,
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("root", nargs="?", default="build/web")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--structural", action="store_true")
+    mode.add_argument("--pre-final", action="store_true")
+    args = parser.parse_args()
+
+    root = pathlib.Path(args.root).resolve()
+    strictish = not args.structural
+    fully_strict = not args.structural and not args.pre_final
+
+    required = [*CORE_FILES, ".nojekyll", "build-info.json"]
+    if strictish:
+        required.extend([
+            "qualification-proof.json",
+            "qualification/counteraudit-report.json",
+            "qualification/countercounteraudit-report.json",
+        ])
+    if fully_strict:
+        required.append("qualification/final-artifact-countercounteraudit-report.json")
+    for name in required:
+        path = root / name
+        if not path.exists():
+            fail(f"missing {name}")
+        if name != ".nojekyll" and path.stat().st_size == 0:
+            fail(f"empty {name}")
+
+    html = (root / "index.html").read_text(encoding="utf-8", errors="replace")
+    js = (root / "index.js").read_text(encoding="utf-8", errors="replace")
+    info = load_json(root / "build-info.json", "build-info.json")
+
+    if info.get("version") != EXPECTED_VERSION:
+        fail(f"unexpected build version: {info.get('version')!r}; expected {EXPECTED_VERSION!r}")
+    if info.get("godot") != "4.7.1":
+        fail(f"unexpected Godot version: {info.get('godot')!r}")
+    if info.get("source_branch") != EXPECTED_BRANCH:
+        fail("build-info source branch is not the production feature branch")
+    if info.get("channel") != EXPECTED_CHANNEL:
+        fail(f"unexpected build channel: {info.get('channel')!r}")
+    source_commit = str(info.get("source_commit", ""))
+    if not SHA40.fullmatch(source_commit):
+        fail(f"source_commit is not a full lowercase Git SHA: {source_commit!r}")
+    if info.get("pwa") is not False or info.get("threads") is not False:
+        fail("GitHub Pages test channel must be non-PWA and non-threaded")
+
+    if EXPECTED_VERSION not in html:
+        fail("HTML does not contain the expected Art4 build marker")
+    if "serviceWorker.register" in html or "index.service.worker.js" in html:
+        fail("HTML still registers the obsolete PWA service worker")
+    if not re.search(r"index(?:\.\w+)?\.wasm|\.wasm", html + js):
+        fail("Web loader does not reference a WASM payload")
+    if not re.search(r"index(?:\.\w+)?\.pck|\.pck", html + js):
+        fail("Web loader does not reference a PCK payload")
+
+    wasm_path = root / "index.wasm"
+    pck_path = root / "index.pck"
+    if wasm_path.read_bytes()[:4] != b"\x00asm":
+        fail("index.wasm does not have the WebAssembly magic header")
+    if wasm_path.stat().st_size < 5 * 1024 * 1024:
+        fail("index.wasm is suspiciously small")
+    if pck_path.stat().st_size < 1024 * 1024:
+        fail(f"index.pck is suspiciously small: {pck_path.stat().st_size} bytes")
+
+    prohibited = ["index.service.worker.js", "index.offline.html"]
+    present = [name for name in prohibited if (root / name).exists()]
+    if present:
+        fail("PWA-only files present in Pages test export: " + ", ".join(present))
+
+    if args.structural:
+        if info.get("playable") is not False or info.get("qualified") is not False:
+            fail("structural artifact must remain explicitly unqualified")
+        if info.get("qualification") != "pending-counteraudits":
+            fail("structural artifact has an unexpected pending qualification state")
+        if info.get("qualification_stage") != "pending":
+            fail("structural artifact must declare qualification_stage=pending")
+    elif args.pre_final:
+        if info.get("playable") is not False or info.get("qualified") is not False:
+            fail("pre-final artifact must remain unqualified until final mutation testing passes")
+        if info.get("qualification") != EXPECTED_QUALIFICATION:
+            fail(f"unexpected pre-final qualification contract: {info.get('qualification')!r}")
+        if info.get("qualification_stage") != "pre-final":
+            fail("pre-final artifact must declare qualification_stage=pre-final")
+    else:
+        if info.get("playable") is not True or info.get("qualified") is not True:
+            fail("artifact is not explicitly marked playable and qualified")
+        if info.get("qualification") != EXPECTED_QUALIFICATION:
+            fail(f"unexpected qualification contract: {info.get('qualification')!r}")
+        if info.get("qualification_stage") != "final":
+            fail("strict artifact must declare qualification_stage=final")
+
+    proof_summary: dict = {}
+    if strictish:
+        proof = load_json(root / "qualification-proof.json", "qualification-proof.json")
+        if proof.get("revision") != EXPECTED_VERSION:
+            fail("qualification proof revision mismatch")
+        if proof.get("source_commit") != source_commit:
+            fail("qualification proof source commit mismatch")
+        if proof.get("qualification") != EXPECTED_QUALIFICATION:
+            fail("qualification proof contract mismatch")
+        if proof.get("counteraudit_passed") is not True:
+            fail("qualification proof does not attest counteraudit success")
+        if proof.get("countercounteraudit_passed") is not True:
+            fail("qualification proof does not attest countercounteraudit success")
+
+        payload_hashes = verify_payload_hashes(root, proof)
+
+        counter_path = root / "qualification" / "counteraudit-report.json"
+        countercounter_path = root / "qualification" / "countercounteraudit-report.json"
+        counter = load_json(counter_path, "qualification/counteraudit-report.json")
+        countercounter = load_json(countercounter_path, "qualification/countercounteraudit-report.json")
+        if counter.get("revision") != EXPECTED_VERSION:
+            fail("portable counteraudit report revision mismatch")
+        if counter.get("source_commit") != source_commit:
+            fail("portable counteraudit report source commit mismatch")
+        toolchain_summary = verify_portable_counteraudit(counter)
+        if countercounter.get("revision") != EXPECTED_VERSION:
+            fail("portable countercounteraudit report revision mismatch")
+        if countercounter.get("source_commit") != source_commit:
+            fail("portable countercounteraudit report source commit mismatch")
+        countercounter_tests = verify_mutation_report(
+            countercounter,
+            "portable countercounteraudit report",
+            minimum=EXPECTED_COUNTERCOUNTER_MUTATIONS,
+        )
+        if int(countercounter.get("full_toolchain_recomputations", 0)) != EXPECTED_FULL_TOOLCHAIN_RECOMPUTATIONS:
+            fail("portable countercounteraudit report did not retain the required full toolchain recomputation depth")
+
+        expected_counter_hash = str(proof.get("counteraudit_report_sha256", ""))
+        expected_countercounter_hash = str(proof.get("countercounteraudit_report_sha256", ""))
+        for key, value in (
+            ("counteraudit_report_sha256", expected_counter_hash),
+            ("countercounteraudit_report_sha256", expected_countercounter_hash),
+        ):
+            if not SHA256.fullmatch(value):
+                fail(f"qualification proof has malformed {key}")
+        actual_counter_hash = sha256(counter_path)
+        actual_countercounter_hash = sha256(countercounter_path)
+        if actual_counter_hash != expected_counter_hash:
+            fail("portable counteraudit report hash does not match qualification proof")
+        if actual_countercounter_hash != expected_countercounter_hash:
+            fail("portable countercounteraudit report hash does not match qualification proof")
+
+        proof_summary = {
+            "payload_sha256": payload_hashes,
+            "counteraudit_report_sha256": actual_counter_hash,
+            "countercounteraudit_report_sha256": actual_countercounter_hash,
+            "countercounteraudit_mutation_tests": countercounter_tests,
+            "full_toolchain_recomputations": EXPECTED_FULL_TOOLCHAIN_RECOMPUTATIONS,
+            "toolchain": toolchain_summary,
+        }
+
+        if fully_strict:
+            if proof.get("final_countercounteraudit_passed") is not True:
+                fail("qualification proof does not attest final-artifact countercounteraudit success")
+            final_path = root / "qualification" / "final-artifact-countercounteraudit-report.json"
+            final_report = load_json(final_path, "qualification/final-artifact-countercounteraudit-report.json")
+            if final_report.get("revision") != EXPECTED_VERSION:
+                fail("final-artifact countercounteraudit revision mismatch")
+            if final_report.get("source_commit") != source_commit:
+                fail("final-artifact countercounteraudit source commit mismatch")
+            final_tests = verify_mutation_report(
+                final_report,
+                "final-artifact countercounteraudit report",
+                minimum=EXPECTED_FINAL_MUTATIONS,
+            )
+            expected_final_hash = str(proof.get("final_countercounteraudit_report_sha256", ""))
+            if not SHA256.fullmatch(expected_final_hash):
+                fail("qualification proof has malformed final_countercounteraudit_report_sha256")
+            actual_final_hash = sha256(final_path)
+            if actual_final_hash != expected_final_hash:
+                fail("final-artifact countercounteraudit report hash does not match qualification proof")
+            proof_summary["final_countercounteraudit_report_sha256"] = actual_final_hash
+            proof_summary["final_countercounteraudit_mutation_tests"] = final_tests
+
+    report = {
+        "passed": True,
+        "mode": "structural" if args.structural else ("pre-final" if args.pre_final else "strict"),
+        "root": str(root),
+        "version": info["version"],
+        "source_commit": source_commit,
+        "qualification": info.get("qualification"),
+        "wasm_bytes": wasm_path.stat().st_size,
+        "pck_bytes": pck_path.stat().st_size,
+        "pwa": False,
+        "threads": False,
+        "proof": proof_summary,
+    }
+    print(json.dumps(report, indent=2, sort_keys=True))
+    if args.structural:
+        print("EDEN_WEB_EXPORT_STRUCTURAL_VERIFIER=PASS")
+    elif args.pre_final:
+        print("EDEN_WEB_EXPORT_PRE_FINAL_VERIFIER=PASS")
+    else:
+        print("EDEN_WEB_EXPORT_VERIFIER=PASS")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

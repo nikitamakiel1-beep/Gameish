@@ -1,0 +1,83 @@
+{
+  "schema": "edenfall.validation.v1",
+  "generated_at": "2026-08-06T09:46:00+02:00",
+  "project": "EDEN//FALL",
+  "project_version": "0.6.0",
+  "engine": {
+    "reported_version": "4.7.1.stable.official.a13da4feb",
+    "renderer": "gl_compatibility",
+    "template_sha256": "c15080fe53f8ef512eafa6ab1965539cdb890dd1ed84c10c062edcb1a73f2493"
+  },
+  "factory_audit": {
+    "status": "pass",
+    "elapsed_seconds": 4.05,
+    "peak_resident_kib": 172608,
+    "decoded_textures": 59,
+    "generated_audio_resources": 24,
+    "errors": [],
+    "cache_before_clear": {
+      "textures": 33,
+      "audio": 24,
+      "enemy_budget": 8,
+      "boss_budget": 1,
+      "tracked_usage": 33
+    },
+    "cache_after_clear": {
+      "textures": 0,
+      "audio": 0,
+      "enemy_budget": 8,
+      "boss_budget": 1,
+      "tracked_usage": 0
+    }
+  },
+  "runtime_boot": {
+    "status": "pass",
+    "elapsed_seconds": 0.71,
+    "peak_resident_kib": 143344,
+    "state": "title",
+    "asset_contract": "pass",
+    "asset_contract_mode": "runtime",
+    "runtime_textures": 6,
+    "runtime_audio": 0,
+    "performance_profile": "web",
+    "performance_limits": {
+      "target_fps": 60,
+      "max_bullets": 560,
+      "max_effects": 200,
+      "max_damage_numbers": 120,
+      "max_pickups": 60,
+      "trim_interval": 6.0
+    }
+  },
+  "coverage": {
+    "heroes": 5,
+    "enemies": 18,
+    "bosses": 5,
+    "biomes": 5,
+    "utilities": 11,
+    "directions": 8,
+    "frames_per_animation": 8,
+    "actor_actions": 6
+  },
+  "source_sha256": {
+    "scripts/v6/pixel_primitives.gd": "2895ede59b56aff2017584d00ecb0e612e7e723753f817006408cad7f2663ed0",
+    "scripts/v6/actor_asset_factory.gd": "64b01584ee937891ad21ec18bdb35f6223f822bbb56d568e259f4ebdd1e0a654",
+    "scripts/v6/support_asset_factory.gd": "2ce789e670cc0286e76102d9749404b243c4047bf102ad8f2eef588d5f5afe52",
+    "scripts/v6/audio_asset_factory.gd": "7ecf2835369004e843f03a0c9f89016b89bc1c1f8ae5c5fb2f6471a980cb0917",
+    "scripts/v6/generated_asset_factory_v2.gd": "deddf5feedbfc01c349f8f558597077da0001d514d620bd9c3d90958bc9c37bf"
+  },
+  "qualification_scope": {
+    "exact_runtime_parse": true,
+    "deep_factory_generation": true,
+    "bounded_runtime_boot": true,
+    "editor_import": false,
+    "platform_exports": false,
+    "physical_devices": false,
+    "store_signing": false
+  },
+  "notes": [
+    "The runtime harness used an exact Godot 4.7.1 official export template and a reconstructed validation PCK.",
+    "The template harness inherited an older embedded project configuration, so project-version scoring was excluded from the runtime-boot pass; the branch project.godot is independently set to 0.6.0.",
+    "This receipt does not replace editor-import, export-template, physical-device, signing or store qualification evidence."
+  ]
+}

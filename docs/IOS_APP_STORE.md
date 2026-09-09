@@ -1,280 +1,238 @@
-# iOS and App Store Release Runbook
+# EDEN//FALL — iOS and App Store release runbook
 
-Last reviewed: 3 August 2026.
+Last reviewed: 9 September 2026.
 
-This document is operational guidance for turning the Godot project into a signed iPhone/iPad build. Apple and Godot requirements change, so verify the linked official documentation before every release.
+This document is operational guidance for turning the qualified EDEN//FALL Godot project into a signed iPhone/iPad build. Apple/Xcode requirements change; verify the official Apple and Godot documentation before every submission.
 
 ## 1. Current prerequisites
 
 Required for App Store distribution:
 
-- A Mac capable of running the current Xcode release.
-- Xcode 26 or later and an iOS 26 SDK for App Store uploads under Apple's requirements effective 28 April 2026.
-- Godot 4.6.3 Standard and matching export templates.
+- A Mac running a macOS release supported by the required Xcode version.
+- Xcode 26 or later with an iOS 26 SDK. Apple has required App Store Connect uploads to use Xcode 26+ and the iOS 26/iPadOS 26 SDK family since 28 April 2026.
+- Godot **4.7.1 stable** and matching 4.7.1 export templates.
 - Apple Developer Program membership.
 - An App Store Connect app record.
-- A unique bundle identifier.
-- Apple signing certificates and provisioning managed by Xcode or the developer account.
-- App metadata, screenshots, privacy disclosures, age-rating answers, support URL, and privacy-policy URL.
-
-Apple Developer Program membership is currently 99 USD per membership year, charged in local currency where available.
+- A unique reverse-DNS bundle identifier controlled by the publisher.
+- A valid Apple Team ID and signing/provisioning configuration.
+- App metadata, screenshots, privacy disclosures, age-rating answers, support URL and privacy-policy URL.
 
 Official references:
 
 - Godot iOS export: https://docs.godotengine.org/en/stable/tutorials/export/exporting_for_ios.html
 - Apple upcoming requirements: https://developer.apple.com/news/upcoming-requirements/
-- Apple enrollment: https://developer.apple.com/programs/enroll/
 - App Store submission: https://developer.apple.com/app-store/submitting/
+- App Store screenshot specifications: https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/
 
-## 2. Product identity decisions
+Godot's iOS exporter must run on macOS with Xcode installed. Matching export templates are required. The App Store Team ID and Bundle Identifier are required export fields; leaving them empty causes the exporter to fail.
 
-Resolve these before creating the App Store Connect record:
+## 2. EDEN//FALL product identity
 
-- App Store name: recommended working name `EDEN//FALL`.
-- Repository/product family name: `Gameish`.
-- Bundle identifier: replace `com.yourstudio.gameish.edenfall` with a unique reverse-DNS identifier controlled by the publisher.
-- SKU: internal value such as `GAMEISH-EDENFALL-IOS-001`.
+Current development identity:
+
+- Product: `EDEN//FALL`.
+- Repository/product family: `Gameish`.
+- Current development version: `0.6.4` / `0.6.4-authored-art4`.
+- Godot engine: `4.7.1 stable`.
+- Renderer: GL Compatibility.
+- Bundle identifier in the repository export preset: `com.gameish.edenfall` as a development placeholder/working identifier; confirm publisher ownership and App Store registration before signing.
 - Primary category: Games.
-- Secondary category: Action or Role Playing, after reviewing the final feature set.
-- Monetization: recommended initial model is premium paid download, or a free demo with a non-consumable full-game unlock.
 
-Do not create paid randomized functional loot boxes. They complicate balance, age-rating disclosures, purchase design, and review.
+The repository does not contain release signing credentials. Team ID, signing identities, provisioning profiles and private keys are release-environment data.
 
-## 3. Prepare the Godot project
+## 3. Qualification before iOS export
 
-1. Install Godot 4.6.3 Standard on macOS.
-2. Open the project and allow it to import all files.
-3. Install matching export templates from `Editor > Manage Export Templates`.
-4. Run the project on desktop and resolve all parser/runtime errors.
-5. Open `Project > Export` and add an iOS preset.
-6. Configure at minimum:
-   - App Store Team ID.
-   - Bundle identifier.
-   - Version `0.1.0` for internal testing, then `1.0.0` for launch.
-   - Incrementing build number for every upload.
-   - Landscape orientations.
-   - App icon assets.
-   - Required device family: iPhone; enable iPad only after iPad layout testing.
-7. Export to a new folder outside the repository, for example `build/ios/EDENFALL`.
+Do not begin store signing from an unqualified source commit.
 
-Godot exports an Xcode project. App Store signing, archiving, device installation, and upload are then performed through Xcode.
+The source commit should first pass the normal feature-branch qualification path in Codespaces or an equivalent exact-Godot environment:
 
-## 4. Xcode configuration
+```bash
+bash tools/codespaces_sync_preview.sh
+```
 
-Open the generated Xcode project and check:
+At minimum, require:
 
-- The correct Apple development team is selected.
-- The bundle identifier exactly matches the identifier registered with Apple and the App Store Connect record.
-- Automatic signing resolves without errors, or manually managed profiles are valid.
-- Marketing version and build number are correct.
-- The deployment target matches the tested device matrix.
-- Supported orientations are landscape left and landscape right.
-- The app icon has no transparency and all required icon slots are valid.
-- No unsupported capabilities are enabled.
-- The Release scheme is used for archives.
-- Xcode reports no privacy-manifest or required-reason API issue from Godot or third-party plugins.
+```text
+EDEN_ALL_GDSCRIPT_COMPILE_AUDIT=PASS
+EDEN_COMPILE_CHAIN=PASS
+EDEN_FALL_V8_RELEASE_INTEGRITY_AUDIT=PASS
+EDEN_FALL_V8_ART4_REFERENCE_AUDIT=PASS
+```
 
-Do not commit certificates, `.p12` files, provisioning profiles, Apple private keys, or App Store Connect API keys.
+and all inherited product/runtime/entropy/streaming gates. Browser success is not evidence that iOS lifecycle, touch, safe areas, thermals or signing are correct; it only establishes a known-good gameplay/source baseline.
 
-## 5. Device test matrix
+## 4. Prepare the Godot iOS project
 
-Before TestFlight, test on physical hardware. At minimum:
+1. Install Godot 4.7.1 Standard on macOS.
+2. Install the exact matching 4.7.1 export templates.
+3. Checkout the exact qualified source commit.
+4. Open/import `project.godot` and resolve any platform-specific import/export errors.
+5. Open `Project > Export` and inspect the existing `iOS Xcode` preset.
+6. Supply/verify:
+   - Apple Team ID;
+   - final registered bundle identifier;
+   - short version/build number appropriate for the App Store record;
+   - target device family;
+   - landscape orientation policy;
+   - production icon/launch assets;
+   - required privacy usage strings for any capability actually used.
+7. Export to a clean folder outside generated repository state where practical.
 
-- One recent large-screen iPhone.
-- One smaller supported iPhone.
-- One older supported iPhone with weaker GPU/CPU.
-- One iPad if iPad distribution is enabled.
+Godot exports an Xcode project. Signing, physical-device installation, archiving and App Store upload then happen through Xcode.
+
+The iOS simulator supports Godot's Compatibility renderer; EDEN//FALL already targets GL Compatibility, which keeps the rendering path aligned with that constraint.
+
+## 5. Xcode checks
+
+Open the exported Xcode project and verify:
+
+- the correct Apple development team;
+- exact registered bundle identifier;
+- automatic or manual signing resolves without errors;
+- marketing version/build number match the intended App Store Connect version;
+- deployment target matches the supported/tested device matrix;
+- landscape orientations are correct;
+- app icons contain no unsupported transparency and required slots are valid;
+- no unsupported capabilities are enabled;
+- Release scheme is used for archives;
+- no privacy-manifest/required-reason API issue is reported for Godot or any future plugin;
+- the exact qualified source revision can be traced from release records.
+
+Never commit certificates, `.p12` files, provisioning profiles, Apple private keys or App Store Connect API keys.
+
+## 6. Physical-device test matrix
+
+Before TestFlight, test on real hardware. At minimum:
+
+- one recent large-screen iPhone;
+- one smaller supported iPhone;
+- one older supported iPhone near the performance floor;
+- one iPad if iPad distribution remains enabled.
 
 Test:
 
-- First launch and save creation.
-- Character selection for all five lineages.
-- Full winning and losing runs.
-- Every room transition direction.
-- Trader purchases with touch.
-- Multiple simultaneous touches.
-- Home indicator and safe-area overlap.
-- App backgrounding during combat, pause, menus, and save operations.
-- Incoming-call or audio-interruption behavior.
-- Low battery mode and thermal pressure.
-- Airplane mode and no-network launch.
-- Reinstall behavior and expected local-save loss before cloud sync exists.
-- Audio routing through speaker, Bluetooth, and silent-mode decisions.
-- 30 FPS and 60 FPS modes when implemented.
+- first launch and save creation;
+- all five canonical lineage selection screens;
+- winning and losing excursions;
+- traversal in every door direction;
+- dense projectile encounters;
+- trader/relic/faction interactions;
+- simultaneous move/aim/dash touches;
+- safe-area/home-indicator overlap;
+- background/resume during combat, pause, menus and save transitions;
+- interruptions and focus changes;
+- low-power/thermal behavior;
+- offline/airplane-mode launch;
+- reinstall/save-loss expectations before cloud sync;
+- audio through speaker/Bluetooth and interruption behavior;
+- reduced-flash/reduced-motion/control settings;
+- sustained 60 FPS target and any lower-power frame cap.
 
-A desktop-successful build is not evidence that touch, safe area, thermal behavior, or lifecycle handling is correct on iOS.
+A desktop or Web pass is not evidence that touch, safe-area, lifecycle or thermal behavior is correct on iOS.
 
-## 6. TestFlight
+## 7. TestFlight
 
-1. In Xcode, select a generic iOS device or supported connected device as the destination.
-2. Use `Product > Archive`.
-3. Validate the archive.
-4. Distribute to App Store Connect.
-5. Wait for Apple to process the build.
-6. Add internal testers first.
-7. Add external testers after beta review when appropriate.
-8. Collect crash logs, device model, OS version, run seed, lineage, room, and reproduction steps.
+1. Archive the qualified Release build in Xcode.
+2. Validate the archive.
+3. Distribute to App Store Connect.
+4. Wait for Apple processing.
+5. Use internal testers first.
+6. Expand to external testers only after the initial build is stable enough for beta review.
+7. Capture crash logs, device model, OS version, lineage, biome/room, source revision and reproduction steps.
 
-Every uploaded build must have a unique build number. App Store Connect associates the upload with the app record using the bundle ID and version information.
+Every uploaded build must use a unique build number.
 
-Official upload reference:
+## 8. Screenshots and product page
 
-https://developer.apple.com/help/app-store-connect/manage-builds/upload-builds/
+Apple currently permits one to ten screenshots per supported display class and requires image files without alpha/transparency.
 
-## 7. Screenshots and product page
+For 6.9-inch iPhone landscape screenshots, currently accepted native sizes include:
 
-Apple currently accepts one to ten screenshots per display class. For a landscape iPhone game, prepare a primary 6.9-inch set without transparency. Accepted 6.9-inch landscape dimensions include:
+- 2736 x 1260;
+- 2796 x 1290;
+- 2868 x 1320.
 
-- 2736 × 1260 pixels.
-- 2796 × 1290 pixels.
-- 2868 × 1320 pixels.
+If the app runs on iPad, provide the required iPad screenshot class as specified by App Store Connect. Current 13-inch iPad landscape sizes include 2752 x 2064 and 2732 x 2048.
 
-Use consistent screenshots showing real gameplay:
+Use screenshots from the submitted build. Recommended EDEN//FALL coverage:
 
-1. Lineage selection with the five bodies.
-2. Dense but readable combat.
-3. Preadamic trader room.
-4. Item synergy or unusual projectile pattern.
-5. Watcher Engine boss.
-6. Genome Archive or run-results screen when implemented.
+1. canonical lineage selection;
+2. readable combat in Industrial Eden;
+3. devastated Ash Wastes/environmental storytelling;
+4. trader/relic or unusual build interaction;
+5. Fungal Garden or Nephilim Ruins landmark room;
+6. guardian/boss encounter;
+7. Archive/settings/accessibility if those screens are included in the submitted build.
 
-Do not use screenshots that imply features absent from the submitted build. Avoid direct visual comparison to commercial reference games in store assets.
-
-Official screenshot specifications:
-
-https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/
-
-## 8. Suggested launch metadata
-
-Working subtitle:
-
-`Escape the industrial Garden`
-
-Working description structure:
-
-- One-sentence premise.
-- Five engineered lineages.
-- Procedural rooms and permadeath.
-- Twin-stick shooting and dodge combat.
-- Pre-Adamite traders, outlaws, Nephilim, and fallen custodians.
-- Run-only relic synergies.
-- Offline play and no mandatory account.
-
-Potential keywords should describe actual mechanics rather than competitor names: roguelike, twin-stick, dungeon, bullet hell, post-apocalyptic, action, procedural, offline.
-
-A public support page and public privacy-policy page are required before submission. The privacy policy must also be easily accessible inside the app before launch.
+Do not use competitor art, comparison captions or concept-only graphics that imply content absent from the submitted build.
 
 ## 9. Privacy position
 
-### Current vertical slice
+The product architecture remains local-first. If the submitted build has no analytics, advertising SDK, account system, cloud save or purchase SDK, App Store privacy answers should reflect that exact submitted behavior.
 
-The current repository:
+Re-evaluate disclosures immediately when any network/plugin layer is added. Potential future transmitted data may include account identifiers, cloud-save content, leaderboard records, diagnostics or purchase data.
 
-- Has no network code.
-- Has no analytics or advertising SDK.
-- Has no account system.
-- Has no in-app purchase SDK.
-- Saves progression locally on the device.
+A public privacy-policy URL and in-app accessible privacy information should exist before commercial submission.
 
-Data processed only on-device and never transmitted is not considered collected under Apple's App Privacy definition. A privacy-policy URL is still required for an iOS App Store listing, and App Review Guidelines require an accessible in-app privacy-policy link.
+## 10. Age rating
 
-### After Nakama integration
+Apple introduced an updated age-rating system in 2026. Complete the current App Store Connect questionnaire based on the exact submitted build rather than an old assumed rating.
 
-Re-evaluate and declare all transmitted data, including third-party SDK behavior. Depending on the implementation, declarations may include:
+EDEN//FALL contains stylized weapon combat, mutants and horror/fear themes. Final rating depends on the implemented intensity and questionnaire answers. Preserve the intended stylized presentation if targeting a lower teen classification:
 
-- User ID or device-linked identifier.
-- Gameplay Content for cloud saves and leaderboard records.
-- Product interaction or diagnostics if telemetry is added.
-- Purchase history if server-side receipt validation is added.
+- avoid realistic dismemberment/gore;
+- avoid prolonged detailed suffering;
+- avoid simulated gambling/paid randomized functional loot boxes;
+- describe religious/biotechnological horror accurately in rating answers.
 
-Use a local-first design and avoid collecting data that is not necessary for account restoration, security, purchases, or explicitly chosen competitive features.
+## 11. Accessibility release gate
 
-Official privacy references:
+Implement and physically verify before claiming support:
 
-- https://developer.apple.com/help/app-store-connect/manage-app-information/manage-app-privacy/
-- https://developer.apple.com/app-store/app-privacy-details/
-- https://developer.apple.com/app-store/review/guidelines/
+- adjustable UI/control scale;
+- left-handed touch layout;
+- adjustable stick opacity/dead zone;
+- aim assistance option;
+- reduced screen shake;
+- reduced flash;
+- color-independent projectile/pickup silhouettes;
+- subtitles for spoken narrative if voice is present;
+- independent master/music/effects volume;
+- haptic intensity/off setting;
+- large/reliable pause target;
+- readable text/contrast across supported screens.
 
-## 10. Expected age rating
-
-The final rating is determined from the App Store Connect questionnaire and regional rules. Based on the intended content, the likely global target is **13+**, because the design includes frequent fantasy violence, weapons, mutants, and horror/fear themes while avoiding realistic gore and prolonged graphic violence.
-
-Keep the visual presentation stylized if 13+ is the target:
-
-- No realistic dismemberment.
-- No prolonged suffering.
-- No detailed realistic wounds.
-- No sexualized religious imagery.
-- No paid loot boxes.
-- No simulated gambling.
-
-Answer based on the submitted build, not the intended future roadmap.
-
-Official definitions:
-
-https://developer.apple.com/help/app-store-connect/reference/app-information/age-ratings-values-and-definitions/
-
-## 11. Accessibility before submission
-
-Implement and verify:
-
-- Adjustable UI/control scale.
-- Left-handed touch layout.
-- Adjustable stick opacity and dead zone.
-- Aim assistance option.
-- Reduced screen shake.
-- Reduced flash.
-- Color-independent projectile and pickup silhouettes.
-- Subtitles for all spoken narrative.
-- Independent master, music, and effects volume.
-- Haptic intensity and off setting.
-- Pause accessible without a precision tap.
-- Text legible without depending on background contrast alone.
-
-App Store Connect now supports accessibility feature declarations. Only declare a capability after it is tested in the submitted build.
+Only declare App Store accessibility features that are actually tested in the submitted build.
 
 ## 12. App Review preparation
 
-Before clicking Submit for Review:
+Before submission:
 
-- Select the correct processed build.
-- Complete all required metadata.
-- Add screenshots.
-- Complete privacy answers.
-- Complete the updated age-rating questionnaire.
-- Provide the support URL and privacy-policy URL.
-- Complete export-compliance questions accurately.
-- Add reviewer notes explaining that the build is an offline single-player roguelike with no login.
-- Explain controls and how to reach representative content.
-- Provide any hidden gesture or test path needed to evaluate the full build.
-- Confirm the game does not download executable code or external game content.
-- Confirm all art, audio, fonts, and trademarks are owned or properly licensed.
-- Test the exact archive submitted, not only an editor build.
+- select the correct processed build;
+- complete all required metadata;
+- add real screenshots;
+- complete privacy answers;
+- complete current age-rating answers;
+- provide support/privacy-policy URLs;
+- answer export-compliance questions accurately;
+- provide reviewer notes explaining offline single-player operation and controls;
+- provide a practical route to representative gameplay content;
+- confirm no executable code or external game content is downloaded dynamically unless explicitly designed/reviewed;
+- verify ownership/licensing for all art, audio, fonts and trademarks;
+- test the exact archived build, not only the Godot editor/Web build;
+- record the source Git SHA used for the archive.
 
-Submission flow in App Store Connect:
+## 13. Public-release gate
 
-1. Add the app version/build to a draft submission.
-2. Click `Add for Review`.
-3. Review the submission contents.
-4. Click `Submit for Review`.
+Do not treat Art4 qualification alone as a 1.0 commercial-release guarantee. Before public App Store release, require:
 
-Official submission reference:
-
-https://developer.apple.com/help/app-store-connect/manage-submissions-to-app-review/submit-an-app/
-
-## 13. Release recommendation
-
-Do not submit the current procedural-art vertical slice as version 1.0. Use it for mechanics validation and TestFlight only after the CI and physical-device tests pass.
-
-Recommended gates before public release:
-
-- Production visual and audio pass.
-- At least three biomes and three bosses.
-- 40–60 meaningful items with tested synergies.
-- Settings and accessibility screens.
-- Robust suspend/resume and atomic saves.
-- Tutorialization without long text.
-- Stable performance on the oldest supported iPhone.
-- Privacy and support pages online.
-- Closed TestFlight balancing cohort.
-- No known progression-loss or room-generation blocker.
+- final visual/audio review on physical devices;
+- stable progression/save migration;
+- complete accessibility/settings pass;
+- robust lifecycle suspend/resume;
+- representative content depth/balance;
+- sustained performance on the oldest supported device;
+- privacy/support pages online;
+- TestFlight regression/balancing cohort;
+- no known progression-loss, generation blocker, input blocker or crash;
+- a signed release archive built with the Apple-required Xcode/SDK generation current at submission time.

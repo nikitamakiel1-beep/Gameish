@@ -1,0 +1,17 @@
+{
+  "name": "EDEN FALL Godot 4.7.1 Online",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "forwardPorts": [8000],
+  "portsAttributes": {
+    "8000": {
+      "label": "EDEN//FALL Web Preview",
+      "onAutoForward": "openPreview"
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "postAttachCommand": "bash tools/codespaces_serve.sh",
+  "remoteUser": "vscode"
+}

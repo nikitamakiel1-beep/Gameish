@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EDEN//FALL preview cache retirement</title>
+<style>
+html,body{margin:0;min-height:100%;background:#030708;color:#d9d1b5;font:15px system-ui,sans-serif}main{max-width:720px;margin:12vh auto;padding:28px;border:1px solid #476657;background:#07100f}h1{font-size:22px;letter-spacing:.06em}code{color:#a9d397}small{color:#8ca397}
+</style>
+</head>
+<body>
+<main>
+<h1>EDEN//FALL — retiring stale preview cache</h1>
+<p id="status">Checking this Codespaces origin for obsolete Web cache and service workers…</p>
+<small>This clears Cache Storage and unregisters service workers only. It does not delete IndexedDB/local save data.</small>
+</main>
+<script>
+(async () => {
+  const status = document.getElementById('status');
+  try {
+    let workers = 0;
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      workers = registrations.length;
+      await Promise.all(registrations.map(registration => registration.unregister()));
+    }
+    let cacheCount = 0;
+    if ('caches' in window) {
+      const names = await caches.keys();
+      cacheCount = names.length;
+      await Promise.all(names.map(name => caches.delete(name)));
+    }
+    status.textContent = `Retired ${workers} service worker registration(s) and ${cacheCount} cache(s). Loading the current qualified build…`;
+  } catch (error) {
+    status.textContent = `Cache retirement reported: ${String(error)}. Reloading the current build anyway…`;
+  }
+  const target = `./?eden_fresh=${Date.now()}`;
+  setTimeout(() => location.replace(target), 650);
+})();
+</script>
+</body>
+</html>

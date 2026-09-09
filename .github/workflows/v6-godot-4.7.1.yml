@@ -1,0 +1,229 @@
+name: EDEN FALL v0.6 — Godot 4.7.1
+
+on:
+  pull_request:
+    paths:
+      - "**/*.gd"
+      - "**/*.tscn"
+      - "**/*.tres"
+      - "project.godot"
+      - "export_presets.cfg"
+      - ".github/workflows/v6-godot-4.7.1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: edenfall-v6-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: "4.7.1"
+  GODOT_RELEASE: "4.7.1-stable"
+  GODOT_ORIGIN: "https://godot-releases.nbg1.your-objectstorage.com"
+  GODOT_LINUX_ZIP: "Godot_v4.7.1-stable_linux.x86_64.zip"
+  GODOT_MAC_ZIP: "Godot_v4.7.1-stable_macos.universal.zip"
+  GODOT_TEMPLATES: "Godot_v4.7.1-stable_export_templates.tpz"
+
+jobs:
+  validate:
+    name: Import, audit and boot
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends unzip libfontconfig1 libxcursor1 libxinerama1 libxi6 libxrandr2 libgl1 libasound2t64
+
+      - name: Install official Godot 4.7.1
+        run: |
+          mkdir -p "$RUNNER_TEMP/godot" validation/v6
+          curl --fail --location --retry 5 \
+            "${GODOT_ORIGIN}/${GODOT_RELEASE}/${GODOT_LINUX_ZIP}" \
+            --output "$RUNNER_TEMP/godot/godot.zip"
+          unzip -q "$RUNNER_TEMP/godot/godot.zip" -d "$RUNNER_TEMP/godot"
+          GODOT_PATH="$(find "$RUNNER_TEMP/godot" -maxdepth 1 -type f -name 'Godot*' | head -1)"
+          chmod +x "$GODOT_PATH"
+          echo "GODOT_BIN=$GODOT_PATH" >> "$GITHUB_ENV"
+          "$GODOT_PATH" --version | tee validation/v6/engine-version.log
+          grep -E '^4\.7\.1\.stable' validation/v6/engine-version.log
+
+      - name: Import project
+        run: |
+          "$GODOT_BIN" --headless --audio-driver Dummy --path . --editor --quit --verbose \
+            > validation/v6/import.log 2>&1
+
+      - name: Run v0.6 asset and engine audit
+        run: |
+          "$GODOT_BIN" --headless --audio-driver Dummy --path . --script tests/v6_asset_audit.gd \
+            > validation/v6/audit.log 2>&1
+          grep -F 'EDEN_FALL_V6_ASSET_AUDIT=PASS' validation/v6/audit.log
+
+      - name: Boot main scene
+        run: |
+          timeout 30s "$GODOT_BIN" --headless --audio-driver Dummy --path . --quit-after 180 --verbose \
+            > validation/v6/boot.log 2>&1
+
+      - name: Reject fatal engine output
+        run: |
+          if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|Cannot get class|FATAL:' validation/v6/*.log; then
+            exit 1
+          fi
+
+      - name: Upload validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: edenfall-v6-validation
+          path: validation/v6
+          if-no-files-found: error
+
+  desktop-web:
+    name: Desktop and Web exports
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Godot and export templates
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends unzip libfontconfig1 libxcursor1 libxinerama1 libxi6 libxrandr2 libgl1 libasound2t64
+          mkdir -p "$RUNNER_TEMP/godot" "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          curl --fail --location --retry 5 \
+            "${GODOT_ORIGIN}/${GODOT_RELEASE}/${GODOT_LINUX_ZIP}" \
+            --output "$RUNNER_TEMP/godot/godot.zip"
+          curl --fail --location --retry 5 \
+            "${GODOT_ORIGIN}/${GODOT_RELEASE}/${GODOT_TEMPLATES}" \
+            --output "$RUNNER_TEMP/godot/templates.tpz"
+          unzip -q "$RUNNER_TEMP/godot/godot.zip" -d "$RUNNER_TEMP/godot"
+          unzip -q "$RUNNER_TEMP/godot/templates.tpz" -d "$RUNNER_TEMP/templates"
+          cp -R "$RUNNER_TEMP/templates/templates/." "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/"
+          GODOT_PATH="$(find "$RUNNER_TEMP/godot" -maxdepth 1 -type f -name 'Godot*' | head -1)"
+          chmod +x "$GODOT_PATH"
+          echo "GODOT_BIN=$GODOT_PATH" >> "$GITHUB_ENV"
+
+      - name: Export Windows, Linux, macOS and Web
+        run: |
+          mkdir -p build/windows build/linux build/macos build/web validation/v6-exports
+          "$GODOT_BIN" --headless --audio-driver Dummy --path . --export-release "Windows Desktop" \
+            > validation/v6-exports/windows.log 2>&1
+          "$GODOT_BIN" --headless --audio-driver Dummy --path . --export-release "Linux X11" \
+            > validation/v6-exports/linux.log 2>&1
+          "$GODOT_BIN" --headless --audio-driver Dummy --path . --export-release "macOS Universal" \
+            > validation/v6-exports/macos.log 2>&1
+          "$GODOT_BIN" --headless --audio-driver Dummy --path . --export-release "Web" \
+            > validation/v6-exports/web.log 2>&1
+
+      - name: Upload desktop and Web builds
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: edenfall-v6-desktop-web
+          path: |
+            build/windows
+            build/linux
+            build/macos
+            build/web
+            validation/v6-exports
+          if-no-files-found: error
+
+  android:
+    name: Android APK and AAB
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Godot and export templates
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends unzip libfontconfig1 libxcursor1 libxinerama1 libxi6 libxrandr2 libgl1 libasound2t64
+          mkdir -p "$RUNNER_TEMP/godot" "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable" "$HOME/.android"
+          curl --fail --location --retry 5 \
+            "${GODOT_ORIGIN}/${GODOT_RELEASE}/${GODOT_LINUX_ZIP}" \
+            --output "$RUNNER_TEMP/godot/godot.zip"
+          curl --fail --location --retry 5 \
+            "${GODOT_ORIGIN}/${GODOT_RELEASE}/${GODOT_TEMPLATES}" \
+            --output "$RUNNER_TEMP/godot/templates.tpz"
+          unzip -q "$RUNNER_TEMP/godot/godot.zip" -d "$RUNNER_TEMP/godot"
+          unzip -q "$RUNNER_TEMP/godot/templates.tpz" -d "$RUNNER_TEMP/templates"
+          cp -R "$RUNNER_TEMP/templates/templates/." "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/"
+          GODOT_PATH="$(find "$RUNNER_TEMP/godot" -maxdepth 1 -type f -name 'Godot*' | head -1)"
+          chmod +x "$GODOT_PATH"
+          echo "GODOT_BIN=$GODOT_PATH" >> "$GITHUB_ENV"
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            keytool -genkeypair -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey \
+              -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Gameish,C=ES"
+          fi
+
+      - name: Export Android packages
+        run: |
+          mkdir -p build/android validation/v6-android
+          "$GODOT_BIN" --headless --audio-driver Dummy --path . --export-debug "Android APK" \
+            > validation/v6-android/apk.log 2>&1
+          "$GODOT_BIN" --headless --audio-driver Dummy --path . --export-debug "Android AAB" \
+            > validation/v6-android/aab.log 2>&1
+
+      - name: Upload Android builds
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: edenfall-v6-android
+          path: |
+            build/android
+            validation/v6-android
+          if-no-files-found: error
+
+  ios:
+    name: iOS Xcode engineering export
+    needs: validate
+    runs-on: macos-14
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install official Godot and templates
+        run: |
+          mkdir -p "$RUNNER_TEMP/godot" "$HOME/Library/Application Support/Godot/export_templates/${GODOT_VERSION}.stable"
+          curl --fail --location --retry 5 \
+            "${GODOT_ORIGIN}/${GODOT_RELEASE}/${GODOT_MAC_ZIP}" \
+            --output "$RUNNER_TEMP/godot/godot.zip"
+          curl --fail --location --retry 5 \
+            "${GODOT_ORIGIN}/${GODOT_RELEASE}/${GODOT_TEMPLATES}" \
+            --output "$RUNNER_TEMP/godot/templates.tpz"
+          unzip -q "$RUNNER_TEMP/godot/godot.zip" -d "$RUNNER_TEMP/godot"
+          unzip -q "$RUNNER_TEMP/godot/templates.tpz" -d "$RUNNER_TEMP/templates"
+          cp -R "$RUNNER_TEMP/templates/templates/." "$HOME/Library/Application Support/Godot/export_templates/${GODOT_VERSION}.stable/"
+          GODOT_PATH="$RUNNER_TEMP/godot/Godot.app/Contents/MacOS/Godot"
+          chmod +x "$GODOT_PATH"
+          echo "GODOT_BIN=$GODOT_PATH" >> "$GITHUB_ENV"
+          "$GODOT_PATH" --version | tee validation-engine-version-ios.log
+          grep -E '^4\.7\.1\.stable' validation-engine-version-ios.log
+
+      - name: Export unsigned Xcode project
+        run: |
+          mkdir -p build/ios validation/v6-ios
+          "$GODOT_BIN" --headless --audio-driver Dummy --path . --export-debug "iOS Xcode" \
+            > validation/v6-ios/ios.log 2>&1
+
+      - name: Upload iOS engineering package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: edenfall-v6-ios
+          path: |
+            build/ios
+            validation/v6-ios
+            validation-engine-version-ios.log
+          if-no-files-found: error

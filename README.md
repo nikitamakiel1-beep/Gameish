@@ -1,108 +1,172 @@
 # Gameish: EDEN//FALL
 
-A mobile-first, room-based action roguelike set in an industrial, post-apocalyptic Garden of Eden.
+EDEN//FALL is a mobile-first, top-down, room-based action roguelike set in an industrial post-apocalyptic Garden of Eden. The player awakens one of five engineered human lineages in an overgrown biolaboratory and pushes outward through ruined infrastructure, devastated roads and cities, ritualized machine laboratories, fungal ecologies and Nephilim-scale ruins.
 
-The player selects one of five engineered human lineages housed inside the Eden Biolaboratory, then enters a procedurally reconfigured exterior occupied by pre-Adamite traders and outlaws, altered human factions, Nephilim husks, fallen bio-machines, and the Watcher Engine.
+The active feature-branch product revision is **0.6.4-authored-art4**, built against **Godot 4.7.1 stable**. The v0.6.0 runtime/asset ABI remains intentionally compatible where persistence and lookup contracts require it.
 
-This repository currently contains an original **Godot 4.6 vertical slice**. It is intentionally closer in structure to room-based twin-stick roguelikes than to an open-world action RPG: sealed combat chambers, randomized routes, run-only items, shops, a boss, permadeath, and limited persistent unlocks.
+## Product state
 
-## Current status
+Implemented on `godmode/production-assets-v6-rebuild`:
 
-Implemented:
+- Five canonical playable lineages: Adam, Abel, Cain, Seth and Naamah.
+- Identity-locked protagonist silhouettes, palettes, proportions and weapon classes.
+- Curated procedural enemy families with bounded visual and behavioral variation.
+- Fresh stochastic run topology, encounter composition, environmental dressing, rewards and guardian pattern order.
+- Five lore biomes with authored macro-grammar and procedural story beats:
+  1. Industrial Eden.
+  2. Ash Wastes.
+  3. Temple-Lab.
+  4. Fungal Garden.
+  5. Nephilim Ruins.
+- Room locking, traversal, combat, shops, relics, factions, bosses, persistence and Serpent-resolution systems inherited from the v0.6/RC7/V8 stack.
+- Keyboard/mouse, gamepad-oriented actions and dual-touch twin-stick controls.
+- Dash movement with invulnerability and telegraphed enemy/boss actions.
+- Local Genome Archive progression and active-run suspend/resume.
+- First-party procedural sprite, environment and synthesized-audio generation.
+- Art4 runtime presentation with action-addressed sprite frames, breathing/bob, recoil, muzzle feedback, dash echoes, contact shadows and biome-specific room depth.
+- Web export for browser testing using GL Compatibility, a 1280x720 logical viewport, nearest-neighbor pixel rendering, non-threaded Web and non-PWA delivery.
 
-- Five playable lineages: Adam, Abel, Cain, Seth, and Naamah.
-- Seeded procedural room graphs with combat, treasure, trader, start, and boss rooms.
-- Room locking and traversal after combat clearance.
-- Keyboard/mouse and dual-touch twin-stick controls.
-- Dash movement with invulnerability.
-- Four escalating enemy archetypes plus the Watcher Engine boss.
-- Preadamic trader inventory and scrap economy.
-- Ten run items with stat changes and simple synergies.
-- Permadeath and local Genome Archive progression.
-- Persistent local save in `user://edenfall_save.json`.
-- Original procedural vector visuals with no external art dependency.
-- Headless parse/boot workflow for GitHub Actions.
-- Godot 4.6.3 headless import, script parsing, and main-scene boot validated successfully.
+The project is still a development candidate, not a finished commercial release. Physical-device performance, final balancing, localization, store assets, signing/notarization and broad hands-on regression testing remain release work.
 
-Not yet production-complete:
+## Visual direction
 
-- Production sprites, animation, sound, music, haptics, accessibility, balancing, localization, analytics, crash reporting, and final App Store assets are not included yet.
-- Nakama cloud saves and leaderboards are designed as an optional later layer and are not a runtime dependency.
+Recognition-critical identity is authored; replayability-critical composition is procedural.
 
-## Run the project
+Heroes do not receive randomized replacement bodies. Enemy RNG operates inside curated family rules. Rooms use restrained floor texture plus large biome landmarks, collision-matched cover and localized environmental storytelling rather than room-sized procedural wallpaper.
 
-1. Install Godot 4.6.3 Standard.
-2. Clone or download this repository.
-3. Open `project.godot` in Godot.
-4. Run the project with F6/F5.
+The visual benchmark is compact, readable action-roguelike pixel art: strong silhouettes, oversized readable weapons, clear attack poses, controlled value ramps and combat-first contrast. Enter the Gungeon, Soul Knight and The Binding of Isaac are research references for readability, pacing and authored/procedural balance only. Horizon-style reclaimed technological scale informs environmental storytelling. No third-party commercial sprite pixels, characters, maps or UI are imported.
 
-No external packages or imported assets are required for the current vertical slice.
+Detailed Art4 contract: `docs/V8_AUTHORED_ART4_DIRECTION.md`.
+
+## Canonical lineages
+
+- **Adam** — Eden-green survivor; Genesis Rifle; generalist/ranged identity.
+- **Abel** — ivory/gold light caster; halo/focus language.
+- **Cain** — black/red heavy combat lineage; permanently bound to the Mark Cannon visual identity.
+- **Seth** — blue-steel guardian engineer; Watcher Carbine and engineer-node language.
+- **Naamah** — violet mycelial caster; fungal cap/buds/tendrils and Spore Repeater identity.
+
+Run-to-run changes may add legal wear, relic and status overlays, but they may not replace the base hero identity.
+
+## Stochastic run model
+
+Fresh excursions are intentionally not fixed-seed replays. Entropy controls route topology, special-room placement, encounter recipes, legal enemy genomes, rewards, environmental dressing and guardian pattern order.
+
+Suspend/resume persists already-created active-run recipes and state. It does not regenerate the visible run from a public deterministic seed. Any future Daily Protocol can use a separately defined challenge contract without making ordinary excursions deterministic.
+
+Cosmetic randomness is kept separate from progression-critical state so presentation cannot silently mutate a restored run.
+
+## Online development: GitHub Codespaces
+
+A local machine is not required for the normal browser-validation loop. The supported development path is a GitHub Codespace on the production feature branch.
+
+From the repository Codespace terminal:
+
+```bash
+git checkout godmode/production-assets-v6-rebuild
+git pull --ff-only origin godmode/production-assets-v6-rebuild
+bash tools/codespaces_sync_preview.sh
+```
+
+`codespaces_sync_preview.sh` refuses tracked local edits, fast-forwards the production branch and starts the fail-closed qualification pipeline.
+
+The pipeline:
+
+1. Installs/uses exact Godot 4.7.1 and matching Web export templates.
+2. Performs a clean editor import and parser pass.
+3. Loads every GDScript under `res://scripts` and `res://tests` and requires `Script.can_instantiate()`.
+4. Executes the curated bottom-up V7/V8 compile chain.
+5. Verifies Art4 release bindings and version/export metadata.
+6. Executes Art4 graphical/reference audits plus inherited RC6, RC7, entropy, presentation, runtime-quality and streaming gates.
+7. Performs a bounded real main-scene boot.
+8. Exports the non-threaded, non-PWA Web package.
+9. Validates `index.html`, `index.js`, `index.wasm`, `index.pck`, build provenance and the Art4 version marker.
+10. Starts a no-cache server on forwarded port 8000 only after qualification succeeds.
+
+Important success markers include:
+
+```text
+EDEN_ALL_GDSCRIPT_COMPILE_AUDIT=PASS
+EDEN_COMPILE_CHAIN=PASS
+EDEN_FALL_V8_RELEASE_INTEGRITY_AUDIT=PASS
+EDEN_FALL_V8_ART4_REFERENCE_AUDIT=PASS
+```
+
+The final Web verifier must report version `0.6.4-authored-art4`, `qualified: true` provenance and a full source commit SHA.
+
+If an older PWA ever controlled the same Codespaces/browser origin, open `/purge.html` once. It unregisters EDEN//FALL workers and clears only the obsolete EDEN cache prefix; local save storage is deliberately preserved.
+
+## Direct GitHub Pages publishing without custom Actions
+
+After a successful Codespaces qualification/export, the same exact artifact can be published directly from the feature branch:
+
+```bash
+bash tools/publish_gh_pages_no_actions.sh
+```
+
+The publisher refuses `main`, rejects stale or unqualified builds, requires `build-info.json` to match the current source HEAD, verifies the exact publish directory again, pushes to `gh-pages`, and verifies the remote branch tip after the push.
+
+The development contract does not require merging PR #8 to test the Web build.
 
 ## Controls
 
-Desktop:
+Desktop/browser:
 
 - Move: `WASD` or arrow keys.
-- Aim/fire: mouse or `IJKL`.
-- Dash: `Space` or right mouse button.
-- Buy nearby trader item: `E`, or click its card.
-- Pause: `Esc` or `P`.
+- Aim/fire: mouse or configured aim actions.
+- Dash: `Space` or configured dash input.
+- Interact/use: `E` / configured interact action.
+- Pause: `Esc` / configured pause action.
 
 Mobile:
 
 - Left thumb: movement stick.
-- Right thumb: aim and continuous fire.
-- Bottom-right button: dash.
-- Tap trader cards to purchase.
+- Right thumb: aim/fire stick.
+- Dedicated dash and utility controls where enabled.
 
-The game is landscape-first and uses a 1280×720 logical viewport that expands to the available aspect ratio.
+The game is landscape-first and uses a 1280x720 logical viewport with pixel-art filtering and aspect-preserving scaling.
 
-## Roguelike structure
+## Repository architecture
 
-A run begins in the Eden Biolaboratory. The generated room graph contains a guaranteed trader, a guaranteed reliquary, multiple combat chambers, and a distant boss room. Death erases the current inventory, scrap, route, and combat progress. Only Genome Archive currency and item-pool unlock thresholds persist.
-
-Genome thresholds expand the possible item pool at 5, 8, 12, 18, and 25 recovered Genome.
-
-## Repository layout
+The current production lineage is intentionally layered so old ABI-compatible systems can be audited while newer behavior overrides them explicitly:
 
 ```text
-.
-├── .github/workflows/validate.yml
-├── docs/
-├── scripts/
-│   ├── game_data.gd       # Lineages, enemies, items
-│   ├── game_core.gd       # Run generation, combat, economy, persistence
-│   ├── game.gd            # Procedural rendering and UI
-│   └── game_runtime.gd    # Compatibility/runtime corrections
-├── icon.svg
-├── main.tscn
-└── project.godot
+main.tscn
+  -> scripts/edenfall_v8_release_runtime.gd
+     -> scripts/edenfall_v8_animation_runtime.gd
+        -> Art4 presentation / Art3 compatibility runtime chain
+
+Art4 component bindings:
+  scripts/v8/procedural_sprite_forge_art4.gd
+  scripts/v8/enemy_genome_director_art4.gd
+  scripts/v8/procedural_world_director_art4.gd
+
+Qualification:
+  tests/all_gdscript_compile_audit.gd
+  tests/v8_compile_chain_probe.gd
+  tests/v8_release_integrity_audit.gd
+  tests/v8_art4_reference_audit.gd
+  inherited RC6 / RC7 / V8 audits
 ```
 
-## iOS and App Store direction
+See `docs/ARCHITECTURE.md` for ownership boundaries and `ASSET_PIPELINE.md` for the art/audio generation contract.
 
-The code uses GDScript rather than C# and the Compatibility renderer to reduce mobile export risk. A signed App Store build still requires a Mac, Xcode, Godot iOS export templates, an Apple Developer Program account, a unique bundle identifier, signing credentials, App Store Connect metadata, screenshots, privacy disclosures, and review.
+## Save and backend policy
 
-See [`docs/IOS_APP_STORE.md`](docs/IOS_APP_STORE.md) for the current release checklist.
+Single-player remains local-first. Persistent progression and suspended runs must not depend on network availability. Optional cloud/profile services may be added behind adapters later, but authentication failure must never prevent offline play.
 
-## Backend direction
+No server credentials, signing keys, certificates or private store credentials belong in the repository.
 
-The launch build should remain offline-first. Nakama can later provide:
+## Originality and provenance
 
-- Device/account authentication.
-- Cloud Genome Archive and settings backup.
-- Daily or weekly seeded-run leaderboards.
-- Cross-device profile restoration.
-- Server-validated purchases if monetization is added.
+EDEN//FALL uses first-party code-generated/authored geometry and first-party synthesized audio for the active generated asset path. External games and public repositories may be studied for engineering, readability and asset-organization methodology. Their copyrighted art, character designs, maps, audio and UI are not copied into this project.
 
-Do not block single-player startup or local saves on backend availability.
+Any future external asset must have its exact source and license recorded and pass a deliberate provenance review before release use.
 
-## Originality and reference use
+## Design and release documents
 
-The project takes high-level genre inspiration from room-based action roguelikes. It does not contain copied code, characters, names, art, maps, audio, or item designs from commercial reference games. Public mobile-game repositories are used only as architectural research references; their licenses must be reviewed before any code or asset is imported.
-
-## Design documents
-
-- [`docs/GAME_DESIGN.md`](docs/GAME_DESIGN.md)
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
-- [`docs/IOS_APP_STORE.md`](docs/IOS_APP_STORE.md)
+- `docs/GAME_DESIGN.md`
+- `docs/ARCHITECTURE.md`
+- `docs/V8_AUTHORED_ART4_DIRECTION.md`
+- `ASSET_PIPELINE.md`
+- `docs/IOS_APP_STORE.md`
