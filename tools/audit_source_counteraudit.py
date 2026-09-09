@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Counteraudit the EDEN//FALL qualification machinery itself.
 
-Independent of Godot: verifies that critical audit sources contain failure paths,
-that the export pipeline wires every stage, and that export/verifier/publisher
-agree on the exact final qualification contract.
+Independent of Godot: verifies critical runtime hardening, audit failure paths,
+qualification wiring, pinned toolchain provenance, and agreement between the
+exporter/verifier/publisher on the exact final qualification contract.
 """
 from __future__ import annotations
 
@@ -14,11 +14,42 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 EXPECTED_REVISION = "0.6.4-authored-art4"
+GODOT_ARCHIVE_SHA256 = "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba"
+TEMPLATES_ARCHIVE_SHA256 = "86409db6200b6f8fd3230989c2d2002851f3dd18acf11d7bdbafddf5a0dd0f72"
 FULL_QUALIFICATION = (
     "all-gdscript+release-integrity+live-binding+art4-reference+art4-pixel+"
     "systems-stress+input-lifecycle+legacy+boot+web+counteraudit+"
     "mutation-countercounteraudit+final-artifact-countercounteraudit"
 )
+
+RUNTIME_HARDENING: dict[str, tuple[str, ...]] = {
+    "scripts/v5/save_repository.gd": (
+        "_integrity_sha256",
+        "HashingContext.HASH_SHA256",
+        "_candidate_is_valid",
+        "valid_json_tamper_detection",
+        "prepromotion_readback",
+        "preserve_good_backup_on_bad_primary",
+        "legacy_read_compatibility",
+    ),
+    "scripts/v6/performance_budget.gd": (
+        "func observe_frame",
+        "adaptive_scale",
+        "PRESSURE_SAMPLES",
+        "RECOVERY_SAMPLES",
+        "effective_limit",
+        "post_frame_auto_observation",
+        "player_bullet_priority",
+    ),
+    "scripts/v8/entropy_director.gd": (
+        "func derive_seed",
+        "HashingContext.HASH_SHA256",
+        "context_counters",
+        "context_isolated_forks",
+        "sha256_substream_derivation",
+        "rng_algorithm_not_persistence_abi",
+    ),
+}
 
 AUDITS: dict[str, tuple[str, ...]] = {
     "tests/all_gdscript_compile_audit.gd": (
@@ -40,7 +71,18 @@ AUDITS: dict[str, tuple[str, ...]] = {
         "EDEN_FALL_V8_ART4_PIXEL_COUNTERAUDIT=PASS", EXPECTED_REVISION, "get_used_rect", "build_player_sheet", "build_enemy_sheet", "build_floor_image", "push_error", "quit(1)"
     ),
     "tests/v8_systems_stress_counteraudit.gd": (
-        "EDEN_FALL_V8_SYSTEMS_STRESS_COUNTERAUDIT=PASS", EXPECTED_REVISION, "write_json_atomic", "backup_corruption_recovery", "admit_bullet", "materialize_delay", "compose", "unique_tokens", "push_error", "quit(1)"
+        "EDEN_FALL_V8_SYSTEMS_STRESS_COUNTERAUDIT=PASS",
+        EXPECTED_REVISION,
+        "write_json_atomic",
+        "valid_json_tamper_recovery",
+        "pressure_scale_observed",
+        "context_isolated_forks",
+        "signature_diversity",
+        "materialize_delay",
+        "compose",
+        "unique_tokens",
+        "push_error",
+        "quit(1)",
     ),
     "tests/v6_input_lifecycle_audit.gd": (
         "EDEN_FALL_V6_INPUT_LIFECYCLE_AUDIT=PASS", "Input.action_press", "NOTIFICATION_OS_MEMORY_WARNING", "NOTIFICATION_APPLICATION_FOCUS_OUT", "get_tree().quit(1)"
@@ -50,6 +92,14 @@ AUDITS: dict[str, tuple[str, ...]] = {
 PIPELINE_REQUIRED = (
     "python3 \"$ROOT/tools/static_tooling_audit.py\"",
     "python3 \"$ROOT/tools/audit_source_counteraudit.py\"",
+    GODOT_ARCHIVE_SHA256,
+    TEMPLATES_ARCHIVE_SHA256,
+    "ensure_verified_archive",
+    "EDEN_TOOLCHAIN_GODOT_ARCHIVE_SHA256",
+    "EDEN_TOOLCHAIN_TEMPLATES_ARCHIVE_SHA256",
+    "EDEN_TOOLCHAIN_WEB_TEMPLATE_SHA256",
+    "EDEN_TOOLCHAIN_PROVENANCE=PASS",
+    "toolchain-provenance.log",
     'run_audit "res://tests/all_gdscript_compile_audit.gd"',
     'run_audit "res://tests/v8_compile_chain_probe.gd"',
     '"res://tests/v8_release_integrity_audit.gd"',
@@ -104,6 +154,14 @@ def python_string_constant(source: str, name: str) -> str:
 def main() -> int:
     errors: list[str] = []
 
+    for relative, needles in RUNTIME_HARDENING.items():
+        try:
+            source = read(relative)
+        except (OSError, UnicodeError) as exc:
+            errors.append(f"missing/unreadable hardened runtime {relative}: {exc}")
+            continue
+        require(source, needles, f"hardened runtime {relative}", errors)
+
     for relative, needles in AUDITS.items():
         try:
             source = read(relative)
@@ -120,6 +178,24 @@ def main() -> int:
     require(pipeline, PIPELINE_REQUIRED, "export pipeline", errors)
     if f'FULL_QUALIFICATION="{FULL_QUALIFICATION}"' not in pipeline:
         errors.append("export pipeline final qualification contract drifted")
+
+    try:
+        counteraudit = read("tools/qualification_counteraudit.py")
+    except (OSError, UnicodeError) as exc:
+        errors.append(f"cannot inspect qualification counteraudit: {exc}")
+        counteraudit = ""
+    require(
+        counteraudit,
+        (
+            GODOT_ARCHIVE_SHA256,
+            TEMPLATES_ARCHIVE_SHA256,
+            "toolchain-provenance.log",
+            "EDEN_TOOLCHAIN_WEB_TEMPLATE_SHA256",
+            "parse_toolchain_log",
+        ),
+        "qualification counteraudit",
+        errors,
+    )
 
     try:
         verifier = read("tools/verify_web_export.py")
@@ -214,6 +290,7 @@ def main() -> int:
 
     report = {
         "revision": EXPECTED_REVISION,
+        "hardened_runtime_sources": len(RUNTIME_HARDENING),
         "audit_sources": len(AUDITS),
         "pipeline_gates": len(PIPELINE_REQUIRED),
         "errors": errors,
