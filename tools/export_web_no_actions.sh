@@ -133,6 +133,7 @@ AUDITS=(
   "res://tests/v8_release_integrity_audit.gd"
   "res://tests/v8_live_binding_counteraudit.gd"
   "res://tests/v8_art4_reference_audit.gd"
+  "res://tests/v8_art4_pixel_counteraudit.gd"
   "res://tests/v8_art_direction_audit.gd"
   "res://tests/v8_presentation_audit.gd"
   "res://tests/v6_factory_audit.gd"
