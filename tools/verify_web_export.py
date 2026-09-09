@@ -24,7 +24,8 @@ EXPECTED_AUDIT_LOGS = 17
 EXPECTED_REQUIRED_LOGS = 24
 EXPECTED_EXACT_MARKERS = 21
 EXPECTED_COUNTERCOUNTER_MUTATIONS = 15
-EXPECTED_FINAL_MUTATIONS = 12
+EXPECTED_FULL_TOOLCHAIN_RECOMPUTATIONS = 2
+EXPECTED_FINAL_MUTATIONS = 13
 EXPECTED_QUALIFICATION = (
     "all-gdscript+release-integrity+live-binding+art4-reference+art4-pixel+"
     "systems-stress+expressive-range+input-lifecycle+legacy+boot+web+counteraudit+"
@@ -92,6 +93,8 @@ def verify_payload_hashes(root: pathlib.Path, proof: dict) -> dict[str, str]:
 def verify_portable_counteraudit(counter: dict) -> dict[str, str]:
     if counter.get("passed") is not True:
         fail("portable counteraudit report is not passing")
+    if counter.get("toolchain_recomputed") is not True:
+        fail("portable counteraudit report was not produced by a full independent toolchain recomputation")
     if int(counter.get("audit_logs", 0)) != EXPECTED_AUDIT_LOGS:
         fail("portable counteraudit report does not attest the exact audit-log contract including expressive-range")
     if int(counter.get("required_logs", 0)) != EXPECTED_REQUIRED_LOGS:
@@ -256,6 +259,8 @@ def main() -> int:
             "portable countercounteraudit report",
             minimum=EXPECTED_COUNTERCOUNTER_MUTATIONS,
         )
+        if int(countercounter.get("full_toolchain_recomputations", 0)) != EXPECTED_FULL_TOOLCHAIN_RECOMPUTATIONS:
+            fail("portable countercounteraudit report did not retain the required full toolchain recomputation depth")
 
         expected_counter_hash = str(proof.get("counteraudit_report_sha256", ""))
         expected_countercounter_hash = str(proof.get("countercounteraudit_report_sha256", ""))
@@ -277,6 +282,7 @@ def main() -> int:
             "counteraudit_report_sha256": actual_counter_hash,
             "countercounteraudit_report_sha256": actual_countercounter_hash,
             "countercounteraudit_mutation_tests": countercounter_tests,
+            "full_toolchain_recomputations": EXPECTED_FULL_TOOLCHAIN_RECOMPUTATIONS,
             "toolchain": toolchain_summary,
         }
 
