@@ -20,6 +20,9 @@ import re
 EXPECTED_VERSION = "0.6.4-authored-art4"
 EXPECTED_BRANCH = "godmode/production-assets-v6-rebuild"
 EXPECTED_CHANNEL = "github-pages-test-no-actions"
+EXPECTED_AUDIT_LOGS = 17
+EXPECTED_REQUIRED_LOGS = 24
+EXPECTED_EXACT_MARKERS = 21
 EXPECTED_QUALIFICATION = (
     "all-gdscript+release-integrity+live-binding+art4-reference+art4-pixel+"
     "systems-stress+expressive-range+input-lifecycle+legacy+boot+web+counteraudit+"
@@ -82,6 +85,48 @@ def verify_payload_hashes(root: pathlib.Path, proof: dict) -> dict[str, str]:
         if digest != expected:
             fail(f"qualified Web payload changed after audit: {name}")
     return actual
+
+
+def verify_portable_counteraudit(counter: dict) -> dict[str, str]:
+    if counter.get("passed") is not True:
+        fail("portable counteraudit report is not passing")
+    if int(counter.get("audit_logs", 0)) != EXPECTED_AUDIT_LOGS:
+        fail("portable counteraudit report does not attest the exact audit-log contract including expressive-range")
+    if int(counter.get("required_logs", 0)) != EXPECTED_REQUIRED_LOGS:
+        fail("portable counteraudit report required-log contract drifted")
+    if int(counter.get("exact_markers", 0)) != EXPECTED_EXACT_MARKERS:
+        fail("portable counteraudit report exact-marker contract drifted")
+
+    logged = counter.get("toolchain")
+    if not isinstance(logged, dict) or logged.get("EDEN_TOOLCHAIN_PROVENANCE") != "PASS":
+        fail("portable counteraudit report lacks passing toolchain log evidence")
+    recomputed = counter.get("recomputed_toolchain")
+    if not isinstance(recomputed, dict):
+        fail("portable counteraudit report lacks independently recomputed toolchain evidence")
+
+    editor_member_hash = str(recomputed.get("editor_member_sha256", ""))
+    installed_editor_hash = str(recomputed.get("installed_editor_sha256", ""))
+    template_member_hash = str(recomputed.get("template_member_sha256", ""))
+    installed_template_hash = str(recomputed.get("installed_template_sha256", ""))
+    for label, value in (
+        ("editor member", editor_member_hash),
+        ("installed editor", installed_editor_hash),
+        ("template member", template_member_hash),
+        ("installed template", installed_template_hash),
+    ):
+        if not SHA256.fullmatch(value):
+            fail(f"portable counteraudit report has malformed {label} SHA-256 evidence")
+    if editor_member_hash != installed_editor_hash:
+        fail("portable counteraudit report editor member/install evidence disagrees")
+    if template_member_hash != installed_template_hash:
+        fail("portable counteraudit report template member/install evidence disagrees")
+    template_member = str(recomputed.get("template_member", ""))
+    if not template_member.endswith("web_nothreads_release.zip"):
+        fail("portable counteraudit report has unexpected Web template member")
+    return {
+        "editor_sha256": installed_editor_hash,
+        "web_template_sha256": installed_template_hash,
+    }
 
 
 def main() -> int:
@@ -195,17 +240,16 @@ def main() -> int:
         countercounter_path = root / "qualification" / "countercounteraudit-report.json"
         counter = load_json(counter_path, "qualification/counteraudit-report.json")
         countercounter = load_json(countercounter_path, "qualification/countercounteraudit-report.json")
-        if counter.get("passed") is not True:
-            fail("portable counteraudit report is not passing")
         if counter.get("revision") != EXPECTED_VERSION:
             fail("portable counteraudit report revision mismatch")
         if counter.get("source_commit") != source_commit:
             fail("portable counteraudit report source commit mismatch")
+        toolchain_summary = verify_portable_counteraudit(counter)
         if countercounter.get("revision") != EXPECTED_VERSION:
             fail("portable countercounteraudit report revision mismatch")
         if countercounter.get("source_commit") != source_commit:
             fail("portable countercounteraudit report source commit mismatch")
-        countercounter_tests = verify_mutation_report(countercounter, "portable countercounteraudit report")
+        countercounter_tests = verify_mutation_report(countercounter, "portable countercounteraudit report", minimum=15)
 
         expected_counter_hash = str(proof.get("counteraudit_report_sha256", ""))
         expected_countercounter_hash = str(proof.get("countercounteraudit_report_sha256", ""))
@@ -227,6 +271,7 @@ def main() -> int:
             "counteraudit_report_sha256": actual_counter_hash,
             "countercounteraudit_report_sha256": actual_countercounter_hash,
             "countercounteraudit_mutation_tests": countercounter_tests,
+            "toolchain": toolchain_summary,
         }
 
         if fully_strict:
