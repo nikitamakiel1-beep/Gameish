@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""Fail-closed syntax audit for EDEN//FALL repository tooling.
-
-No third-party dependencies are used. Python helpers are parsed with `ast` and
-shell helpers are checked with `bash -n`. This catches wrapper failures before a
-long Godot import/qualification run begins.
-"""
+"""Fail-closed syntax audit for EDEN//FALL repository tooling."""
 from __future__ import annotations
 
 import ast
@@ -26,14 +21,12 @@ CRITICAL = [
     TOOLS / "audit_source_counteraudit.py",
     TOOLS / "qualification_counteraudit.py",
     TOOLS / "qualification_countercounteraudit.py",
+    TOOLS / "final_artifact_countercounteraudit.py",
 ]
 
 
 def fail(errors: list[str]) -> int:
-    report = {
-        "passed": False,
-        "errors": errors,
-    }
+    report = {"passed": False, "errors": errors}
     print("EDEN_STATIC_TOOLING_REPORT=" + json.dumps(report, sort_keys=True))
     for error in errors:
         print(f"ERROR: {error}", file=sys.stderr)
