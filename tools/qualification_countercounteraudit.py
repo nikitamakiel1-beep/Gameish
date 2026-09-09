@@ -19,6 +19,7 @@ import tempfile
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 VERIFIER = ROOT / "tools" / "verify_web_export.py"
 COUNTERAUDIT = ROOT / "tools" / "qualification_counteraudit.py"
+EXPECTED_VERSION = "0.6.4-authored-art4"
 
 
 def run(command: list[str]) -> subprocess.CompletedProcess[str]:
@@ -60,6 +61,12 @@ def main() -> int:
     validation = pathlib.Path(args.validation).resolve()
     errors: list[str] = []
     rejected: list[str] = []
+    try:
+        baseline_info = json.loads((build / "build-info.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        baseline_info = {}
+        errors.append(f"cannot read baseline build metadata: {exc}")
+    source_commit = str(baseline_info.get("source_commit", ""))
 
     baseline_verifier = run([sys.executable, str(VERIFIER), "--structural", str(build)])
     if baseline_verifier.returncode != 0 or "EDEN_WEB_EXPORT_STRUCTURAL_VERIFIER=PASS" not in baseline_verifier.stdout:
@@ -184,6 +191,8 @@ def main() -> int:
         errors.append(f"expected {expected_mutations} rejected mutations, got {len(rejected)}")
 
     report = {
+        "revision": EXPECTED_VERSION,
+        "source_commit": source_commit,
         "passed": not errors,
         "mutation_tests": expected_mutations,
         "rejected_mutations": rejected,
