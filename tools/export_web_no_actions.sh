@@ -25,7 +25,7 @@ BUILD_DIR="$ROOT/build/web"
 VALIDATION_DIR="$ROOT/validation/no-actions-art4"
 TOOLCHAIN_LOG="$VALIDATION_DIR/toolchain-provenance.log"
 PRODUCT_REVISION="0.6.4-authored-art4"
-FULL_QUALIFICATION="all-gdscript+release-integrity+live-binding+art4-reference+art4-pixel+systems-stress+input-lifecycle+legacy+boot+web+counteraudit+mutation-countercounteraudit+final-artifact-countercounteraudit"
+FULL_QUALIFICATION="all-gdscript+release-integrity+live-binding+art4-reference+art4-pixel+systems-stress+expressive-range+input-lifecycle+legacy+boot+web+counteraudit+mutation-countercounteraudit+final-artifact-countercounteraudit"
 SOURCE_BRANCH="godmode/production-assets-v6-rebuild"
 
 need() {
@@ -125,21 +125,46 @@ case "$ENGINE_VERSION" in
 esac
 printf '%s\n' "$ENGINE_VERSION" | tee "$VALIDATION_DIR/engine-version.log"
 
-# The 1.2+ GiB template archive does not need to be re-unpacked every run. The
-# first verified installation records both the official TPZ digest and the inner
-# Web no-threads template digest; subsequent runs re-hash the installed template.
-TEMPLATE_OK=0
-if [[ -s "$TEMPLATE_HOME/web_nothreads_release.zip" && -s "$TEMPLATE_STAMP" ]]; then
-  mapfile -t STAMP_LINES < "$TEMPLATE_STAMP"
-  if [[ "${STAMP_LINES[0]:-}" == "$TEMPLATES_TPZ_SHA256" && "${STAMP_LINES[1]:-}" =~ ^[0-9a-f]{64}$ ]]; then
-    INSTALLED_TEMPLATE_HASH="$(sha256_of "$TEMPLATE_HOME/web_nothreads_release.zip")"
-    if [[ "$INSTALLED_TEMPLATE_HASH" == "${STAMP_LINES[1]}" ]]; then
-      TEMPLATE_OK=1
-    fi
-  fi
+# The installed Web template is never trusted from an editable stamp alone.
+# Every qualification verifies the official TPZ SHA-256, derives the exact
+# web_nothreads_release.zip member digest from that verified TPZ, and compares
+# the installed template against that independently derived digest.
+TEMPLATES_ARCHIVE_HASH="$(ensure_verified_archive "$TEMPLATES_TPZ" "$TEMPLATES_URL" "$TEMPLATES_TPZ_SHA256" "Godot ${GODOT_VERSION} export templates")"
+mapfile -t TEMPLATE_EVIDENCE < <(python3 - "$TEMPLATES_TPZ" <<'PY'
+import hashlib
+import sys
+import zipfile
+
+archive = sys.argv[1]
+with zipfile.ZipFile(archive) as outer:
+    members = [
+        name for name in outer.namelist()
+        if name == "web_nothreads_release.zip" or name.endswith("/web_nothreads_release.zip")
+    ]
+    if len(members) != 1:
+        raise SystemExit(f"expected exactly one web_nothreads_release.zip member, found {len(members)}")
+    member = members[0]
+    digest = hashlib.sha256()
+    with outer.open(member) as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+print(member)
+print(digest.hexdigest())
+PY
+)
+TEMPLATE_MEMBER="${TEMPLATE_EVIDENCE[0]:-}"
+EXPECTED_TEMPLATE_HASH="${TEMPLATE_EVIDENCE[1]:-}"
+if [[ -z "$TEMPLATE_MEMBER" || ! "$EXPECTED_TEMPLATE_HASH" =~ ^[0-9a-f]{64}$ ]]; then
+  echo "ERROR: could not derive Web no-threads template evidence from verified TPZ" >&2
+  exit 5
 fi
-if [[ $TEMPLATE_OK -ne 1 ]]; then
-  TEMPLATES_ARCHIVE_HASH="$(ensure_verified_archive "$TEMPLATES_TPZ" "$TEMPLATES_URL" "$TEMPLATES_TPZ_SHA256" "Godot ${GODOT_VERSION} export templates")"
+
+INSTALLED_TEMPLATE_HASH=""
+if [[ -s "$TEMPLATE_HOME/web_nothreads_release.zip" ]]; then
+  INSTALLED_TEMPLATE_HASH="$(sha256_of "$TEMPLATE_HOME/web_nothreads_release.zip")"
+fi
+if [[ "$INSTALLED_TEMPLATE_HASH" != "$EXPECTED_TEMPLATE_HASH" ]]; then
+  echo "[eden] installing Web no-threads template from verified official TPZ"
   TMP_TEMPLATES="$(mktemp -d)"
   unzip -q -o "$TEMPLATES_TPZ" -d "$TMP_TEMPLATES"
   SRC_TEMPLATES="$(find "$TMP_TEMPLATES" -type f -name 'web_nothreads_release.zip' -printf '%h\n' | head -n1)"
@@ -148,12 +173,16 @@ if [[ $TEMPLATE_OK -ne 1 ]]; then
   cp -a "$SRC_TEMPLATES"/. "$TEMPLATE_HOME"/
   rm -rf "$TMP_TEMPLATES"
   INSTALLED_TEMPLATE_HASH="$(sha256_of "$TEMPLATE_HOME/web_nothreads_release.zip")"
-  printf '%s\n%s\n' "$TEMPLATES_ARCHIVE_HASH" "$INSTALLED_TEMPLATE_HASH" > "$TEMPLATE_STAMP"
-else
-  TEMPLATES_ARCHIVE_HASH="$TEMPLATES_TPZ_SHA256"
 fi
-INSTALLED_TEMPLATE_HASH="$(sha256_of "$TEMPLATE_HOME/web_nothreads_release.zip")"
+if [[ "$INSTALLED_TEMPLATE_HASH" != "$EXPECTED_TEMPLATE_HASH" ]]; then
+  echo "ERROR: installed Web no-threads template does not match verified TPZ member" >&2
+  exit 5
+fi
+# Informational cache receipt only; qualification trust is re-derived above.
+printf '%s\n%s\n' "$TEMPLATES_ARCHIVE_HASH" "$EXPECTED_TEMPLATE_HASH" > "$TEMPLATE_STAMP"
 printf 'EDEN_TOOLCHAIN_TEMPLATES_ARCHIVE_SHA256=%s\n' "$TEMPLATES_ARCHIVE_HASH" | tee -a "$TOOLCHAIN_LOG"
+printf 'EDEN_TOOLCHAIN_WEB_TEMPLATE_MEMBER=%s\n' "$TEMPLATE_MEMBER" | tee -a "$TOOLCHAIN_LOG"
+printf 'EDEN_TOOLCHAIN_EXPECTED_WEB_TEMPLATE_SHA256=%s\n' "$EXPECTED_TEMPLATE_HASH" | tee -a "$TOOLCHAIN_LOG"
 printf 'EDEN_TOOLCHAIN_WEB_TEMPLATE_SHA256=%s\n' "$INSTALLED_TEMPLATE_HASH" | tee -a "$TOOLCHAIN_LOG"
 printf 'EDEN_TOOLCHAIN_ENGINE_VERSION=%s\n' "$ENGINE_VERSION" | tee -a "$TOOLCHAIN_LOG"
 printf 'EDEN_TOOLCHAIN_PROVENANCE=PASS\n' | tee -a "$TOOLCHAIN_LOG"
@@ -208,6 +237,7 @@ AUDITS=(
   "res://tests/v8_art4_reference_audit.gd"
   "res://tests/v8_art4_pixel_counteraudit.gd"
   "res://tests/v8_systems_stress_counteraudit.gd"
+  "res://tests/v8_expressive_range_counteraudit.gd"
   "res://tests/v8_art_direction_audit.gd"
   "res://tests/v8_presentation_audit.gd"
   "res://tests/v6_factory_audit.gd"
