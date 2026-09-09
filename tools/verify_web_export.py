@@ -22,7 +22,7 @@ EXPECTED_BRANCH = "godmode/production-assets-v6-rebuild"
 EXPECTED_CHANNEL = "github-pages-test-no-actions"
 EXPECTED_QUALIFICATION = (
     "all-gdscript+release-integrity+live-binding+art4-reference+art4-pixel+"
-    "systems-stress+input-lifecycle+legacy+boot+web+counteraudit+"
+    "systems-stress+expressive-range+input-lifecycle+legacy+boot+web+counteraudit+"
     "mutation-countercounteraudit+final-artifact-countercounteraudit"
 )
 CORE_FILES = ("index.html", "index.js", "index.wasm", "index.pck")
