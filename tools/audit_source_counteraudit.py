@@ -66,6 +66,8 @@ PIPELINE_REQUIRED = (
     "final-artifact-countercounteraudit-report.json",
     "verify_web_export.py\" --pre-final",
     "payload_sha256",
+    "qualification_stage",
+    "BOOT_CODE -ne 0",
     "final_countercounteraudit_passed",
 )
 
@@ -135,6 +137,7 @@ def main() -> int:
             "qualification/countercounteraudit-report.json",
             "qualification/final-artifact-countercounteraudit-report.json",
             "payload_sha256",
+            "qualification_stage",
             "verify_payload_hashes",
             "final_countercounteraudit_report_sha256",
             "serviceWorker.register",
