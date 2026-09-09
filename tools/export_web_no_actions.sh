@@ -169,8 +169,8 @@ timeout 15s "$GODOT" --headless --audio-driver Dummy --path "$ROOT" --quit-after
 BOOT_CODE=$?
 set -e
 cat "$BOOT_LOG"
-if [[ $BOOT_CODE -ne 0 && $BOOT_CODE -ne 124 ]]; then
-  echo "ERROR: bounded game boot failed with code $BOOT_CODE" >&2
+if [[ $BOOT_CODE -ne 0 ]]; then
+  echo "ERROR: bounded game boot failed or timed out with code $BOOT_CODE" >&2
   exit 7
 fi
 fatal_log "$BOOT_LOG"
@@ -215,6 +215,7 @@ data = {
     "playable": False,
     "qualified": False,
     "qualification": "pending-counteraudits",
+    "qualification_stage": "pending",
     "built_at": datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z"),
 }
 path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
@@ -266,9 +267,10 @@ if counter.get("source_commit") != source_sha or counter.get("revision") != revi
     raise SystemExit("ERROR: portable counteraudit report provenance mismatch")
 
 info = json.loads(info_path.read_text(encoding="utf-8"))
-info["playable"] = True
-info["qualified"] = True
+info["playable"] = False
+info["qualified"] = False
 info["qualification"] = qualification
+info["qualification_stage"] = "pre-final"
 info_path.write_text(json.dumps(info, indent=2) + "\n", encoding="utf-8")
 
 proof = {
@@ -294,17 +296,23 @@ PORTABLE_FINAL="$PORTABLE_QUALIFICATION/final-artifact-countercounteraudit-repor
 cp "$FINAL_REPORT" "$PORTABLE_FINAL"
 
 # Finalize the proof only after the final-artifact mutation suite passes.
-python3 - "$BUILD_DIR/qualification-proof.json" "$PORTABLE_FINAL" "$SOURCE_SHA" "$PRODUCT_REVISION" <<'PY'
+python3 - "$BUILD_DIR/build-info.json" "$BUILD_DIR/qualification-proof.json" "$PORTABLE_FINAL" "$SOURCE_SHA" "$PRODUCT_REVISION" <<'PY'
 import hashlib, json, pathlib, sys
-proof_path = pathlib.Path(sys.argv[1])
-report_path = pathlib.Path(sys.argv[2])
-source_sha = sys.argv[3]
-revision = sys.argv[4]
+info_path = pathlib.Path(sys.argv[1])
+proof_path = pathlib.Path(sys.argv[2])
+report_path = pathlib.Path(sys.argv[3])
+source_sha = sys.argv[4]
+revision = sys.argv[5]
 report = json.loads(report_path.read_text(encoding="utf-8"))
 if report.get("passed") is not True:
     raise SystemExit("ERROR: final-artifact countercounteraudit did not pass")
 if report.get("source_commit") != source_sha or report.get("revision") != revision:
     raise SystemExit("ERROR: final-artifact countercounteraudit provenance mismatch")
+info = json.loads(info_path.read_text(encoding="utf-8"))
+info["playable"] = True
+info["qualified"] = True
+info["qualification_stage"] = "final"
+info_path.write_text(json.dumps(info, indent=2) + "\n", encoding="utf-8")
 proof = json.loads(proof_path.read_text(encoding="utf-8"))
 proof["final_countercounteraudit_passed"] = True
 proof["final_countercounteraudit_report_sha256"] = hashlib.sha256(report_path.read_bytes()).hexdigest()
