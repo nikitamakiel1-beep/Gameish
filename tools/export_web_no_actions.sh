@@ -3,8 +3,8 @@ set -euo pipefail
 
 # EDEN//FALL — Codespaces/local Web export, explicitly without GitHub Actions.
 # Builds the production feature branch with exact Godot 4.7.1 and fails closed
-# on project-wide GDScript compilation, release binding, product audits, boot,
-# Web export integrity, stale PWA state, and revision mismatches.
+# on tooling syntax, dirty tracked source, project-wide GDScript compilation,
+# release binding, product audits, boot, Web integrity, PWA state and revision.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TOOLS_DIR="${EDEN_TOOLS_DIR:-$ROOT/.tools}"
@@ -24,14 +24,41 @@ SOURCE_BRANCH="godmode/production-assets-v6-rebuild"
 need() {
   command -v "$1" >/dev/null 2>&1 || { echo "ERROR: required command not found: $1" >&2; exit 2; }
 }
-need curl
-need unzip
-need git
-need python3
-need timeout
-need tee
+for tool in bash curl unzip git python3 timeout tee grep find sha256sum basename; do
+  need "$tool"
+done
 
+# Fail before any expensive engine work if the repository helpers themselves are
+# syntactically broken.
+python3 "$ROOT/tools/static_tooling_audit.py"
+
+cd "$ROOT"
+CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+if [[ "$CURRENT_BRANCH" == "main" ]]; then
+  echo "ERROR: refusing to build from main. Use $SOURCE_BRANCH." >&2
+  exit 6
+fi
+if [[ -n "$CURRENT_BRANCH" && "$CURRENT_BRANCH" != "HEAD" && "$CURRENT_BRANCH" != "$SOURCE_BRANCH" ]]; then
+  echo "ERROR: refusing to build unexpected branch: $CURRENT_BRANCH" >&2
+  exit 6
+fi
+# Provenance must describe the exact bytes being built. Untracked Godot-generated
+# .uid/.import metadata is tolerated, but tracked or staged edits are not.
+if ! git diff --quiet --ignore-submodules -- || ! git diff --cached --quiet --ignore-submodules --; then
+  echo "ERROR: tracked source is dirty; commit/stash tracked edits before qualification" >&2
+  git status --short >&2
+  exit 6
+fi
+SOURCE_SHA="$(git rev-parse HEAD 2>/dev/null || printf 'unknown')"
+if [[ ! "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+  echo "ERROR: source commit is not a full Git SHA: $SOURCE_SHA" >&2
+  exit 6
+fi
+echo "[eden] source: ${CURRENT_BRANCH:-detached} @ $SOURCE_SHA"
+
+rm -rf "$VALIDATION_DIR"
 mkdir -p "$GODOT_DIR" "$DOWNLOAD_DIR" "$BUILD_DIR" "$VALIDATION_DIR"
+python3 "$ROOT/tools/static_tooling_audit.py" | tee "$VALIDATION_DIR/tooling-audit.log"
 
 if [[ ! -x "$GODOT_DIR/godot" ]]; then
   echo "[eden] downloading Godot ${GODOT_VERSION} Linux editor"
@@ -65,23 +92,6 @@ if [[ ! -f "$TEMPLATE_HOME/web_nothreads_release.zip" ]]; then
   cp -a "$SRC_TEMPLATES"/. "$TEMPLATE_HOME"/
 fi
 
-cd "$ROOT"
-CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
-if [[ "$CURRENT_BRANCH" == "main" ]]; then
-  echo "ERROR: refusing to build from main. Use $SOURCE_BRANCH." >&2
-  exit 6
-fi
-if [[ -n "$CURRENT_BRANCH" && "$CURRENT_BRANCH" != "HEAD" && "$CURRENT_BRANCH" != "$SOURCE_BRANCH" ]]; then
-  echo "ERROR: refusing to build unexpected branch: $CURRENT_BRANCH" >&2
-  exit 6
-fi
-SOURCE_SHA="$(git rev-parse HEAD 2>/dev/null || printf 'unknown')"
-if [[ ! "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
-  echo "ERROR: source commit is not a full Git SHA: $SOURCE_SHA" >&2
-  exit 6
-fi
-echo "[eden] source: ${CURRENT_BRANCH:-detached} @ $SOURCE_SHA"
-
 fatal_log() {
   local log="$1"
   if grep -Eiq 'SCRIPT ERROR|Parse Error|Parser Error|Compile Error|Invalid call|Invalid get index|Failed to load script|Failed to load resource|Cannot get class|FATAL:|ERROR:.*(script|resource|load|invalid)' "$log"; then
@@ -106,8 +116,8 @@ IMPORT_LOG="$VALIDATION_DIR/import.log"
 "$GODOT" --headless --audio-driver Dummy --path "$ROOT" --editor --quit --verbose 2>&1 | tee "$IMPORT_LOG"
 fatal_log "$IMPORT_LOG"
 
-# First prove that every production/test GDScript loads, not only the curated
-# runtime chain. Then run the bottom-up chain and product release gates.
+# Prove every production/test GDScript loads, then prove the explicitly ordered
+# V7/V8 dependency chain and release contracts.
 run_audit "res://tests/all_gdscript_compile_audit.gd"
 run_audit "res://tests/v8_compile_chain_probe.gd"
 
