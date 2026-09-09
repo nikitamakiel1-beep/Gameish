@@ -150,6 +150,8 @@ def main() -> int:
         errors.append("build was marked playable/qualified before counteraudits completed")
     if info.get("qualification") != PENDING_QUALIFICATION:
         errors.append("pending qualification state is missing or incorrect")
+    if info.get("qualification_stage") != "pending":
+        errors.append("pending build must declare qualification_stage=pending")
 
     source_commit_path = validation / "source-commit.txt"
     try:
