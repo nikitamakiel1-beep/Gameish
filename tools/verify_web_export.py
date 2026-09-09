@@ -201,6 +201,10 @@ def main() -> int:
             fail("portable counteraudit report revision mismatch")
         if counter.get("source_commit") != source_commit:
             fail("portable counteraudit report source commit mismatch")
+        if countercounter.get("revision") != EXPECTED_VERSION:
+            fail("portable countercounteraudit report revision mismatch")
+        if countercounter.get("source_commit") != source_commit:
+            fail("portable countercounteraudit report source commit mismatch")
         countercounter_tests = verify_mutation_report(countercounter, "portable countercounteraudit report")
 
         expected_counter_hash = str(proof.get("counteraudit_report_sha256", ""))
