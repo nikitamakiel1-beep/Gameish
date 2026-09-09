@@ -78,12 +78,14 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="eden-final-mutations-") as temporary:
         root = pathlib.Path(temporary)
 
-        case = root / "qualified-false"
+        case = root / "premature-qualified-true"
         clone_lightweight(build, case)
         info = json.loads((case / "build-info.json").read_text(encoding="utf-8"))
-        info["qualified"] = False
+        info["playable"] = True
+        info["qualified"] = True
+        info["qualification_stage"] = "final"
         write_json(case / "build-info.json", info)
-        expect_rejected("qualified-false", case, errors, rejected)
+        expect_rejected("premature-qualified-true", case, errors, rejected)
 
         case = root / "stale-qualification"
         clone_lightweight(build, case)
