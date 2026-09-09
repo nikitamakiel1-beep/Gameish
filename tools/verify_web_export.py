@@ -153,13 +153,30 @@ def main() -> int:
     if present:
         fail("PWA-only files present in Pages test export: " + ", ".join(present))
 
-    proof_summary: dict = {}
-    if strictish:
+    if args.structural:
+        if info.get("playable") is not False or info.get("qualified") is not False:
+            fail("structural artifact must remain explicitly unqualified")
+        if info.get("qualification") != "pending-counteraudits":
+            fail("structural artifact has an unexpected pending qualification state")
+        if info.get("qualification_stage") != "pending":
+            fail("structural artifact must declare qualification_stage=pending")
+    elif args.pre_final:
+        if info.get("playable") is not False or info.get("qualified") is not False:
+            fail("pre-final artifact must remain unqualified until final mutation testing passes")
+        if info.get("qualification") != EXPECTED_QUALIFICATION:
+            fail(f"unexpected pre-final qualification contract: {info.get('qualification')!r}")
+        if info.get("qualification_stage") != "pre-final":
+            fail("pre-final artifact must declare qualification_stage=pre-final")
+    else:
         if info.get("playable") is not True or info.get("qualified") is not True:
             fail("artifact is not explicitly marked playable and qualified")
         if info.get("qualification") != EXPECTED_QUALIFICATION:
             fail(f"unexpected qualification contract: {info.get('qualification')!r}")
+        if info.get("qualification_stage") != "final":
+            fail("strict artifact must declare qualification_stage=final")
 
+    proof_summary: dict = {}
+    if strictish:
         proof = load_json(root / "qualification-proof.json", "qualification-proof.json")
         if proof.get("revision") != EXPECTED_VERSION:
             fail("qualification proof revision mismatch")
