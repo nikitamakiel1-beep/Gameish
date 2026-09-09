@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """Fail closed on an EDEN//FALL Web export.
 
-Two modes are intentional:
+Modes are deliberately staged:
 
-* --structural validates the freshly exported payload while it is still marked
-  pending/unqualified.
-* strict/default validates a publishable artifact and requires portable
-  qualification evidence written only after audit, counteraudit and mutation
-  countercounteraudit.
+* --structural validates a freshly exported payload while metadata is pending.
+* --pre-final validates the provisionally qualified artifact plus the first two
+  portable counteraudit reports; this is used only to mutation-test the final
+  proof boundary.
+* strict/default additionally requires the final-artifact mutation report and
+  binds its hash into qualification-proof.json. Only strict mode is publishable.
 """
 from __future__ import annotations
 
@@ -16,12 +17,11 @@ import hashlib
 import json
 import pathlib
 import re
-import sys
 
 EXPECTED_VERSION = "0.6.4-authored-art4"
 EXPECTED_BRANCH = "godmode/production-assets-v6-rebuild"
 EXPECTED_CHANNEL = "github-pages-test-no-actions"
-EXPECTED_QUALIFICATION = "all-gdscript+release-integrity+live-binding+art4-reference+art4-pixel+systems-stress+input-lifecycle+legacy+boot+web+counteraudit+mutation-countercounteraudit"
+EXPECTED_QUALIFICATION = "all-gdscript+release-integrity+live-binding+art4-reference+art4-pixel+systems-stress+input-lifecycle+legacy+boot+web+counteraudit+mutation-countercounteraudit+final-artifact-countercounteraudit"
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -48,20 +48,41 @@ def sha256(path: pathlib.Path) -> str:
     return digest.hexdigest()
 
 
+def verify_mutation_report(report: dict, label: str, minimum: int = 8) -> int:
+    if report.get("passed") is not True:
+        fail(f"{label} is not passing")
+    count = int(report.get("mutation_tests", 0))
+    if count < minimum:
+        fail(f"{label} contains too few mutation tests")
+    rejected = report.get("rejected_mutations", [])
+    if not isinstance(rejected, list) or len(rejected) != count:
+        fail(f"{label} does not prove rejection of every mutation")
+    if len(set(str(value) for value in rejected)) != count:
+        fail(f"{label} contains duplicate mutation evidence")
+    return count
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("root", nargs="?", default="build/web")
-    parser.add_argument("--structural", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--structural", action="store_true")
+    mode.add_argument("--pre-final", action="store_true")
     args = parser.parse_args()
 
     root = pathlib.Path(args.root).resolve()
+    strictish = not args.structural
+    fully_strict = not args.structural and not args.pre_final
+
     required = ["index.html", "index.js", "index.wasm", "index.pck", ".nojekyll", "build-info.json"]
-    if not args.structural:
+    if strictish:
         required.extend([
             "qualification-proof.json",
             "qualification/counteraudit-report.json",
             "qualification/countercounteraudit-report.json",
         ])
+    if fully_strict:
+        required.append("qualification/final-artifact-countercounteraudit-report.json")
     for name in required:
         path = root / name
         if not path.exists():
@@ -111,7 +132,7 @@ def main() -> int:
         fail("PWA-only files present in Pages test export: " + ", ".join(present))
 
     proof_summary: dict = {}
-    if not args.structural:
+    if strictish:
         if info.get("playable") is not True or info.get("qualified") is not True:
             fail("artifact is not explicitly marked playable and qualified")
         if info.get("qualification") != EXPECTED_QUALIFICATION:
@@ -139,13 +160,7 @@ def main() -> int:
             fail("portable counteraudit report revision mismatch")
         if counter.get("source_commit") != source_commit:
             fail("portable counteraudit report source commit mismatch")
-        if countercounter.get("passed") is not True:
-            fail("portable countercounteraudit report is not passing")
-        if int(countercounter.get("mutation_tests", 0)) < 8:
-            fail("portable countercounteraudit report contains too few mutation tests")
-        rejected = countercounter.get("rejected_mutations", [])
-        if not isinstance(rejected, list) or len(rejected) != int(countercounter.get("mutation_tests", 0)):
-            fail("portable countercounteraudit report does not prove rejection of every mutation")
+        countercounter_tests = verify_mutation_report(countercounter, "portable countercounteraudit report")
 
         expected_counter_hash = str(proof.get("counteraudit_report_sha256", ""))
         expected_countercounter_hash = str(proof.get("countercounteraudit_report_sha256", ""))
@@ -165,12 +180,27 @@ def main() -> int:
         proof_summary = {
             "counteraudit_report_sha256": actual_counter_hash,
             "countercounteraudit_report_sha256": actual_countercounter_hash,
-            "mutation_tests": int(countercounter.get("mutation_tests", 0)),
+            "countercounteraudit_mutation_tests": countercounter_tests,
         }
+
+        if fully_strict:
+            if proof.get("final_countercounteraudit_passed") is not True:
+                fail("qualification proof does not attest final-artifact countercounteraudit success")
+            final_path = root / "qualification" / "final-artifact-countercounteraudit-report.json"
+            final_report = load_json(final_path, "qualification/final-artifact-countercounteraudit-report.json")
+            final_tests = verify_mutation_report(final_report, "final-artifact countercounteraudit report")
+            expected_final_hash = str(proof.get("final_countercounteraudit_report_sha256", ""))
+            if not SHA256.fullmatch(expected_final_hash):
+                fail("qualification proof has malformed final_countercounteraudit_report_sha256")
+            actual_final_hash = sha256(final_path)
+            if actual_final_hash != expected_final_hash:
+                fail("final-artifact countercounteraudit report hash does not match qualification proof")
+            proof_summary["final_countercounteraudit_report_sha256"] = actual_final_hash
+            proof_summary["final_countercounteraudit_mutation_tests"] = final_tests
 
     report = {
         "passed": True,
-        "mode": "structural" if args.structural else "strict",
+        "mode": "structural" if args.structural else ("pre-final" if args.pre_final else "strict"),
         "root": str(root),
         "version": info["version"],
         "source_commit": source_commit,
@@ -184,6 +214,8 @@ def main() -> int:
     print(json.dumps(report, indent=2, sort_keys=True))
     if args.structural:
         print("EDEN_WEB_EXPORT_STRUCTURAL_VERIFIER=PASS")
+    elif args.pre_final:
+        print("EDEN_WEB_EXPORT_PRE_FINAL_VERIFIER=PASS")
     else:
         print("EDEN_WEB_EXPORT_VERIFIER=PASS")
     return 0
