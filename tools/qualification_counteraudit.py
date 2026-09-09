@@ -38,6 +38,7 @@ EXPECTED_AUDIT_MARKERS = {
     "v8_art4_reference_audit.log": "EDEN_FALL_V8_ART4_REFERENCE_AUDIT=PASS",
     "v8_art4_pixel_counteraudit.log": "EDEN_FALL_V8_ART4_PIXEL_COUNTERAUDIT=PASS",
     "v8_systems_stress_counteraudit.log": "EDEN_FALL_V8_SYSTEMS_STRESS_COUNTERAUDIT=PASS",
+    "v8_expressive_range_counteraudit.log": "EDEN_FALL_V8_EXPRESSIVE_RANGE_COUNTERAUDIT=PASS",
     "v8_art_direction_audit.log": "EDEN_FALL_V8_ART_DIRECTION_AUDIT=PASS",
     "v8_presentation_audit.log": "EDEN_FALL_V8_PRESENTATION_AUDIT=PASS",
     "v6_factory_audit.log": "EDEN_FALL_V6_FACTORY_AUDIT=PASS",
@@ -137,9 +138,17 @@ def parse_toolchain_log(path: pathlib.Path, errors: list[str]) -> dict[str, str]
     for key, value in expected.items():
         if values.get(key) != value:
             errors.append(f"toolchain provenance mismatch for {key}")
-    template_hash = values.get("EDEN_TOOLCHAIN_WEB_TEMPLATE_SHA256", "")
-    if not SHA256.fullmatch(template_hash):
+    expected_template_hash = values.get("EDEN_TOOLCHAIN_EXPECTED_WEB_TEMPLATE_SHA256", "")
+    installed_template_hash = values.get("EDEN_TOOLCHAIN_WEB_TEMPLATE_SHA256", "")
+    if not SHA256.fullmatch(expected_template_hash):
+        errors.append("TPZ-derived Web template evidence is not a SHA-256 digest")
+    if not SHA256.fullmatch(installed_template_hash):
         errors.append("installed Web template evidence is not a SHA-256 digest")
+    if expected_template_hash and installed_template_hash and expected_template_hash != installed_template_hash:
+        errors.append("installed Web template digest does not match the member derived from the verified official TPZ")
+    template_member = values.get("EDEN_TOOLCHAIN_WEB_TEMPLATE_MEMBER", "")
+    if not template_member.endswith("web_nothreads_release.zip"):
+        errors.append(f"toolchain Web template member is unexpected: {template_member!r}")
     engine_version = values.get("EDEN_TOOLCHAIN_ENGINE_VERSION", "")
     if not engine_version.startswith("4.7.1.stable"):
         errors.append(f"toolchain engine evidence is not exact 4.7.1 stable: {engine_version!r}")
