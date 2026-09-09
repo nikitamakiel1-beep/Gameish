@@ -11,10 +11,20 @@ if [[ "$BRANCH" != "godmode/production-assets-v6-rebuild" ]]; then
 fi
 
 mkdir -p .codespaces
+rm -f .codespaces/build-ok
+printf '%s\n' "building" > .codespaces/build-failed
 
-echo "[codespaces] Rebuilding and qualifying EDEN//FALL V8 with exact Godot 4.7.1..."
-bash tools/export_web_no_actions.sh 2>&1 | tee .codespaces/build.log
-touch .codespaces/build-ok
+BUILD_LOG="$ROOT/.codespaces/build.log"
+: > "$BUILD_LOG"
+echo "[codespaces] Rebuilding and qualifying EDEN//FALL Art4 with exact Godot 4.7.1..."
+if ! bash tools/export_web_no_actions.sh 2>&1 | tee "$BUILD_LOG"; then
+  printf '%s\n' "failed $(date -u +%Y-%m-%dT%H:%M:%SZ)" > .codespaces/build-failed
+  echo "ERROR: EDEN//FALL qualification/export failed. Preview server was not restarted." >&2
+  exit 3
+fi
+
+SOURCE_SHA="$(git rev-parse HEAD)"
+printf '%s\n' "$SOURCE_SHA" > .codespaces/build-ok
 rm -f .codespaces/build-failed
 
 # Codespaces is an iterative preview origin. Older PWA builds may have left a
@@ -22,6 +32,11 @@ rm -f .codespaces/build-failed
 # deliberately non-PWA. Publish a one-shot retirement page next to the build;
 # it unregisters workers and clears Cache Storage without touching save data.
 cp tools/codespaces_purge.html build/web/purge.html
+
+# Re-verify after adding the cache-retirement helper. The verifier intentionally
+# ignores purge.html but proves the qualified Godot payload is still intact.
+python3 tools/verify_web_export.py build/web > .codespaces/web-verifier.log
+cat .codespaces/web-verifier.log
 
 if [[ -f .codespaces/preview.pid ]]; then
   PID="$(cat .codespaces/preview.pid 2>/dev/null || true)"
@@ -32,4 +47,4 @@ if [[ -f .codespaces/preview.pid ]]; then
   rm -f .codespaces/preview.pid
 fi
 
-bash tools/codespaces_serve.sh
+exec bash tools/codespaces_serve.sh
