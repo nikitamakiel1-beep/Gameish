@@ -1,23 +1,27 @@
 #!/usr/bin/env python3
 """Independent counteraudit for an EDEN//FALL qualification run.
 
-Re-reads raw Godot logs, exact PASS markers, source/toolchain provenance and Web
-payload hashes while build-info.json is still explicitly pending/unqualified.
+Re-reads raw Godot logs, exact PASS markers, source provenance, independently
+recomputed toolchain provenance, and Web payload hashes while build-info.json
+is still explicitly pending/unqualified.
 """
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
+import os
 import pathlib
 import re
 import subprocess
 import sys
+import zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 EXPECTED_VERSION = "0.6.4-authored-art4"
 EXPECTED_BRANCH = "godmode/production-assets-v6-rebuild"
 PENDING_QUALIFICATION = "pending-counteraudits"
+GODOT_VERSION = "4.7.1"
 GODOT_ARCHIVE_SHA256 = "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba"
 TEMPLATES_ARCHIVE_SHA256 = "86409db6200b6f8fd3230989c2d2002851f3dd18acf11d7bdbafddf5a0dd0f72"
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
@@ -74,6 +78,28 @@ def sha256(path: pathlib.Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def zip_member_digest(archive: pathlib.Path, member: str) -> str:
+    digest = hashlib.sha256()
+    with zipfile.ZipFile(archive) as outer:
+        with outer.open(member) as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+    return digest.hexdigest()
+
+
+def unique_zip_member(archive: pathlib.Path, predicate, label: str, errors: list[str]) -> str:
+    try:
+        with zipfile.ZipFile(archive) as outer:
+            members = [name for name in outer.namelist() if predicate(name)]
+    except (OSError, zipfile.BadZipFile) as exc:
+        errors.append(f"cannot inspect {label} archive: {exc}")
+        return ""
+    if len(members) != 1:
+        errors.append(f"expected exactly one {label} archive member, found {len(members)}")
+        return ""
+    return members[0]
 
 
 def git_head() -> str:
@@ -155,6 +181,81 @@ def parse_toolchain_log(path: pathlib.Path, errors: list[str]) -> dict[str, str]
     return values
 
 
+def template_home() -> pathlib.Path:
+    xdg = os.environ.get("XDG_DATA_HOME", "").strip()
+    data_home = pathlib.Path(xdg).expanduser() if xdg else pathlib.Path.home() / ".local" / "share"
+    return data_home / "godot" / "export_templates" / f"{GODOT_VERSION}.stable"
+
+
+def recompute_toolchain(log_values: dict[str, str], errors: list[str]) -> dict[str, str]:
+    configured = os.environ.get("EDEN_TOOLS_DIR", "").strip()
+    tools_dir = pathlib.Path(configured).expanduser() if configured else ROOT / ".tools"
+    downloads = tools_dir / "downloads"
+    godot_archive = downloads / f"Godot_v{GODOT_VERSION}-stable_linux.x86_64.zip"
+    templates_archive = downloads / f"Godot_v{GODOT_VERSION}-stable_export_templates.tpz"
+    installed_editor = tools_dir / f"godot-{GODOT_VERSION}" / "godot"
+    installed_template = template_home() / "web_nothreads_release.zip"
+    evidence: dict[str, str] = {}
+
+    for path, expected, label in (
+        (godot_archive, GODOT_ARCHIVE_SHA256, "Godot editor archive"),
+        (templates_archive, TEMPLATES_ARCHIVE_SHA256, "Godot templates archive"),
+    ):
+        if not path.is_file() or path.stat().st_size == 0:
+            errors.append(f"independent toolchain evidence missing/empty: {label}")
+            continue
+        actual = sha256(path)
+        evidence[label] = actual
+        if actual != expected:
+            errors.append(f"independent {label} SHA-256 mismatch")
+
+    if godot_archive.is_file() and godot_archive.stat().st_size > 0:
+        editor_member = unique_zip_member(
+            godot_archive,
+            lambda name: name.endswith("stable_linux.x86_64") and not name.endswith("/"),
+            "Godot Linux editor",
+            errors,
+        )
+        if editor_member:
+            archive_editor_hash = zip_member_digest(godot_archive, editor_member)
+            evidence["editor_member"] = editor_member
+            evidence["editor_member_sha256"] = archive_editor_hash
+            if not installed_editor.is_file() or installed_editor.stat().st_size == 0:
+                errors.append("installed Godot editor is missing/empty during independent counteraudit")
+            else:
+                installed_editor_hash = sha256(installed_editor)
+                evidence["installed_editor_sha256"] = installed_editor_hash
+                if installed_editor_hash != archive_editor_hash:
+                    errors.append("installed Godot editor differs from the member in the verified official archive")
+
+    if templates_archive.is_file() and templates_archive.stat().st_size > 0:
+        template_member = unique_zip_member(
+            templates_archive,
+            lambda name: name == "web_nothreads_release.zip" or name.endswith("/web_nothreads_release.zip"),
+            "Web no-threads template",
+            errors,
+        )
+        if template_member:
+            derived_template_hash = zip_member_digest(templates_archive, template_member)
+            evidence["template_member"] = template_member
+            evidence["template_member_sha256"] = derived_template_hash
+            if log_values.get("EDEN_TOOLCHAIN_WEB_TEMPLATE_MEMBER") != template_member:
+                errors.append("toolchain log template member differs from independently derived TPZ member")
+            if log_values.get("EDEN_TOOLCHAIN_EXPECTED_WEB_TEMPLATE_SHA256") != derived_template_hash:
+                errors.append("toolchain log expected template digest differs from independently derived TPZ digest")
+            if not installed_template.is_file() or installed_template.stat().st_size == 0:
+                errors.append("installed Web no-threads template is missing/empty during independent counteraudit")
+            else:
+                installed_template_hash = sha256(installed_template)
+                evidence["installed_template_sha256"] = installed_template_hash
+                if installed_template_hash != derived_template_hash:
+                    errors.append("installed Web no-threads template differs from the verified official TPZ member")
+                if log_values.get("EDEN_TOOLCHAIN_WEB_TEMPLATE_SHA256") != installed_template_hash:
+                    errors.append("toolchain log installed template digest differs from independent rehash")
+
+    return evidence
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--build", default=str(ROOT / "build" / "web"))
@@ -182,7 +283,7 @@ def main() -> int:
 
     if info.get("version") != EXPECTED_VERSION:
         errors.append("pending build version mismatch")
-    if info.get("godot") != "4.7.1":
+    if info.get("godot") != GODOT_VERSION:
         errors.append("pending build Godot version mismatch")
     if info.get("source_branch") != EXPECTED_BRANCH:
         errors.append("pending build source branch mismatch")
@@ -228,6 +329,7 @@ def main() -> int:
             marker_exact_once(path, marker, errors)
 
     toolchain = parse_toolchain_log(validation / "toolchain-provenance.log", errors)
+    recomputed_toolchain = recompute_toolchain(toolchain, errors)
 
     hash_manifest_path = validation / "web-sha256.txt"
     try:
@@ -264,6 +366,7 @@ def main() -> int:
         "exact_markers": len(EXPECTED_AUDIT_MARKERS) + len(NON_GODOT_MARKERS),
         "core_hashes_checked": len(CORE_FILES),
         "toolchain": toolchain,
+        "recomputed_toolchain": recomputed_toolchain,
         "errors": errors,
         "passed": not errors,
     }
