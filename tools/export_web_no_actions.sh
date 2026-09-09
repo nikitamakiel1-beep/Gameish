@@ -3,8 +3,8 @@ set -euo pipefail
 
 # EDEN//FALL — Codespaces/local Web export, explicitly without GitHub Actions.
 # Builds the production feature branch with exact Godot 4.7.1 and fails closed
-# on tooling syntax, dirty tracked source, project-wide GDScript compilation,
-# release binding, product audits, boot, Web integrity, PWA state and revision.
+# through audit -> counteraudit -> mutation countercounteraudit before an artifact
+# can be marked playable/qualified.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TOOLS_DIR="${EDEN_TOOLS_DIR:-$ROOT/.tools}"
@@ -19,6 +19,7 @@ TEMPLATE_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/godot/export_templates/${GOD
 BUILD_DIR="$ROOT/build/web"
 VALIDATION_DIR="$ROOT/validation/no-actions-art4"
 PRODUCT_REVISION="0.6.4-authored-art4"
+FULL_QUALIFICATION="all-gdscript+release-integrity+live-binding+art4+legacy+boot+web+counteraudit+mutation-countercounteraudit"
 SOURCE_BRANCH="godmode/production-assets-v6-rebuild"
 
 need() {
@@ -28,9 +29,9 @@ for tool in bash curl unzip git python3 timeout tee grep find sha256sum basename
   need "$tool"
 done
 
-# Fail before any expensive engine work if the repository helpers themselves are
-# syntactically broken.
+# Counteraudit the helpers and the audit wiring before any expensive engine work.
 python3 "$ROOT/tools/static_tooling_audit.py"
+python3 "$ROOT/tools/audit_source_counteraudit.py"
 
 cd "$ROOT"
 CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
@@ -56,9 +57,17 @@ if [[ ! "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
 fi
 echo "[eden] source: ${CURRENT_BRANCH:-detached} @ $SOURCE_SHA"
 
-rm -rf "$VALIDATION_DIR"
+# Invalidate any previous preview immediately. A failed new qualification must
+# never leave an older qualified build available under build/web.
+mkdir -p "$ROOT/.codespaces"
+rm -f "$ROOT/.codespaces/build-ok"
+touch "$ROOT/.codespaces/build-failed"
+printf '%s\n' "$SOURCE_SHA" > "$ROOT/.codespaces/build-in-progress"
+rm -rf "$VALIDATION_DIR" "$BUILD_DIR"
 mkdir -p "$GODOT_DIR" "$DOWNLOAD_DIR" "$BUILD_DIR" "$VALIDATION_DIR"
 python3 "$ROOT/tools/static_tooling_audit.py" | tee "$VALIDATION_DIR/tooling-audit.log"
+python3 "$ROOT/tools/audit_source_counteraudit.py" | tee "$VALIDATION_DIR/audit-source-counteraudit.log"
+printf '%s\n' "$SOURCE_SHA" > "$VALIDATION_DIR/source-commit.txt"
 
 if [[ ! -x "$GODOT_DIR/godot" ]]; then
   echo "[eden] downloading Godot ${GODOT_VERSION} Linux editor"
@@ -116,13 +125,13 @@ IMPORT_LOG="$VALIDATION_DIR/import.log"
 "$GODOT" --headless --audio-driver Dummy --path "$ROOT" --editor --quit --verbose 2>&1 | tee "$IMPORT_LOG"
 fatal_log "$IMPORT_LOG"
 
-# Prove every production/test GDScript loads, then prove the explicitly ordered
-# V7/V8 dependency chain and release contracts.
+# Audit layer 1: every script and the explicitly ordered production dependency chain.
 run_audit "res://tests/all_gdscript_compile_audit.gd"
 run_audit "res://tests/v8_compile_chain_probe.gd"
 
 AUDITS=(
   "res://tests/v8_release_integrity_audit.gd"
+  "res://tests/v8_live_binding_counteraudit.gd"
   "res://tests/v8_art4_reference_audit.gd"
   "res://tests/v8_art_direction_audit.gd"
   "res://tests/v8_presentation_audit.gd"
@@ -150,8 +159,6 @@ if [[ $BOOT_CODE -ne 0 && $BOOT_CODE -ne 124 ]]; then
 fi
 fatal_log "$BOOT_LOG"
 
-rm -rf "$BUILD_DIR"
-mkdir -p "$BUILD_DIR"
 echo "[eden] exporting non-threaded Web release"
 EXPORT_LOG="$VALIDATION_DIR/export.log"
 "$GODOT" --headless --audio-driver Dummy --path "$ROOT" --export-release "Web" "$BUILD_DIR/index.html" 2>&1 | tee "$EXPORT_LOG"
@@ -160,7 +167,6 @@ fatal_log "$EXPORT_LOG"
 for required in index.html index.js index.wasm index.pck; do
   [[ -s "$BUILD_DIR/$required" ]] || { echo "ERROR: missing Web artifact: $required" >&2; exit 9; }
 done
-
 if [[ -e "$BUILD_DIR/index.service.worker.js" || -e "$BUILD_DIR/index.offline.html" ]]; then
   echo "ERROR: Web test export unexpectedly generated PWA-only files" >&2
   exit 10
@@ -175,6 +181,7 @@ if ! grep -Fq "$PRODUCT_REVISION" "$BUILD_DIR/index.html"; then
 fi
 
 touch "$BUILD_DIR/.nojekyll"
+# Deliberately pending: no failed run may leave a publishable metadata claim.
 python3 - "$BUILD_DIR/build-info.json" "$SOURCE_SHA" "$PRODUCT_REVISION" <<'PY'
 import datetime, json, pathlib, sys
 path = pathlib.Path(sys.argv[1])
@@ -190,16 +197,73 @@ data = {
     "published_branch": "gh-pages",
     "pwa": False,
     "threads": False,
-    "playable": True,
-    "qualified": True,
-    "qualification": "all-gdscript+release-integrity+art4+legacy+boot+web",
+    "playable": False,
+    "qualified": False,
+    "qualification": "pending-counteraudits",
     "built_at": datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z"),
 }
 path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 PY
 
-python3 "$ROOT/tools/verify_web_export.py" "$BUILD_DIR" | tee "$VALIDATION_DIR/web-verifier.log"
+# Structural verification is allowed before qualification; strict verification is not.
+python3 "$ROOT/tools/verify_web_export.py" --structural "$BUILD_DIR" | tee "$VALIDATION_DIR/structural-verifier.log"
 sha256sum "$BUILD_DIR/index.html" "$BUILD_DIR/index.js" "$BUILD_DIR/index.wasm" "$BUILD_DIR/index.pck" > "$VALIDATION_DIR/web-sha256.txt"
-printf '%s\n' "$SOURCE_SHA" > "$VALIDATION_DIR/source-commit.txt"
+
+# Audit layer 2: independently re-read raw logs, PASS markers, provenance and hashes.
+COUNTER_REPORT="$VALIDATION_DIR/qualification-counteraudit-report.json"
+python3 "$ROOT/tools/qualification_counteraudit.py" \
+  --build "$BUILD_DIR" --validation "$VALIDATION_DIR" --report "$COUNTER_REPORT" \
+  | tee "$VALIDATION_DIR/qualification-counteraudit.log"
+
+# Audit layer 3: mutation-test both the structural verifier and layer-2 counteraudit.
+COUNTERCOUNTER_REPORT="$VALIDATION_DIR/qualification-countercounteraudit-report.json"
+python3 "$ROOT/tools/qualification_countercounteraudit.py" \
+  --build "$BUILD_DIR" --validation "$VALIDATION_DIR" --report "$COUNTERCOUNTER_REPORT" \
+  | tee "$VALIDATION_DIR/qualification-countercounteraudit.log"
+
+# Only now promote the artifact to playable/qualified and bind the two independent
+# reports into a publishable qualification proof.
+python3 - "$BUILD_DIR/build-info.json" "$BUILD_DIR/qualification-proof.json" \
+  "$COUNTER_REPORT" "$COUNTERCOUNTER_REPORT" "$SOURCE_SHA" "$PRODUCT_REVISION" "$FULL_QUALIFICATION" <<'PY'
+import hashlib, json, pathlib, sys
+info_path = pathlib.Path(sys.argv[1])
+proof_path = pathlib.Path(sys.argv[2])
+counter_path = pathlib.Path(sys.argv[3])
+countercounter_path = pathlib.Path(sys.argv[4])
+source_sha = sys.argv[5]
+revision = sys.argv[6]
+qualification = sys.argv[7]
+
+def digest(path: pathlib.Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+counter = json.loads(counter_path.read_text(encoding="utf-8"))
+countercounter = json.loads(countercounter_path.read_text(encoding="utf-8"))
+if counter.get("passed") is not True or countercounter.get("passed") is not True:
+    raise SystemExit("ERROR: cannot finalize qualification from failing counteraudit report")
+
+info = json.loads(info_path.read_text(encoding="utf-8"))
+info["playable"] = True
+info["qualified"] = True
+info["qualification"] = qualification
+info_path.write_text(json.dumps(info, indent=2) + "\n", encoding="utf-8")
+
+proof = {
+    "revision": revision,
+    "source_commit": source_sha,
+    "qualification": qualification,
+    "counteraudit_passed": True,
+    "countercounteraudit_passed": True,
+    "counteraudit_report_sha256": digest(counter_path),
+    "countercounteraudit_report_sha256": digest(countercounter_path),
+}
+proof_path.write_text(json.dumps(proof, indent=2) + "\n", encoding="utf-8")
+PY
+
+# Strict verifier is the only state accepted by the publisher/preview server.
+python3 "$ROOT/tools/verify_web_export.py" "$BUILD_DIR" | tee "$VALIDATION_DIR/web-verifier.log"
+rm -f "$ROOT/.codespaces/build-failed" "$ROOT/.codespaces/build-in-progress"
+touch "$ROOT/.codespaces/build-ok"
 echo "[eden] Web export qualified: $BUILD_DIR"
 echo "[eden] product revision: $PRODUCT_REVISION"
+echo "[eden] qualification: $FULL_QUALIFICATION"
