@@ -29,6 +29,7 @@ AUDIT_LOGS = [
     "v8_release_integrity_audit.log",
     "v8_live_binding_counteraudit.log",
     "v8_art4_reference_audit.log",
+    "v8_art4_pixel_counteraudit.log",
     "v8_art_direction_audit.log",
     "v8_presentation_audit.log",
     "v6_factory_audit.log",
@@ -45,6 +46,7 @@ CRITICAL_MARKERS = {
     "v8_release_integrity_audit.log": "EDEN_FALL_V8_RELEASE_INTEGRITY_AUDIT=PASS",
     "v8_live_binding_counteraudit.log": "EDEN_FALL_V8_LIVE_BINDING_COUNTERAUDIT=PASS",
     "v8_art4_reference_audit.log": "EDEN_FALL_V8_ART4_REFERENCE_AUDIT=PASS",
+    "v8_art4_pixel_counteraudit.log": "EDEN_FALL_V8_ART4_PIXEL_COUNTERAUDIT=PASS",
     "structural-verifier.log": "EDEN_WEB_EXPORT_STRUCTURAL_VERIFIER=PASS",
 }
 FATAL_TEXT = (
@@ -188,6 +190,7 @@ def main() -> int:
         "source_commit": head,
         "required_logs": len(REQUIRED_LOGS),
         "audit_logs": len(AUDIT_LOGS),
+        "critical_markers": len(CRITICAL_MARKERS),
         "core_hashes_checked": len(CORE_FILES),
         "errors": errors,
         "passed": not errors,
