@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""Fail closed on an EDEN//FALL GitHub Pages Web export.
+"""Fail closed on an EDEN//FALL Web export.
 
-This verifier does not require Godot. It validates the static artifact after the
-Godot CLI export and before gh-pages is replaced. It deliberately rejects stale
-Art3/v0.6.0 packages, PWA leftovers, malformed provenance, and suspicious payloads.
+Two modes are intentional:
+
+* --structural validates the freshly exported payload while it is still marked
+  pending/unqualified.
+* strict/default validates a publishable artifact and requires the qualification
+  proof written only after audit, counteraudit and mutation countercounteraudit.
 """
 from __future__ import annotations
 
+import argparse
 import json
 import pathlib
 import re
@@ -15,17 +19,35 @@ import sys
 EXPECTED_VERSION = "0.6.4-authored-art4"
 EXPECTED_BRANCH = "godmode/production-assets-v6-rebuild"
 EXPECTED_CHANNEL = "github-pages-test-no-actions"
-EXPECTED_QUALIFICATION = "all-gdscript+release-integrity+art4+legacy+boot+web"
+EXPECTED_QUALIFICATION = "all-gdscript+release-integrity+live-binding+art4+legacy+boot+web+counteraudit+mutation-countercounteraudit"
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
+SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 
 def fail(message: str) -> None:
     raise SystemExit(f"ERROR: {message}")
 
 
+def load_json(path: pathlib.Path, label: str) -> dict:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        fail(f"invalid {label}: {exc}")
+    if not isinstance(value, dict):
+        fail(f"{label} must contain a JSON object")
+    return value
+
+
 def main() -> int:
-    root = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "build/web").resolve()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("root", nargs="?", default="build/web")
+    parser.add_argument("--structural", action="store_true")
+    args = parser.parse_args()
+
+    root = pathlib.Path(args.root).resolve()
     required = ["index.html", "index.js", "index.wasm", "index.pck", ".nojekyll", "build-info.json"]
+    if not args.structural:
+        required.append("qualification-proof.json")
     for name in required:
         path = root / name
         if not path.exists():
@@ -35,10 +57,7 @@ def main() -> int:
 
     html = (root / "index.html").read_text(encoding="utf-8", errors="replace")
     js = (root / "index.js").read_text(encoding="utf-8", errors="replace")
-    try:
-        info = json.loads((root / "build-info.json").read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        fail(f"invalid build-info.json: {exc}")
+    info = load_json(root / "build-info.json", "build-info.json")
 
     if info.get("version") != EXPECTED_VERSION:
         fail(f"unexpected build version: {info.get('version')!r}; expected {EXPECTED_VERSION!r}")
@@ -53,10 +72,6 @@ def main() -> int:
         fail(f"source_commit is not a full lowercase Git SHA: {source_commit!r}")
     if info.get("pwa") is not False or info.get("threads") is not False:
         fail("GitHub Pages test channel must be non-PWA and non-threaded")
-    if info.get("playable") is not True or info.get("qualified") is not True:
-        fail("artifact is not explicitly marked playable and qualified")
-    if info.get("qualification") != EXPECTED_QUALIFICATION:
-        fail(f"unexpected qualification contract: {info.get('qualification')!r}")
 
     if EXPECTED_VERSION not in html:
         fail("HTML does not contain the expected Art4 build marker")
@@ -81,17 +96,51 @@ def main() -> int:
     if present:
         fail("PWA-only files present in Pages test export: " + ", ".join(present))
 
-    print(json.dumps({
+    proof_summary: dict = {}
+    if not args.structural:
+        if info.get("playable") is not True or info.get("qualified") is not True:
+            fail("artifact is not explicitly marked playable and qualified")
+        if info.get("qualification") != EXPECTED_QUALIFICATION:
+            fail(f"unexpected qualification contract: {info.get('qualification')!r}")
+
+        proof = load_json(root / "qualification-proof.json", "qualification-proof.json")
+        if proof.get("revision") != EXPECTED_VERSION:
+            fail("qualification proof revision mismatch")
+        if proof.get("source_commit") != source_commit:
+            fail("qualification proof source commit mismatch")
+        if proof.get("qualification") != EXPECTED_QUALIFICATION:
+            fail("qualification proof contract mismatch")
+        if proof.get("counteraudit_passed") is not True:
+            fail("qualification proof does not attest counteraudit success")
+        if proof.get("countercounteraudit_passed") is not True:
+            fail("qualification proof does not attest countercounteraudit success")
+        for key in ("counteraudit_report_sha256", "countercounteraudit_report_sha256"):
+            value = str(proof.get(key, ""))
+            if not SHA256.fullmatch(value):
+                fail(f"qualification proof has malformed {key}")
+        proof_summary = {
+            "counteraudit_report_sha256": proof["counteraudit_report_sha256"],
+            "countercounteraudit_report_sha256": proof["countercounteraudit_report_sha256"],
+        }
+
+    report = {
         "passed": True,
+        "mode": "structural" if args.structural else "strict",
         "root": str(root),
         "version": info["version"],
         "source_commit": source_commit,
-        "qualification": info["qualification"],
+        "qualification": info.get("qualification"),
         "wasm_bytes": wasm_path.stat().st_size,
         "pck_bytes": pck_path.stat().st_size,
         "pwa": False,
         "threads": False,
-    }, indent=2))
+        "proof": proof_summary,
+    }
+    print(json.dumps(report, indent=2, sort_keys=True))
+    if args.structural:
+        print("EDEN_WEB_EXPORT_STRUCTURAL_VERIFIER=PASS")
+    else:
+        print("EDEN_WEB_EXPORT_VERIFIER=PASS")
     return 0
 
 
