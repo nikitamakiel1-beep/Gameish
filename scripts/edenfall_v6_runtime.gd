@@ -20,7 +20,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	super._process(delta)
-	performance_budget.call("enforce_post_frame", damage_numbers, pickups)
+	performance_budget.call("enforce_post_frame", damage_numbers, pickups, state == "run" and not paused)
 	_asset_trim_clock += delta
 	if _asset_trim_clock >= float(performance_budget.call("trim_interval")):
 		_asset_trim_clock = 0.0
