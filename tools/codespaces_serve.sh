@@ -11,7 +11,13 @@ VERIFY="$ROOT/tools/verify_web_export.py"
 
 mkdir -p "$ROOT/.codespaces"
 
-for required in index.html index.js index.wasm index.pck build-info.json .nojekyll; do
+if [[ -e "$ROOT/.codespaces/build-failed" ]] || [[ ! -e "$ROOT/.codespaces/build-ok" ]]; then
+  echo "ERROR: current Codespaces build is not in a completed qualified state" >&2
+  echo "[codespaces] Run: bash tools/codespaces_preview.sh" >&2
+  exit 2
+fi
+
+for required in index.html index.js index.wasm index.pck build-info.json qualification-proof.json .nojekyll; do
   if [[ ! -e "$BUILD_DIR/$required" ]] || { [[ "$required" != ".nojekyll" ]] && [[ ! -s "$BUILD_DIR/$required" ]]; }; then
     echo "ERROR: no qualified Web export exists; missing/empty $required" >&2
     echo "[codespaces] Run: bash tools/codespaces_preview.sh" >&2
@@ -27,53 +33,89 @@ if [[ ! -s "$VERIFY" ]]; then
   exit 2
 fi
 
+# Strict mode: structural-only or pending metadata is not accepted for preview.
 python3 "$VERIFY" "$BUILD_DIR" > "$ROOT/.codespaces/serve-verifier.log"
 
 CURRENT_SHA="$(git -C "$ROOT" rev-parse HEAD)"
-BUILD_SHA="$(python3 - "$BUILD_DIR/build-info.json" <<'PY'
-import json,sys
-print(json.load(open(sys.argv[1],encoding='utf-8')).get('source_commit',''))
+python3 - "$BUILD_DIR/build-info.json" "$BUILD_DIR/qualification-proof.json" "$CURRENT_SHA" <<'PY'
+import json, pathlib, sys
+info = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+proof = json.loads(pathlib.Path(sys.argv[2]).read_text(encoding="utf-8"))
+head = sys.argv[3]
+errors = []
+if info.get("source_commit") != head:
+    errors.append(f"build source {info.get('source_commit')} != HEAD {head}")
+if proof.get("source_commit") != head:
+    errors.append(f"proof source {proof.get('source_commit')} != HEAD {head}")
+if info.get("qualified") is not True or info.get("playable") is not True:
+    errors.append("build is not marked qualified/playable")
+if proof.get("counteraudit_passed") is not True or proof.get("countercounteraudit_passed") is not True:
+    errors.append("qualification proof is incomplete")
+if errors:
+    raise SystemExit("ERROR: refusing stale/unqualified preview: " + "; ".join(errors))
 PY
-)"
-if [[ "$BUILD_SHA" != "$CURRENT_SHA" ]]; then
-  echo "ERROR: refusing stale preview. build=$BUILD_SHA current=$CURRENT_SHA" >&2
-  echo "[codespaces] Rebuild with: bash tools/codespaces_preview.sh" >&2
-  exit 3
-fi
 
 if [[ -f "$PID_FILE" ]]; then
   OLD_PID="$(cat "$PID_FILE" 2>/dev/null || true)"
   if [[ -n "$OLD_PID" ]] && kill -0 "$OLD_PID" 2>/dev/null; then
     echo "[codespaces] EDEN//FALL preview already running on port $PORT (PID $OLD_PID)."
-    exit 0
+    # The process serves the same build directory. Verify its network view below
+    # instead of trusting the stale PID file alone.
+  else
+    rm -f "$PID_FILE"
   fi
-  rm -f "$PID_FILE"
 fi
 
-nohup python3 "$SERVER" --port "$PORT" --bind 0.0.0.0 --directory "$BUILD_DIR" >"$LOG_FILE" 2>&1 &
-PID=$!
-echo "$PID" > "$PID_FILE"
-sleep 0.5
+if [[ ! -f "$PID_FILE" ]]; then
+  nohup python3 "$SERVER" --port "$PORT" --bind 0.0.0.0 --directory "$BUILD_DIR" >"$LOG_FILE" 2>&1 &
+  PID=$!
+  echo "$PID" > "$PID_FILE"
+  sleep 0.5
 
-if ! kill -0 "$PID" 2>/dev/null; then
-  cat "$LOG_FILE" >&2 || true
-  rm -f "$PID_FILE"
-  echo "ERROR: preview server failed to start" >&2
-  exit 4
+  if ! kill -0 "$PID" 2>/dev/null; then
+    cat "$LOG_FILE" >&2 || true
+    rm -f "$PID_FILE"
+    echo "ERROR: preview server failed to start" >&2
+    exit 4
+  fi
 fi
 
-# Verify the listener from inside Codespaces before telling the user to open it.
+PID="$(cat "$PID_FILE")"
+# Verify the listener from inside Codespaces and counter-check the metadata as
+# served over HTTP, not only as files on disk.
 if command -v curl >/dev/null 2>&1; then
-  if ! curl --fail --silent --show-error --max-time 4 "http://127.0.0.1:${PORT}/build-info.json" >/dev/null; then
+  SERVED_INFO="$(mktemp)"
+  SERVED_PROOF="$(mktemp)"
+  cleanup_http_probe() { rm -f "$SERVED_INFO" "$SERVED_PROOF"; }
+  trap cleanup_http_probe EXIT
+  if ! curl --fail --silent --show-error --max-time 4 "http://127.0.0.1:${PORT}/build-info.json" -o "$SERVED_INFO" \
+    || ! curl --fail --silent --show-error --max-time 4 "http://127.0.0.1:${PORT}/qualification-proof.json" -o "$SERVED_PROOF"; then
     cat "$LOG_FILE" >&2 || true
     kill "$PID" >/dev/null 2>&1 || true
     rm -f "$PID_FILE"
-    echo "ERROR: preview process started but did not serve the qualified build" >&2
+    echo "ERROR: preview process did not serve qualification metadata" >&2
     exit 5
+  fi
+  if ! python3 - "$SERVED_INFO" "$SERVED_PROOF" "$CURRENT_SHA" <<'PY'
+import json, pathlib, sys
+info = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+proof = json.loads(pathlib.Path(sys.argv[2]).read_text(encoding="utf-8"))
+head = sys.argv[3]
+if info.get("source_commit") != head or proof.get("source_commit") != head:
+    raise SystemExit(1)
+if info.get("qualified") is not True or proof.get("countercounteraudit_passed") is not True:
+    raise SystemExit(1)
+PY
+  then
+    kill "$PID" >/dev/null 2>&1 || true
+    rm -f "$PID_FILE"
+    echo "ERROR: preview listener is serving stale/unqualified metadata" >&2
+    exit 6
   fi
 fi
 
-echo "[codespaces] EDEN//FALL Art4 preview serving qualified build/web on port $PORT with no-cache headers."
+echo "[codespaces] EDEN//FALL Art4 preview serving fully qualified build/web on port $PORT with no-cache headers."
 echo "[codespaces] Source: $CURRENT_SHA"
+echo "[codespaces] Audit chain: audit -> counteraudit -> mutation countercounteraudit"
 echo "[codespaces] If an older PWA ever controlled this origin, open /purge.html once before the game."
 echo "[codespaces] Open the forwarded port named: EDEN//FALL Web Preview"
