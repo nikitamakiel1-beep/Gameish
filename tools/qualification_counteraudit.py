@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Independent counteraudit for an EDEN//FALL qualification run.
 
-This script does not trust the exit status of the shell pipeline. It re-reads
-raw Godot logs, required PASS markers, source provenance and Web payload hashes.
-It is run while build-info.json is still explicitly pending/unqualified.
+Re-reads raw Godot logs, exact PASS markers, source provenance and Web payload
+hashes while build-info.json is still explicitly pending/unqualified.
 """
 from __future__ import annotations
 
@@ -20,31 +19,15 @@ EXPECTED_VERSION = "0.6.4-authored-art4"
 EXPECTED_BRANCH = "godmode/production-assets-v6-rebuild"
 PENDING_QUALIFICATION = "pending-counteraudits"
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
-PASS_RE = re.compile(r"\bEDEN_[A-Z0-9_]*(?:AUDIT|CHAIN)=PASS\b")
-FAIL_RE = re.compile(r"\bEDEN_[A-Z0-9_]*(?:AUDIT|CHAIN|COUNTERAUDIT)=FAIL\b")
+FAIL_RE = re.compile(r"\bEDEN_[A-Z0-9_]*(?:AUDIT|CHAIN|COUNTERAUDIT)=FAIL\b", re.IGNORECASE)
+FATAL_RE = re.compile(
+    r"SCRIPT ERROR|Parse Error|Parser Error|Compile Error|Invalid call|Invalid get index|"
+    r"Failed to load script|Failed to load resource|Cannot get class|FATAL:|"
+    r"ERROR:.*(?:script|resource|load|invalid)",
+    re.IGNORECASE,
+)
 
-AUDIT_LOGS = [
-    "all_gdscript_compile_audit.log",
-    "v8_compile_chain_probe.log",
-    "v8_release_integrity_audit.log",
-    "v8_live_binding_counteraudit.log",
-    "v8_art4_reference_audit.log",
-    "v8_art4_pixel_counteraudit.log",
-    "v8_systems_stress_counteraudit.log",
-    "v8_art_direction_audit.log",
-    "v8_presentation_audit.log",
-    "v6_factory_audit.log",
-    "v6_product_rebuild_audit.log",
-    "v6_input_lifecycle_audit.log",
-    "v7_masterpiece_audit.log",
-    "v7_runtime_quality_audit.log",
-    "v8_entropy_audit.log",
-    "v8_sprite_streaming_audit.log",
-]
-REQUIRED_LOGS = ["tooling-audit.log", "audit-source-counteraudit.log", "import.log", *AUDIT_LOGS, "boot.log", "export.log", "structural-verifier.log"]
-CRITICAL_MARKERS = {
-    "tooling-audit.log": "EDEN_STATIC_TOOLING_AUDIT=PASS",
-    "audit-source-counteraudit.log": "EDEN_AUDIT_SOURCE_COUNTERAUDIT=PASS",
+EXPECTED_AUDIT_MARKERS = {
     "all_gdscript_compile_audit.log": "EDEN_ALL_GDSCRIPT_COMPILE_AUDIT=PASS",
     "v8_compile_chain_probe.log": "EDEN_COMPILE_CHAIN=PASS",
     "v8_release_integrity_audit.log": "EDEN_FALL_V8_RELEASE_INTEGRITY_AUDIT=PASS",
@@ -52,20 +35,30 @@ CRITICAL_MARKERS = {
     "v8_art4_reference_audit.log": "EDEN_FALL_V8_ART4_REFERENCE_AUDIT=PASS",
     "v8_art4_pixel_counteraudit.log": "EDEN_FALL_V8_ART4_PIXEL_COUNTERAUDIT=PASS",
     "v8_systems_stress_counteraudit.log": "EDEN_FALL_V8_SYSTEMS_STRESS_COUNTERAUDIT=PASS",
+    "v8_art_direction_audit.log": "EDEN_FALL_V8_ART_DIRECTION_AUDIT=PASS",
+    "v8_presentation_audit.log": "EDEN_FALL_V8_PRESENTATION_AUDIT=PASS",
+    "v6_factory_audit.log": "EDEN_FALL_V6_FACTORY_AUDIT=PASS",
+    "v6_product_rebuild_audit.log": "EDEN_FALL_V6_COMPAT_AUDIT=PASS",
     "v6_input_lifecycle_audit.log": "EDEN_FALL_V6_INPUT_LIFECYCLE_AUDIT=PASS",
+    "v7_masterpiece_audit.log": "EDEN_FALL_V7_COMPAT_AUDIT=PASS",
+    "v7_runtime_quality_audit.log": "EDEN_FALL_V7_RUNTIME_COMPAT_AUDIT=PASS",
+    "v8_entropy_audit.log": "EDEN_FALL_V8_ENTROPY_AUDIT=PASS",
+    "v8_sprite_streaming_audit.log": "EDEN_FALL_V8_SPRITE_STREAMING_AUDIT=PASS",
+}
+REQUIRED_LOGS = [
+    "tooling-audit.log",
+    "audit-source-counteraudit.log",
+    "import.log",
+    *EXPECTED_AUDIT_MARKERS,
+    "boot.log",
+    "export.log",
+    "structural-verifier.log",
+]
+NON_GODOT_MARKERS = {
+    "tooling-audit.log": "EDEN_STATIC_TOOLING_AUDIT=PASS",
+    "audit-source-counteraudit.log": "EDEN_AUDIT_SOURCE_COUNTERAUDIT=PASS",
     "structural-verifier.log": "EDEN_WEB_EXPORT_STRUCTURAL_VERIFIER=PASS",
 }
-FATAL_TEXT = (
-    "SCRIPT ERROR",
-    "Parse Error",
-    "Parser Error",
-    "Compile Error",
-    "Failed to load script",
-    "Failed to load resource",
-    "Invalid call",
-    "Invalid get index",
-    "FATAL:",
-)
 CORE_FILES = ("index.html", "index.js", "index.wasm", "index.pck")
 
 
@@ -89,6 +82,18 @@ def git_head() -> str:
     return result.stdout.strip() if result.returncode == 0 else ""
 
 
+def git_branch() -> str:
+    result = subprocess.run(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+        cwd=ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
+    )
+    return result.stdout.strip() if result.returncode == 0 else ""
+
+
 def parse_hash_manifest(path: pathlib.Path) -> dict[str, str]:
     parsed: dict[str, str] = {}
     for line in path.read_text(encoding="utf-8").splitlines():
@@ -98,6 +103,12 @@ def parse_hash_manifest(path: pathlib.Path) -> dict[str, str]:
         name = pathlib.Path(parts[-1]).name
         parsed[name] = parts[0]
     return parsed
+
+
+def marker_exact_once(path: pathlib.Path, marker: str, errors: list[str]) -> None:
+    text = path.read_text(encoding="utf-8", errors="replace")
+    if text.count(marker) != 1:
+        errors.append(f"required marker must appear exactly once in {path.name}: {marker}")
 
 
 def main() -> int:
@@ -112,8 +123,11 @@ def main() -> int:
     errors: list[str] = []
 
     head = git_head()
+    branch = git_branch()
     if not SHA40.fullmatch(head):
         errors.append(f"cannot resolve current source HEAD: {head!r}")
+    if branch not in (EXPECTED_BRANCH, "HEAD"):
+        errors.append(f"counteraudit running from unexpected branch: {branch!r}")
 
     info_path = build / "build-info.json"
     try:
@@ -152,20 +166,20 @@ def main() -> int:
             errors.append(f"required qualification log missing/empty: {name}")
             continue
         text = path.read_text(encoding="utf-8", errors="replace")
-        for token in FATAL_TEXT:
-            if token in text:
-                errors.append(f"fatal diagnostic {token!r} found in {name}")
+        fatal = FATAL_RE.search(text)
+        if fatal:
+            errors.append(f"fatal diagnostic {fatal.group(0)!r} found in {name}")
         if FAIL_RE.search(text):
             errors.append(f"explicit FAIL marker found in {name}")
-        if name in AUDIT_LOGS and not PASS_RE.search(text):
-            errors.append(f"no audit/chain PASS marker found in {name}")
 
-    for name, marker in CRITICAL_MARKERS.items():
+    for name, marker in EXPECTED_AUDIT_MARKERS.items():
         path = validation / name
         if path.is_file():
-            text = path.read_text(encoding="utf-8", errors="replace")
-            if text.count(marker) != 1:
-                errors.append(f"critical marker must appear exactly once in {name}: {marker}")
+            marker_exact_once(path, marker, errors)
+    for name, marker in NON_GODOT_MARKERS.items():
+        path = validation / name
+        if path.is_file():
+            marker_exact_once(path, marker, errors)
 
     hash_manifest_path = validation / "web-sha256.txt"
     try:
@@ -173,6 +187,8 @@ def main() -> int:
     except OSError as exc:
         manifest = {}
         errors.append(f"missing Web hash manifest: {exc}")
+    if set(manifest) != set(CORE_FILES):
+        errors.append("Web hash manifest must contain exactly the four core payload files")
     for name in CORE_FILES:
         path = build / name
         if not path.is_file() or path.stat().st_size == 0:
@@ -194,9 +210,10 @@ def main() -> int:
     report = {
         "revision": EXPECTED_VERSION,
         "source_commit": head,
+        "source_branch": branch,
         "required_logs": len(REQUIRED_LOGS),
-        "audit_logs": len(AUDIT_LOGS),
-        "critical_markers": len(CRITICAL_MARKERS),
+        "audit_logs": len(EXPECTED_AUDIT_MARKERS),
+        "exact_markers": len(EXPECTED_AUDIT_MARKERS) + len(NON_GODOT_MARKERS),
         "core_hashes_checked": len(CORE_FILES),
         "errors": errors,
         "passed": not errors,
